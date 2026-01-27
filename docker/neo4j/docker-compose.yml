@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  neo4j:
+    image: neo4j:5.18
+    container_name: deltaforce-neo4j
+    ports:
+      - 7474:7474   # HTTP Web UI
+      - 7687:7687   # Bolt 协议端口
+    environment:
+      NEO4J_AUTH: neo4j/your_password
+      NEO4J_dbms_connector_bolt_advertised__address: localhost:7687
+      # 允许从文件URL导入CSV
+      NEO4J_dbms_security_allow__csv__import__from__file__urls: "true"
+      # 设置导入目录
+      NEO4J_dbms_directories_import: "/import"
+      # 启用 APOC 插件
+      NEO4J_PLUGINS: '["apoc"]'
+      # APOC 配置
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+      - ../../data/neo4j:/import
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "your_password", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_plugins:
