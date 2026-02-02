@@ -1,0 +1,182 @@
+{
+  "nodes": [
+    { "id": "class_assault", "labels": ["ClassType"], "props": { "class": "突击", "description": "突击兵有更强的战斗能力，在举镜瞄准状态下拥有更快的移动速度。" } },
+    { "id": "class_support", "labels": ["ClassType"], "props": { "class": "支援", "description": "支援兵有多样化的辅助手段，能以更快的速度救起同阵营友军。" } },
+    { "id": "class_engineer", "labels": ["ClassType"], "props": { "class": "工程", "description": "工程兵是道具使用专家，可用喷枪进行切割和维修。" } },
+    { "id": "class_recon", "labels": ["ClassType"], "props": { "class": "侦察", "description": "侦察兵精通战场情报收集，可用侦察电台获得战区信息。" } },
+
+
+    {"id": "op_honglang", "labels": ["Operator"], "props": { "idname": "红狼", "name": "凯·席尔瓦", "class": "突击", "background": "凯·席尔瓦少校的作战经验丰富，并且多次执行海外派驻任务。在北非的任务中负伤修养之后，他正式被G.T.I.招募，并且成为G.T.I.研制的单兵外骨骼系统的首个使用者"} },
+    {"id": "op_weilong", "labels": ["Operator"], "props": { "idname": "威龙", "name": "王宇浩", "class": "突击", "background": "王宇昊曾经所接受的训练与常规作战人员不同，他的身体素质与平衡能力和反应能力都是万里挑一，他的信念感和使命感更是G.T.I.重视他的原因。"} },
+    {"id": "op_wuming", "labels": ["Operator"], "props": { "idname": "无名", "name": "埃利·德·蒙贝尔", "class": "突击", "background": "无名曾接受过来自哈夫克的军事训练，也有丰富的佣兵经验，擅长信息干扰，精通多种战斗技巧。他是集单兵绕后、追踪伤害、闪光突破为一体的干员，对隐蔽突袭作战造诣极深，能在战场上出其不意地刺入敌方防御空缺。"} },
+    {"id": "op_jifeng", "labels": ["Operator"], "props": { "idname": "疾风", "name": "克莱尔·安·拜尔斯", "class": "突击", "background": "疾风是集高机动移动、缴械突入为一体的突击型干员。她可以在交战中提升自己的移动与翻滚速度，并使用钻墙电钻缴械掩体后的敌人，在战斗时还可以在原地布置锚点，进行闪回和自救，让敌人难以捕捉。"} },
+    {"id": "op_fengyi", "labels": ["Operator"], "props": { "idname": "蜂衣", "name": "罗伊·斯米", "class": "支援", "background": "罗伊·斯米是一名天生的军医，他有着生命至上的信念，专业的医疗支援能力，以及改变自己的决心。"} },
+    {"id": "op_gu", "labels": ["Operator"], "props": { "idname": "蛊", "name": "佐娅·庞琴科娃", "class": "支援", "background": "佐娅・庞琴科娃出身技术研究领域，可战斗热情丝毫不输作战人员。她生于军人家庭，研究项目都围绕辅助作战展开，承接作战任务也极为积极。佐娅能将现代神经化学与智能无人机作战完美融合，是一名独特且令人生畏的支援干员。"} },
+    {"id": "op_die", "labels": ["Operator"], "props": { "idname": "蝶", "name": "莉娜·范德梅尔", "class": "支援", "background": "蝶的医疗无人机可播撒纳米医疗粉尘，为队友回复生命值，并可以派遣救援无人机，自动救援周围倒地的队友，拥有优秀的补给作战能力。"} },
+    {"id": "op_muyangren", "labels": ["Operator"], "props": { "idname": "牧羊人", "name": "泰瑞·缪萨", "class": "工程", "background": "泰瑞·缪萨不光是一名工程人员，更是团队的粘合剂。他对于每个队员都有充分的了解，用他自己的话来说“关注你的敌人，但更要关注你的朋友。"} },
+    {"id": "op_wululu", "labels": ["Operator"], "props": { "idname": "乌鲁鲁", "name": "大卫·费莱尔", "class": "工程", "background": "大卫·费莱尔在退役后被G.T.I.重新招募。他的作战风格狂放勇猛，但同时也能够保证守护和突进二者并存。"} },
+    {"id": "op_shenlan", "labels": ["Operator"], "props": { "idname": "深蓝", "name": "阿列克谢·彼得罗夫", "class": "工程", "background": "阿列克谢·彼得罗夫的作战经验非常丰富，并且耐力和力量出众，他的全面防护装备是帮助小队推进的利器。有他加入阿萨拉地区的行动，我方伤亡率会大大降低，因为守护每一个人是他的本能。"} },
+    {"id": "op_bite", "labels": ["Operator"], "props": { "idname": "比特", "name": "拉希德·拉哈尔", "class": "工程", "background": "比特，首位阿萨拉阵营干员，擅长操纵各种机械，自己研发设计了哨兵蜘蛛“T仔”，并能够进行自动巡逻，在探测到敌方目标后将切换至追踪模式，对目标的行动进行限制。"} },
+    {"id": "op_luna", "labels": ["Operator"], "props": { "idname": "露娜", "name": "金卢娜", "class": "侦察", "background": "金卢娜是一名拥有出色侦察能力的特种作战人员。作为前情报官与职业运动员，她在信息收集与分析和箭术的把控方面无人能出其右。" } },
+    {"id": "op_haizhua", "labels": ["Operator"], "props": { "idname": "骇爪", "name": "麦晓雯", "class": "侦察", "background": "作为顶尖的电子攻防专家，麦晓雯被G.T.I.破例特招。她多次申请前往阿萨拉地区执行任务，个中缘由似乎与她的过去息息相关。" } },
+    {"id": "op_yinyi", "labels": ["Operator"], "props": { "idname": "银翼", "name": "兰登·哈里森", "class": "侦察", "background": "银翼，侦察兵种，擅长使用电子信息设备，其猎鹰无人机能够有效追踪视野内所有敌人的位置。战术装备为蜂鸟间谍摄像头，可破解敌方踪迹，获取敌方干员、装备和位置信息，拥有优秀的信息作战和情报获取能力。" } },
+
+
+    {"id": "skill_honglang_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：动力外骨骼", "description": "激活腕部启动器让外骨骼功率超载，加快冲刺移动速度。击倒敌人时会恢复生命值并增加持续时间。"} },
+    {"id": "skill_honglang_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：三联装手炮", "description": "装备三联装发射器，通过食指拉环发射爆炸榴弹。命中载具时可吸附在载具上。"} },
+    {"id": "skill_honglang_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：突破型烟雾弹", "description": "低装药型突破用烟雾弹，爆炸后生成会快速消散的烟雾。"} },
+    {"id": "skill_honglang_passive", "labels": ["Skill"], "props": {"name": "被动技能：战术滑铲", "description": "利用外骨骼进行快速战术滑铲。" } },
+
+    {"id": "skill_weilong_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：虎蹲炮", "description": "发射压缩空气弹，爆炸时将附近的敌人击倒在地。"} },
+    {"id": "skill_weilong_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：动力推进", "description": "激活动能辅助装置，朝指定方向进行推进。击倒敌人时可减少冷却时间。"} },
+    {"id": "skill_weilong_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：磁吸炸弹", "description": "投掷能吸附在硬表面上的大威力炸弹，倒计时结束后爆炸。"} },
+    {"id": "skill_weilong_passive", "labels": ["Skill"], "props": {"name": "被动技能：动能辅助系统", "description": "使用技能或从高处坠落时，短暂增加系统功率，减少坠落伤害并增加移动速度。" } },
+
+    {"id": "skill_wuming_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：静默潜袭", "description": "启动声波干扰器与信号干扰器，缩小自身移动时的声音传播范围，同时使敌方的侦察道具无法侦察到无名的具体位置。"} },
+    {"id": "skill_wuming_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：旋刃飞行器", "description": "旋刃飞行器会锁定前方的敌人，锁定后丢出即可自动追踪敌人并爆开，释放内部的刀片，伤害并减速敌人，同时附加流血状态。"} },
+    {"id": "skill_wuming_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：突破型闪光弹", "description": "向前投掷一颗特制的突破型闪光弹，该闪光弹会在接触到墙体后短时间内爆炸，对所有面朝闪光的附近敌人进行闪光震撼。"} },
+    {"id": "skill_wuming_passive", "labels": ["Skill"], "props": {"name": "被动技能：重伤延滞", "description": "被无名击伤的敌人需要花更长时间使用药品，被击倒的敌人也需要更长的时间才能被救起。"} },
+
+    {"id": "skill_jifeng_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：紧急回避装置", "description": "原地发射锚点，并通过安全绳连结身体，再次激活可通过安全绳将自己拉回锚点。技能激活期间若受到致命伤害，返回锚点可进行自救。"} },
+    {"id": "skill_jifeng_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：战术翻滚", "description": "借助背部的辅助脊椎可以进行8个方向的快速翻滚，翻滚时会激活辅助脊椎，增加移动速度。"} },
+    {"id": "skill_jifeng_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：钻墙电刺", "description": "投掷电钻，可穿透掩体发射导电粉末并释放电击，电击可以麻痹敌人并击飞敌人手中的武器。"} },
+    {"id": "skill_jifeng_passive", "labels": ["Skill"], "props": {"name": "被动技能：爆发型辅助脊椎", "description": "被子弹击中或有子弹从身边飞过时增加移动速度，常驻加速游泳效果。" } },
+
+    {"id": "skill_fengyi_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：激素枪", "description": "装备发射多目标追踪子弹的激素枪，可缓慢治疗友军并抑制其疼痛感受。开镜时，仅会锁定一个目标。短按：切出激素枪；长按：使用激素枪自我治疗。"} },
+    {"id": "skill_fengyi_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：烟幕", "description": "控制手势感应无人机向前飞行并喷射烟幕。长按开火键引导无人机转向。"} },
+    {"id": "skill_fengyi_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：蜂巢科技烟雾弹", "description": "投掷蜂巢烟雾弹，烟雾被激素枪命中时可被染色为治疗烟雾。"} },
+    {"id": "skill_fengyi_passive", "labels": ["Skill"], "props": {"name": "被动技能：专业救援", "description": "利用激素枪进行更加灵活的倒地救援，并且为被救者恢复更多生命值。烽火地带中能够移除血量上限减少的负面效果。" } },
+
+    {"id": "skill_gu_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：“流荧”集群系统", "description": "释放无人机群，干扰路线上的敌方单位使其降低听觉、视觉并短暂降低生命值上限。"} },
+    {"id": "skill_gu_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：肾上腺素激活", "description": "释放无人机为身边友方提供枪械控制能力增益。"} },
+    {"id": "skill_gu_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：致盲毒雾", "description": "投掷一枚致盲瓦斯弹，可使范围内的敌方致盲。"} },
+    {"id": "skill_gu_passive", "labels": ["Skill"], "props": {"name": "被动技能：高效治疗", "description": "使友方治疗时间缩短。" } },
+
+    {"id": "skill_die_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：“蝶式”救援无人机", "description": "点按后开始释放救援无人机群，期间会自动向周围的友军派遣无人机进行血浆注射；注射完成后，靠近激活除颤以救援友军。释放期间，ADS无人机会主动为其拦截一次伤害，周期性刷新，并提供增益效果。"} },
+    {"id": "skill_die_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：纳米医疗粉尘", "description": "投掷一个可以锁定并追踪队友的医疗无人机，通过播撒粉尘治疗区域中的友军。无人机会持续跟随其锁定的队友一段时间。点按：切出医疗粉尘；长按：使用医疗粉尘自我治疗。"} },
+    {"id": "skill_die_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：遥控烟雾", "description": "投掷一颗通过手势感应装置引导的烟雾弹。长按技能键，可以引导烟雾弹的飞行方向。"} },
+    {"id": "skill_die_passive", "labels": ["Skill"], "props": {"name": "被动技能：体征监测", "description": "小队成员的倒地和濒死倒计时都延长；使用纳米医疗粉尘时，会通过隐形眼镜检测队友的剪影和健康状态。" } },
+
+    {"id": "skill_muyangren_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：声波震慑", "description": "向前部署声波无人机，压制无人机30m半径内的敌方，并影响声压减少敌方武器射速。无人机会摧毁与其共振的敌方声波设备，并干扰电子侦察设备。短按：向前方部署无人机，发动1次强力震慑；长按：原地部署无人机，发动4次震慑。"} },
+    {"id": "skill_muyangren_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：声波陷阱", "description": "部署可黏着在硬表面的声波陷阱，陷阱会被4m内的敌方单位触发，触发时对更大范围内的敌人造成伤害和减速效果。"} },
+    {"id": "skill_muyangren_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：增强型破片手雷", "description": "防御型破片手雷，能较好地破坏护甲和裸露的四肢。短按：点按开火按键快速投掷手雷；长按：长按开火按键可提前开始引信计时，松开按键投掷。"} },
+    {"id": "skill_muyangren_passive", "labels": ["Skill"], "props": {"name": "被动技能：减振防御", "description": "利用手部设备输出反相位声波，降低受到的爆炸冲击伤害。"} },
+
+    {"id": "skill_wululu_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：巡飞弹", "description": "开镜后发射一枚图像制导巡飞弹，爆炸时会额外霰射出四枚炸弹。腰射时，巡飞弹会启用预设制导。" } },
+    {"id": "skill_wululu_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：速凝掩体", "description": "投掷出快速凝固混凝土喷射系统，生成能够阻挡伤害的掩体。"} },
+    {"id": "skill_wululu_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：复合型燃烧弹", "description": "投掷一枚接触地面时爆炸的燃烧弹，能快速烧毁速凝掩体。"} },
+    {"id": "skill_wululu_passive", "labels": ["Skill"], "props": {"name": "被动技能：久经沙场", "description": "对骨折和兵种装备造成的减速效果拥有更强的抗性。"} },
+
+    {"id": "skill_shenlan_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：防爆套装", "description": "装备重型防爆套装和全身盾，大幅降低受到的所有伤害。防爆盾的观察窗可被破坏。防爆盾攻击可以击倒敌人或击回投掷物。" } },
+    {"id": "skill_shenlan_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：多功能钩爪枪", "description": "发射钩爪，命中后拉回敌人，倒地队友或装备箱。钩爪枪的绳索可被破坏。短按：朝准星方向直接发射钩爪枪；长按：等待一定时间后进入锁定状态，朝锁定敌人方向发射钩爪枪。"} },
+    {"id": "skill_shenlan_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：刀片刺网手雷", "description": "落地后生成刀片刺网，敌人在铁丝网内移动时，会减速，受到伤害并发出声音。可被爆炸和近战摧毁。"} },
+    {"id": "skill_shenlan_passive", "labels": ["Skill"], "props": {"name": "被动技能：后方防护", "description": "防爆盾未使用时会挂在角色后部，抵挡从后方射来的子弹。"} },
+
+    {"id": "skill_bite_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：巡猎蜘蛛", "description": "投掷一个可自行前进的机械巡猎蜘蛛，其会沿着指定方向巡逻，巡逻中发现敌人会进行追猎并发射能够禁锢敌人的捕网，被捕网命中敌人的移动能力会大幅受限并且无法开镜与使用干员道具。如果有敌人处于腐蚀状态，巡猎蜘蛛会直接追踪敌人。" } },
+    {"id": "skill_bite_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：哨兵母巢", "description": "部署一个包含三只哨兵蜘蛛的机械母巢，哨兵蜘蛛会接近追踪敌人并爆炸，对敌人造成伤害并附着腐蚀效果，增加敌人受到的子弹伤害，被腐蚀的敌人进入智能烟雾中会被标记。"} },
+    {"id": "skill_bite_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：智能烟雾地雷", "description": "部署可黏着在硬表面的智能烟雾，烟雾会被附近的敌方单位触发，减速进入其中的敌人。被腐蚀的敌人进入智能烟雾中会被标记。"} },
+    {"id": "skill_bite_passive", "labels": ["Skill"], "props": {"name": "被动技能：防守尖兵", "description": "在自身的部署物附近时获得提高武器操控速度的增益效果。"} },
+
+    {"id": "skill_luna_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：侦察箭矢", "description": "使用弓射出侦查箭矢，暴露箭矢下方的敌人，并在轨迹上留下探测移动生物的微型传感器。" } },
+    {"id": "skill_luna_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：电击箭矢", "description": "使用弓射出电击箭矢，箭头产生的电流会持续造成伤害。"} },
+    {"id": "skill_luna_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：增强型破片手雷", "description": "破片手雷，能较好地破坏护甲和裸露的四肢。短按：点按开火按键快速投掷手雷；长按：长按开火按键可提前开始引信计时，松开按键投掷。"} },
+    {"id": "skill_luna_passive", "labels": ["Skill"], "props": {"name": "被动技能：敌情分析", "description": "受到露娜伤害的敌方目标会被短暂标记。"} },
+
+    {"id": "skill_haizhua_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：信号破译器", "description": "使用破译器周期性扫描前方60m最多六个敌方电子信号，并在隐形眼镜显示这些信号的追踪轨迹线。距离最近的轨迹线会显示为红色。敌方收到的警示等级会随骇爪距离接近而增强。" } },
+    {"id": "skill_haizhua_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：闪光巡飞器", "description": "丢出向前飞行的巡飞器，用闪光灯致盲范围内的敌人。用准星选中破译器的轨迹线时，巡飞器会跟随选中的黄色轨迹线飞行。"} },
+    {"id": "skill_haizhua_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：数据飞刀", "description": "投掷数据飞刀，停止时会骇入附近10m的电子设备并使其暂时失效。直接命中敌人时会造成大量伤害。"} },
+    {"id": "skill_haizhua_passive", "labels": ["Skill"], "props": {"name": "被动技能：隐匿消声", "description": "静步走路和蹲下移动速度更快，同时发出的声音也更小。"} },
+
+    {"id": "skill_yinyi_ultimate", "labels": ["Skill"], "props": {"name": "终极技能：蜂鸟间谍摄像头", "description": "对近距离瞄准的敌人或其踪迹释放间谍摄像头，摄像头每间隔一段时间会标记一次敌人位置，共五次。生效期间可主动切换至摄像头进行观察。一定时间后，敌人可主动摧毁摄像头并暴露释放者的位置方向。" } },
+    {"id": "skill_yinyi_normal_1", "labels": ["Skill"], "props": {"name": "普通技能一：猎鹰无人机", "description": "释放主动控制的无人机，标记90米内的视野内敌人。无人机可以携带和投下一枚脉冲手雷。无人机瞄准敌人时，可对其释放蜂鸟间谍摄像头。无人机的自毁模式可对敌人造成少量伤害，同时引爆无人机内的脉冲手雷。"} },
+    {"id": "skill_yinyi_normal_2", "labels": ["Skill"], "props": {"name": "普通技能二：脉冲手雷", "description": "投掷一枚脉冲手雷，使敌方干员的电子装备，电子武器配件和瞄具失效。手雷还会摧毁附近的电子类兵种道具。"} },
+    {"id": "skill_yinyi_passive", "labels": ["Skill"], "props": {"name": "被动技能：踪迹探查", "description": "可以看到敌人在一定时间内留下的脚印。靠近并瞄准可以扫描敌方脚印或打开过的容器以获取敌方干员，装备和位置信息。"} }
+
+  ],
+  "relationships": [
+    { "from": "op_honglang", "to": "class_assault", "type": "OF_CLA_TYPE" },
+    { "from": "op_weilong", "to": "class_assault", "type": "OF_CLA_TYPE" },
+    { "from": "op_wuming", "to": "class_assault", "type": "OF_CLA_TYPE" },
+    { "from": "op_jifeng", "to": "class_assault", "type": "OF_CLA_TYPE" },
+    { "from": "op_fengyi", "to": "class_support", "type": "OF_CLA_TYPE" },
+    { "from": "op_gu", "to": "class_support", "type": "OF_CLA_TYPE" },
+    { "from": "op_muyangren", "to": "class_engineer", "type": "OF_CLA_TYPE" },
+    { "from": "op_wululu", "to": "class_engineer", "type": "OF_CLA_TYPE" },
+    { "from": "op_shenlan", "to": "class_engineer", "type": "OF_CLA_TYPE" },
+    { "from": "op_bite", "to": "class_engineer", "type": "OF_CLA_TYPE" },
+    { "from": "op_luna", "to": "class_recon", "type": "OF_CLA_TYPE" },
+    { "from": "op_haizhua", "to": "class_recon", "type": "OF_CLA_TYPE" },
+    { "from": "op_yinyi", "to": "class_recon", "type": "OF_CLA_TYPE" },
+
+    { "from": "op_honglang", "to": "skill_honglang_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_honglang", "to": "skill_honglang_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_honglang", "to": "skill_honglang_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_honglang", "to": "skill_honglang_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_weilong", "to": "skill_weilong_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_weilong", "to": "skill_weilong_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_weilong", "to": "skill_weilong_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_weilong", "to": "skill_weilong_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_wuming", "to": "skill_wuming_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_wuming", "to": "skill_wuming_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_wuming", "to": "skill_wuming_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_wuming", "to": "skill_wuming_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_jifeng", "to": "skill_jifeng_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_jifeng", "to": "skill_jifeng_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_jifeng", "to": "skill_jifeng_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_jifeng", "to": "skill_jifeng_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_fengyi", "to": "skill_fengyi_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_fengyi", "to": "skill_fengyi_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_fengyi", "to": "skill_fengyi_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_fengyi", "to": "skill_fengyi_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_gu", "to": "skill_gu_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_gu", "to": "skill_gu_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_gu", "to": "skill_gu_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_gu", "to": "skill_gu_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_die", "to": "skill_die_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_die", "to": "skill_die_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_die", "to": "skill_die_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_die", "to": "skill_die_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_muyangren", "to": "skill_muyangren_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_muyangren", "to": "skill_muyangren_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_muyangren", "to": "skill_muyangren_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_muyangren", "to": "skill_muyangren_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_wululu", "to": "skill_wululu_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_wululu", "to": "skill_wululu_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_wululu", "to": "skill_wululu_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_wululu", "to": "skill_wululu_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_shenlan", "to": "skill_shenlan_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_shenlan", "to": "skill_shenlan_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_shenlan", "to": "skill_shenlan_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_shenlan", "to": "skill_shenlan_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_bite", "to": "skill_bite_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_bite", "to": "skill_bite_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_bite", "to": "skill_bite_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_bite", "to": "skill_bite_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_luna", "to": "skill_luna_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_luna", "to": "skill_luna_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_luna", "to": "skill_luna_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_luna", "to": "skill_luna_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_haizhua", "to": "skill_haizhua_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_haizhua", "to": "skill_haizhua_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_haizhua", "to": "skill_haizhua_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_haizhua", "to": "skill_haizhua_passive", "type": "HAS_SKILL" },
+
+    { "from": "op_yinyi", "to": "skill_yinyi_ultimate", "type": "HAS_SKILL" },
+    { "from": "op_yinyi", "to": "skill_yinyi_normal_1", "type": "HAS_SKILL" },
+    { "from": "op_yinyi", "to": "skill_yinyi_normal_2", "type": "HAS_SKILL" },
+    { "from": "op_yinyi", "to": "skill_yinyi_passive", "type": "HAS_SKILL" }
+
+  ]
+}
