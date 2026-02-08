@@ -1,10 +1,8 @@
 {
- "nodes":[
+  "nodes": [
     {"id":"diff_easy","labels":["Difficulty"],"props":{"difficulty":"普通"}},
     {"id":"diff_normal","labels":["Difficulty"],"props":{"difficulty":"机密"}},
     {"id":"diff_hard","labels":["Difficulty"],"props":{"difficulty":"绝密"}},
-
-
     {"id":"map_layali","labels":["Map"],"props":{"name":"长弓溪谷","evacuationPoint":["常规撤离点","火车","付费撤离点"]}},
     {"id":"map_layali_1","labels":["Area"],"props":{"name":"哈夫克雷达站"}},
     {"id":"map_layali_2","labels":["Area"],"props":{"name":"钻石皇后酒店"}},
@@ -20,7 +18,6 @@
     {"id":"map_layali_12","labels":["Area"],"props":{"name":"阿米亚小镇"}},
     {"id":"map_layali_13","labels":["Area"],"props":{"name":"小火车站"}},
     {"id":"map_layali_14","labels":["Area"],"props":{"name":"荒废村庄"}},
-
     {"id":"card_layali_1","labels":["KeyCard"],"props":{"name":"酒店国王房","durability":20}},
     {"id":"card_layali_2","labels":["KeyCard"],"props":{"name":"雷达站无人机平台","durability":20}},
     {"id":"card_layali_3","labels":["KeyCard"],"props":{"name":"酒店王子房","durability":20}},
@@ -38,8 +35,6 @@
     {"id":"card_layali_15","labels":["KeyCard"],"props":{"name":"雷达侧门钥匙","durability":20}},
     {"id":"card_layali_16","labels":["KeyCard"],"props":{"name":"牧场管理房","durability":20}},
     {"id":"card_layali_17","labels":["KeyCard"],"props":{"name":"铁脊车站售票室","durability":20}},
-
-
     {"id":"map_dam","labels":["Map"],"props":{"name":"零号大坝","evacuationPoint":["常规撤离点","拉闸撤离点","付费撤离点"]}},
     {"id":"map_dam_1","labels":["Area"],"props":{"name":"行政楼东楼"}},
     {"id":"map_dam_2","labels":["Area"],"props":{"name":"行政楼西楼"}},
@@ -49,7 +44,6 @@
     {"id":"map_dam_6","labels":["Area"],"props":{"name":"反叛军军营"}},
     {"id":"map_dam_7","labels":["Area"],"props":{"name":"水泥厂"}},
     {"id":"map_dam_8","labels":["Area"],"props":{"name":"地下通道"}},
-
     {"id":"card_dam_1","labels":["KeyCard"],"props":{"name":"东楼经理室","durability":20}},
     {"id":"card_dam_2","labels":["KeyCard"],"props":{"name":"变电站技术室","durability":20}},
     {"id":"card_dam_3","labels":["KeyCard"],"props":{"name":"西楼调控房","durability":20}},
@@ -63,8 +57,6 @@
     {"id":"card_dam_11","labels":["KeyCard"],"props":{"name":"地下通道钥匙","durability":20}},
     {"id":"card_dam_12","labels":["KeyCard"],"props":{"name":"西楼医务室","durability":20}},
     {"id":"card_dam_13","labels":["KeyCard"],"props":{"name":"变电站宿舍","durability":20}},
-
-
     {"id":"map_space","labels":["Map"],"props":{"name":"航天基地","evacuationPoint":["拉闸撤离点","丢包撤离点","飞升撤离点"]}},
     {"id":"map_space_1","labels":["Area"],"props":{"name":"总裁室"}},
     {"id":"map_space_2","labels":["Area"],"props":{"name":"离心机室"}},
@@ -80,7 +72,6 @@
     {"id":"map_space_12","labels":["Area"],"props":{"name":"东区吊桥"}},
     {"id":"map_space_13","labels":["Area"],"props":{"name":"发射区"}},
     {"id":"map_space_14","labels":["Area"],"props":{"name":"水平试车间"}},
-
     {"id":"card_space_1","labels":["KeyCard"],"props":{"name":"总裁会客厅","durability":40}},
     {"id":"card_space_2","labels":["KeyCard"],"props":{"name":"黑室服务器","durability":40}},
     {"id":"card_space_3","labels":["KeyCard"],"props":{"name":"蓝室核心","durability":40}},
@@ -93,8 +84,6 @@
     {"id":"card_space_10","labels":["KeyCard"],"props":{"name":"3号宿舍里屋","durability":40}},
     {"id":"card_space_11","labels":["KeyCard"],"props":{"name":"中控室三楼","durability":40}},
     {"id":"card_space_12","labels":["KeyCard"],"props":{"name":"浮力室医务间","durability":40}},
-
-
     {"id":"map_brakkesh","labels":["Map"],"props":{"name":"巴克什","evacuationPoint":["丢包撤离点","拉闸撤离点","飞鼠撤离点"]}},
     {"id":"map_brakkesh_1","labels":["Area"],"props":{"name":"巴别塔顶楼总裁"}},
     {"id":"map_brakkesh_2","labels":["Area"],"props":{"name":"巴别塔中控"}},
@@ -111,7 +100,6 @@
     {"id":"map_brakkesh_13","labels":["Area"],"props":{"name":"蓝调山城"}},
     {"id":"map_brakkesh_14","labels":["Area"],"props":{"name":"巴克什大浴场"}},
     {"id":"map_brakkesh_15","labels":["Area"],"props":{"name":"樱桃小镇"}},
-
     {"id":"card_brakkesh_1","labels":["KeyCard"],"props":{"name":"地下金库储藏间","durability":40}},
     {"id":"card_brakkesh_2","labels":["KeyCard"],"props":{"name":"总裁会议室","durability":40}},
     {"id":"card_brakkesh_3","labels":["KeyCard"],"props":{"name":"旅店用餐间","durability":20}},
@@ -130,8 +118,6 @@
     {"id":"card_brakkesh_16","labels":["KeyCard"],"props":{"name":"旅店员工休息室","durability":20}},
     {"id":"card_brakkesh_17","labels":["KeyCard"],"props":{"name":"东城民宅卧室","durability":20}},
     {"id":"card_brakkesh_18","labels":["KeyCard"],"props":{"name":"西城民宅卧室","durability":20}},
-
-
     {"id":"map_prison","labels":["Map"],"props":{"name":"潮汐监狱","evacuationPoint":["常规撤离点","拉闸撤离点","付费撤离点"]}},
     {"id":"map_prison_1","labels":["Area"],"props":{"name":"行政区"}},
     {"id":"map_prison_2","labels":["Area"],"props":{"name":"医疗试验区"}},
@@ -146,7 +132,6 @@
     {"id":"map_prison_11","labels":["Area"],"props":{"name":"西区望台区"}},
     {"id":"map_prison_12","labels":["Area"],"props":{"name":"东区望台区"}},
     {"id":"map_prison_13","labels":["Area"],"props":{"name":"蓄水区"}},
-
     {"id":"card_prison_1","labels":["KeyCard"],"props":{"name":"典狱长收藏室","durability":40}},
     {"id":"card_prison_2","labels":["KeyCard"],"props":{"name":"三级监狱权限卡","durability":80}},
     {"id":"card_prison_3","labels":["KeyCard"],"props":{"name":"生物样本室","durability":40}},
@@ -161,11 +146,9 @@
     {"id":"card_prison_12","labels":["KeyCard"],"props":{"name":"顶层办公间","durability":40}},
     {"id":"card_prison_13","labels":["KeyCard"],"props":{"name":"监狱体检室","durability":40}}
   ],
-
- "relationships":[
+  "relationships": [
     {"from":"map_layali","to":"diff_easy","type":"HAS_DIFFICULTY"},
     {"from":"map_layali","to":"diff_normal","type":"HAS_DIFFICULTY"},
-
     {"from":"map_layali","to":"map_layali_1","type":"HAS_AREA"},
     {"from":"map_layali","to":"map_layali_2","type":"HAS_AREA"},
     {"from":"map_layali","to":"map_layali_3","type":"HAS_AREA"},
@@ -180,7 +163,6 @@
     {"from":"map_layali","to":"map_layali_12","type":"HAS_AREA"},
     {"from":"map_layali","to":"map_layali_13","type":"HAS_AREA"},
     {"from":"map_layali","to":"map_layali_14","type":"HAS_AREA"},
-
     {"from":"map_layali_2","to":"card_layali_1","type":"HAS_KEY_CARD"},
     {"from":"map_layali_1","to":"card_layali_2","type":"HAS_KEY_CARD"},
     {"from":"map_layali_2","to":"card_layali_3","type":"HAS_KEY_CARD"},
@@ -198,10 +180,8 @@
     {"from":"map_layali_1","to":"card_layali_15","type":"HAS_KEY_CARD"},
     {"from":"map_layali_10","to":"card_layali_16","type":"HAS_KEY_CARD"},
     {"from":"map_layali_13","to":"card_layali_17","type":"HAS_KEY_CARD"},
-
     {"from":"map_dam","to":"diff_easy","type":"HAS_DIFFICULTY"},
     {"from":"map_dam","to":"diff_normal","type":"HAS_DIFFICULTY"},
-
     {"from":"map_dam","to":"map_dam_1","type":"HAS_AREA"},
     {"from":"map_dam","to":"map_dam_2","type":"HAS_AREA"},
     {"from":"map_dam","to":"map_dam_3","type":"HAS_AREA"},
@@ -210,7 +190,6 @@
     {"from":"map_dam","to":"map_dam_6","type":"HAS_AREA"},
     {"from":"map_dam","to":"map_dam_7","type":"HAS_AREA"},
     {"from":"map_dam","to":"map_dam_8","type":"HAS_AREA"},
-
     {"from":"map_dam_1","to":"card_dam_1","type":"HAS_KEY_CARD"},
     {"from":"map_dam_3","to":"card_dam_2","type":"HAS_KEY_CARD"},
     {"from":"map_dam_2","to":"card_dam_3","type":"HAS_KEY_CARD"},
@@ -224,11 +203,8 @@
     {"from":"map_dam_8","to":"card_dam_11","type":"HAS_KEY_CARD"},
     {"from":"map_dam_2","to":"card_dam_12","type":"HAS_KEY_CARD"},
     {"from":"map_dam_4","to":"card_dam_13","type":"HAS_KEY_CARD"},
-
-
     {"from":"map_space","to":"diff_normal","type":"HAS_DIFFICULTY"},
     {"from":"map_space","to":"diff_hard","type":"HAS_DIFFICULTY"},
-
     {"from":"map_space","to":"map_space_1","type":"HAS_AREA"},
     {"from":"map_space","to":"map_space_2","type":"HAS_AREA"},
     {"from":"map_space","to":"map_space_3","type":"HAS_AREA"},
@@ -243,7 +219,6 @@
     {"from":"map_space","to":"map_space_12","type":"HAS_AREA"},
     {"from":"map_space","to":"map_space_13","type":"HAS_AREA"},
     {"from":"map_space","to":"map_space_14","type":"HAS_AREA"},
-
     {"from":"map_space_1","to":"card_space_1","type":"HAS_KEY_CARD"},
     {"from":"map_space_5","to":"card_space_2","type":"HAS_KEY_CARD"},
     {"from":"map_space_4","to":"card_space_3","type":"HAS_KEY_CARD"},
@@ -257,11 +232,8 @@
     {"from":"map_space_7","to":"card_space_10","type":"HAS_KEY_CARD"},
     {"from":"map_space_6","to":"card_space_11","type":"HAS_KEY_CARD"},
     {"from":"map_space_3","to":"card_space_12","type":"HAS_KEY_CARD"},
-
-
     {"from":"map_brakkesh","to":"diff_normal","type":"HAS_DIFFICULTY"},
     {"from":"map_brakkesh","to":"diff_hard","type":"HAS_DIFFICULTY"},
-
     {"from":"map_brakkesh","to":"map_brakkesh_1","type":"HAS_AREA"},
     {"from":"map_brakkesh","to":"map_brakkesh_2","type":"HAS_AREA"},
     {"from":"map_brakkesh","to":"map_brakkesh_3","type":"HAS_AREA"},
@@ -277,7 +249,6 @@
     {"from":"map_brakkesh","to":"map_brakkesh_13","type":"HAS_AREA"},
     {"from":"map_brakkesh","to":"map_brakkesh_14","type":"HAS_AREA"},
     {"from":"map_brakkesh","to":"map_brakkesh_15","type":"HAS_AREA"},
-
     {"from":"map_brakkesh_7","to":"card_brakkesh_1","type":"HAS_KEY_CARD"},
     {"from":"map_brakkesh_1","to":"card_brakkesh_2","type":"HAS_KEY_CARD"},
     {"from":"map_brakkesh_9","to":"card_brakkesh_3","type":"HAS_KEY_CARD"},
@@ -296,10 +267,7 @@
     {"from":"map_brakkesh_9","to":"card_brakkesh_16","type":"HAS_KEY_CARD"},
     {"from":"map_brakkesh_13","to":"card_brakkesh_17","type":"HAS_KEY_CARD"},
     {"from":"map_brakkesh_15","to":"card_brakkesh_18","type":"HAS_KEY_CARD"},
-
-
     {"from":"map_prison","to":"diff_hard","type":"HAS_DIFFICULTY"},
-
     {"from":"map_prison","to":"map_prison_1","type":"HAS_AREA"},
     {"from":"map_prison","to":"map_prison_2","type":"HAS_AREA"},
     {"from":"map_prison","to":"map_prison_3","type":"HAS_AREA"},
@@ -310,8 +278,6 @@
     {"from":"map_prison","to":"map_prison_8","type":"HAS_AREA"},
     {"from":"map_prison","to":"map_prison_9","type":"HAS_AREA"},
     {"from":"map_prison","to":"map_prison_10","type":"HAS_AREA"},
-
-
     {"from":"map_prison_1","to":"card_prison_1","type":"HAS_KEY_CARD"},
     {"from":"map_prison_9","to":"card_prison_2","type":"HAS_KEY_CARD"},
     {"from":"map_prison_2","to":"card_prison_3","type":"HAS_KEY_CARD"},
@@ -324,6 +290,9 @@
     {"from":"map_prison_6","to":"card_prison_10","type":"HAS_KEY_CARD"},
     {"from":"map_prison_5","to":"card_prison_11","type":"HAS_KEY_CARD"},
     {"from":"map_prison_1","to":"card_prison_12","type":"HAS_KEY_CARD"},
-    {"from":"map_prison_2","to":"card_prison_13","type":"HAS_KEY_CARD"}
+    {"from":"map_prison_2","to":"card_prison_13","type":"HAS_KEY_CARD"},
+    {"from":"map_prison","to":"map_prison_11","type":"HAS_AREA"},
+    {"from":"map_prison","to":"map_prison_12","type":"HAS_AREA"},
+    {"from":"map_prison","to":"map_prison_13","type":"HAS_AREA"}
   ]
 }
