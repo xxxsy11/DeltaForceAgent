@@ -12,9 +12,9 @@ class GraphRAGConfig:
     """基于图数据库的RAG系统配置类"""
 
     # Neo4j数据库配置
-    neo4j_uri: str = os.getenv("NEO4J_URI", "neo4j://localhost:7687")
+    neo4j_uri: str = os.getenv("NEO4J_URI", "bolt://localhost:7687")
     neo4j_user: str = os.getenv("NEO4J_USER", "neo4j")
-    neo4j_password: str = os.getenv("NEO4J_PASSWORD", "password")
+    neo4j_password: str = os.getenv("NEO4J_PASSWORD", "delta_agent")
     neo4j_database: str = os.getenv("NEO4J_DATABASE", "neo4j")
 
     # Milvus配置

@@ -27,7 +27,7 @@ services:
       - ../../data/neo4j:/import
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "your_password", "RETURN 1"]
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "delta_agent", "RETURN 1"]
       interval: 30s
       timeout: 10s
       retries: 5
