@@ -2,7 +2,7 @@ version: '3.5'
 
 services:
   etcd:
-    container_name: deltaforce-milvus-etcd
+    container_name: milvus-etcd
     image: quay.io/coreos/etcd:v3.5.16
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
@@ -19,7 +19,7 @@ services:
       retries: 3
 
   minio:
-    container_name: deltaforce-milvus-minio
+    container_name: milvus-minio
     image: minio/minio:RELEASE.2023-03-20T20-16-18Z
     environment:
       MINIO_ACCESS_KEY: minioadmin
@@ -37,7 +37,7 @@ services:
       retries: 3
 
   standalone:
-    container_name: deltaforce-milvus-standalone
+    container_name: milvus-standalone
     image: milvusdb/milvus:v2.5.14
     command: ["milvus", "run", "standalone"]
     security_opt:
@@ -62,4 +62,4 @@ services:
 
 networks:
   default:
-    name: deltaforce-milvus
+    name: milvus

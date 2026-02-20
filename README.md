@@ -10,7 +10,7 @@
 
 ## 功能
 
-- ☐ 三角洲知识问答助手
+- ✅ 三角洲知识问答助手
 - ☐ 三角洲战备智能体（鼠鼠玩家、正常玩家、猛攻玩家）
 - ☐ 三角洲改枪大师（你说需求，Agent根据数据给出改枪方案）
 - ...
@@ -40,6 +40,75 @@
 
 ---
 # 当前版本
+
+<details>
+<summary><b> V0.2.0 - 工程结构重整 + Agent工具化 </b></summary>
+
+## 升级内容
+
+- 项目目录调整为标准结构：`main.py`、`config.py`、`src/`、`data/`、`docker/`、`docs/`
+- 将 RAG 封装为可调用能力，接入工具层与 Agent 路由流程
+- 根入口改为 `main.py`，默认运行 LangGraph Multi-Agent（意图识别后路由到工具）
+- RAG build/serve/rebuild 调试入口统一放到 `src/rag_modules/rag_system.py`
+- 新增统一数据脚本：`data/scripts/data_pipeline.py`
+- 合并旧数据脚本能力（统计、导出、导入、清库、重建）
+- 清理旧兼容目录和重复脚本，减少维护成本
+
+## Quick Start
+
+### 1. 环境准备
+
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，填入实际配置
+```
+
+### 2. 启动数据库
+
+```bash
+# 启动Neo4j
+cd docker/neo4j
+docker-compose up -d
+
+# 启动Milvus
+cd docker/milvus
+docker-compose up -d
+```
+
+### 3. 运行系统
+
+```bash
+# 默认：Multi-Agent 模式（intent -> route -> tool）
+python main.py
+
+# RAG子系统调试模式
+RAG_RUN_MODE=build PYTHONPATH=src python -m rag_modules.rag_system
+RAG_RUN_MODE=serve PYTHONPATH=src python -m rag_modules.rag_system
+RAG_RUN_MODE=rebuild PYTHONPATH=src python -m rag_modules.rag_system
+```
+
+### 4. 数据处理
+
+```bash
+python data/scripts/data_pipeline.py --help
+python data/scripts/data_pipeline.py stats
+python data/scripts/data_pipeline.py export-csv
+```
+
+## 使用说明
+
+- `RAG_RUN_MODE=build`：离线建库
+- `RAG_RUN_MODE=serve`：在线问答
+- `RAG_RUN_MODE=rebuild`：重建向量索引
+- `RAG_RUN_MODE=agent`：Multi-Agent 模式（默认）
+
+</details>
+
+---
 
 <details>
 <summary><b> V0.1.1 - 知识库升级 </b></summary>
@@ -142,3 +211,4 @@ python main.py
 </details>
 
 
+---

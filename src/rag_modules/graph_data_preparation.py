@@ -1,6 +1,5 @@
 """
-图数据库数据准备模块
-从Neo4j读取图数据并转换为可检索的文档格式
+图数据库数据准备模块（Delta Force）
 """
 
 import logging
@@ -12,6 +11,47 @@ from neo4j import GraphDatabase
 from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
+
+TYPE_RELATIONS = {
+    "OF_FIRE_TYPE",
+    "OF_ATT_TYPE",
+    "OF_EQ_TYPE",
+    "OF_COL_TYPE",
+    "OF_AMMO_TYPE",
+    "OF_CLA_TYPE",
+}
+
+KNOWN_RELATION_TYPES = {
+    "HAS_AREA",
+    "HAS_KEY_CARD",
+    "HAS_DIFFICULTY",
+    "HAS_LEVEL",
+    "HAS_SKILL",
+    "OF_CLA_TYPE",
+    "OF_EQ_TYPE",
+    "OF_COL_TYPE",
+    "OF_FIRE_TYPE",
+    "OF_ATT_TYPE",
+    "OF_AMMO_TYPE",
+    "USES_AMMO",
+    "CAN_ATTACH",
+}
+
+
+def canonicalize_relation_type(relation_type: str, **_: Any) -> str:
+    """当前关系类型已标准化，直接返回原值。"""
+    return relation_type
+
+
+def primary_label(labels: List[str]) -> str:
+    for label in labels:
+        if label != "Node":
+            return label
+    return labels[0] if labels else "Node"
+
+
+def is_type_relation(relation_type: str) -> bool:
+    return relation_type in TYPE_RELATIONS
 
 
 @dataclass
@@ -29,11 +69,14 @@ class GraphRelation:
     start_node_id: str
     end_node_id: str
     relation_type: str
+    raw_relation_type: str
+    source_node_type: str
+    target_node_type: str
     properties: Dict[str, Any]
 
 
 class GraphDataPreparationModule:
-    """图数据库数据准备模块"""
+    """图数据库数据准备模块 - 从Neo4j读取数据并转换为文档"""
 
     def __init__(self, uri: str, user: str, password: str, database: str = "neo4j"):
         self.uri = uri
@@ -55,11 +98,10 @@ class GraphDataPreparationModule:
             self.driver = GraphDatabase.driver(
                 self.uri,
                 auth=(self.user, self.password),
-                database=self.database
             )
             logger.info(f"已连接到Neo4j数据库: {self.uri}")
 
-            with self.driver.session() as session:
+            with self.driver.session(database=self.database) as session:
                 session.run("RETURN 1")
                 logger.info("Neo4j连接测试成功")
 
@@ -74,7 +116,7 @@ class GraphDataPreparationModule:
             logger.info("Neo4j连接已关闭")
 
     def _display_name(self, props: Dict[str, Any]) -> str:
-        """选择显示名称"""
+        """选择更稳定的显示名称"""
         for key in ("name", "typeName", "difficulty", "caliber", "colorName"):
             value = props.get(key)
             if value:
@@ -84,17 +126,35 @@ class GraphDataPreparationModule:
         return ""
 
     def _primary_label(self, labels: List[str]) -> str:
-        """选择主标签"""
-        for label in labels:
-            if label != "Node":
-                return label
-        return labels[0] if labels else "Node"
+        """选择主标签，优先跳过通用 Node 标签"""
+        return primary_label(labels)
+
+    def _validate_relationships(self) -> Dict[str, int]:
+        """
+        校验关系类型是否在当前已知语义集合中。
+        不阻断流程，仅输出告警用于数据治理。
+        """
+        unknown_type_counts: Dict[str, int] = {}
+        stats = {
+            "total_relations": len(self.relationships),
+            "unknown_relation_types": 0,
+        }
+        for rel in self.relationships:
+            if rel.relation_type not in KNOWN_RELATION_TYPES:
+                stats["unknown_relation_types"] += 1
+                unknown_type_counts[rel.relation_type] = unknown_type_counts.get(rel.relation_type, 0) + 1
+
+        if unknown_type_counts:
+            stats["unknown_relation_type_counts"] = unknown_type_counts
+            logger.warning("发现未知关系类型: %s", unknown_type_counts)
+
+        return stats
 
     def load_graph_data(self) -> Dict[str, Any]:
         """从Neo4j加载图数据"""
         logger.info("正在从Neo4j加载图数据...")
 
-        with self.driver.session() as session:
+        with self.driver.session(database=self.database) as session:
             node_query = """
             MATCH (n)
             WHERE n.nodeId IS NOT NULL
@@ -117,23 +177,37 @@ class GraphDataPreparationModule:
             rel_query = """
             MATCH (s)-[r]->(t)
             WHERE s.nodeId IS NOT NULL AND t.nodeId IS NOT NULL
+            WITH s, r, t, labels(s) as source_labels, labels(t) as target_labels
             RETURN s.nodeId as source_id, t.nodeId as target_id, type(r) as rel_type,
-                   properties(r) as properties
+                   properties(r) as properties, source_labels, target_labels
             """
             rel_result = session.run(rel_query)
             self.relationships = []
             for record in rel_result:
+                source_labels = record["source_labels"] or []
+                target_labels = record["target_labels"] or []
+                raw_relation_type = record["rel_type"]
+                normalized_relation_type = canonicalize_relation_type(
+                    raw_relation_type,
+                    source_labels=source_labels,
+                    target_labels=target_labels,
+                )
                 self.relationships.append(GraphRelation(
                     start_node_id=record["source_id"],
                     end_node_id=record["target_id"],
-                    relation_type=record["rel_type"],
+                    relation_type=normalized_relation_type,
+                    raw_relation_type=raw_relation_type,
+                    source_node_type=self._primary_label(source_labels),
+                    target_node_type=self._primary_label(target_labels),
                     properties=dict(record["properties"]) if record["properties"] else {}
                 ))
 
+        validation = self._validate_relationships()
         logger.info(f"加载节点 {len(self.nodes)} 个，关系 {len(self.relationships)} 条")
         return {
             "nodes": len(self.nodes),
-            "relationships": len(self.relationships)
+            "relationships": len(self.relationships),
+            "relation_validation": validation,
         }
 
     def _format_properties(self, props: Dict[str, Any]) -> List[str]:
@@ -156,12 +230,13 @@ class GraphDataPreparationModule:
     def _fetch_neighbors(self, node_id: str, limit: int = 15) -> List[str]:
         """获取邻居信息"""
         neighbors = []
-        with self.driver.session() as session:
+        with self.driver.session(database=self.database) as session:
             query = """
             MATCH (n {nodeId: $node_id})-[r]-(m)
             WITH n, r, m,
                  CASE WHEN startNode(r) = n THEN '->' ELSE '<-' END as dir
             RETURN type(r) as rel_type, dir as direction,
+                   labels(n) as source_labels,
                    labels(m) as labels,
                    COALESCE(m.name, m.typeName, m.difficulty, toString(m.level), m.caliber) as name
             LIMIT $limit
@@ -169,8 +244,18 @@ class GraphDataPreparationModule:
             result = session.run(query, {"node_id": node_id, "limit": limit})
             for record in result:
                 name = record["name"] or "(无名)"
-                label = record["labels"][0] if record["labels"] else "Node"
-                neighbors.append(f"{record['direction']}[{record['rel_type']}] {label}:{name}")
+                label = self._primary_label(record["labels"] or [])
+                # 邻居展示时也使用标准化关系名，便于检索上下文一致。
+                source_labels = record["source_labels"] or []
+                target_labels = record["labels"] or []
+                if record["direction"] == "<-":
+                    source_labels, target_labels = target_labels, source_labels
+                relation_type = canonicalize_relation_type(
+                    relation_type=record["rel_type"],
+                    source_labels=source_labels,
+                    target_labels=target_labels,
+                )
+                neighbors.append(f"{record['direction']}[{relation_type}] {label}:{name}")
         return neighbors
 
     def build_entity_documents(self) -> List[Document]:
@@ -198,6 +283,7 @@ class GraphDataPreparationModule:
                 page_content=full_content,
                 metadata={
                     "node_id": node.node_id,
+                    "recipe_name": node.name,
                     "entity_name": node.name,
                     "node_type": primary_label,
                     "labels": node.labels,
@@ -297,6 +383,19 @@ class GraphDataPreparationModule:
             "total_documents": len(self.documents),
             "total_chunks": len(self.chunks)
         }
+
+        relation_type_counts: Dict[str, int] = {}
+        raw_relation_type_counts: Dict[str, int] = {}
+        semantic_type_relations = 0
+        for rel in self.relationships:
+            relation_type_counts[rel.relation_type] = relation_type_counts.get(rel.relation_type, 0) + 1
+            raw_relation_type_counts[rel.raw_relation_type] = raw_relation_type_counts.get(rel.raw_relation_type, 0) + 1
+            if is_type_relation(rel.relation_type):
+                semantic_type_relations += 1
+        if relation_type_counts:
+            stats["relation_type_counts"] = relation_type_counts
+            stats["raw_relation_type_counts"] = raw_relation_type_counts
+            stats["semantic_type_relation_count"] = semantic_type_relations
 
         if self.nodes:
             label_counts: Dict[str, int] = {}

@@ -3,12 +3,12 @@ version: '3.8'
 services:
   neo4j:
     image: neo4j:5.18
-    container_name: deltaforce-neo4j
+    container_name: neo4j-db
     ports:
       - 7474:7474   # HTTP Web UI
       - 7687:7687   # Bolt 协议端口
     environment:
-      NEO4J_AUTH: neo4j/your_password
+      NEO4J_AUTH: neo4j/delta_agent
       NEO4J_dbms_connector_bolt_advertised__address: localhost:7687
       # 允许从文件URL导入CSV
       NEO4J_dbms_security_allow__csv__import__from__file__urls: "true"
@@ -24,13 +24,36 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
       - neo4j_plugins:/plugins
+      # 将data/neo4j文件夹映射到容器的import目录（CSV文件在这里）
       - ../../data/neo4j:/import
+      # 映射脚本目录
+      - ../../scripts:/scripts
     restart: unless-stopped
+    # 添加健康检查
     healthcheck:
       test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "delta_agent", "RETURN 1"]
       interval: 30s
       timeout: 10s
       retries: 5
+
+  # 添加脚本执行服务
+  neo4j-init:
+    image: neo4j:5.18
+    container_name: neo4j-init
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    volumes:
+      - ./cypher:/scripts
+    command: >
+      sh -c "
+        echo 'Waiting for Neo4j to be ready...' &&
+        sleep 10 &&
+        echo 'Executing import script...' &&
+        cypher-shell -a bolt://neo4j:7687 -u neo4j -p delta_agent -f /scripts/neo4j_import.cypher &&
+        echo 'Import completed!'
+      "
+    restart: "no"
 
 volumes:
   neo4j_data:

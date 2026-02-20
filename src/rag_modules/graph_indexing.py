@@ -1,6 +1,6 @@
 """
-图索引模块
-实现实体和关系的键值对结构用于快速检索
+图索引模块（Delta Force）
+实现实体和关系的键值对结构 (K,V)
 """
 
 import json
@@ -8,6 +8,8 @@ import logging
 from typing import Dict, List, Tuple, Any
 from dataclasses import dataclass
 from collections import defaultdict
+
+from .llm_utils import invoke_llm_text
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +56,7 @@ class GraphIndexingModule:
         return labels[0] if labels else "Node"
 
     def create_entity_key_values(self, nodes: List[Any]) -> Dict[str, EntityKeyValue]:
-        """为实体创建键值对结构"""
+        """为实体创建键值对结构（通用节点）"""
         logger.info("开始创建实体键值对...")
 
         for node in nodes:
@@ -158,6 +160,8 @@ class GraphIndexingModule:
             "OF_COL_TYPE": ["收集品类型", "收集品分类"],
             "OF_FIRE_TYPE": ["枪械类型", "枪械分类"],
             "OF_ATT_TYPE": ["配件类型", "配件分类"],
+            "OF_AMMO_TYPE": ["弹药类型", "弹药分类", "口径"],
+            "OF_CLA_TYPE": ["干员兵种", "职业类型", "兵种分类"],
             "CAN_ATTACH": ["可装配件", "配件兼容"],
             "USES_AMMO": ["弹药", "口径"],
             "ENABLES_ATTACHMENT": ["解锁配件", "扩展配件"]
@@ -181,13 +185,14 @@ class GraphIndexingModule:
         """
 
         try:
-            response = self.llm_client.chat.completions.create(
+            llm_text = invoke_llm_text(
+                llm_client=self.llm_client,
+                prompt=prompt,
                 model=self.config.llm_model,
-                messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=200
+                max_tokens=200,
             )
-            result = json.loads(response.choices[0].message.content.strip())
+            result = json.loads(llm_text.strip())
             return result.get("keywords", [])
         except Exception as e:
             logger.error(f"关系关键词生成失败: {e}")
@@ -195,12 +200,17 @@ class GraphIndexingModule:
 
     def deduplicate_entities_and_relations(self):
         """去重并重建索引映射"""
+        # 以“名称+类型”作为实体唯一键，避免跨类型同名实体被误合并。
         name_to_entities = defaultdict(list)
         for entity_id, entity_kv in self.entity_kv_store.items():
-            name_to_entities[entity_kv.entity_name].append(entity_id)
+            signature = (
+                str(entity_kv.entity_name).strip().lower(),
+                str(entity_kv.entity_type).strip().lower(),
+            )
+            name_to_entities[signature].append(entity_id)
 
         entities_to_remove = []
-        for name, entity_ids in name_to_entities.items():
+        for _, entity_ids in name_to_entities.items():
             if len(entity_ids) > 1:
                 primary_id = entity_ids[0]
                 primary_entity = self.entity_kv_store[primary_id]
