@@ -117,11 +117,22 @@ class GraphRAGRetrieval:
         - preferred_relation_types: 用于路径打分加权
         """
         preferred = self._expand_relation_types_for_query(relation_types)
-        if preferred:
-            allowed = list(set(preferred))
-        else:
-            allowed = list(self.default_relation_whitelist)
+        # 工程策略：查询过滤始终使用稳定白名单，避免 LLM relation_types 误判造成“0结果”。
+        # preferred 仅用于排序加权，不参与硬过滤。
+        allowed = list(self.default_relation_whitelist)
+        preferred = [rel for rel in preferred if rel in set(allowed)]
         return allowed, preferred
+
+    @staticmethod
+    def _is_simple_entity_lookup(query: str) -> bool:
+        text = (query or "").strip()
+        if not text:
+            return False
+        relation_cues = (
+            "关系", "路径", "连接", "比较", "区别", "影响", "为什么", "如何", "怎么",
+            "哪些", "以及", "并且", "和", "与", "搭配", "推荐", "历史", "走势", "价格",
+        )
+        return not any(cue in text for cue in relation_cues)
         
     def initialize(self):
         """初始化图RAG检索系统"""
@@ -156,7 +167,7 @@ class GraphRAGRetrieval:
                 WHERE n.nodeId IS NOT NULL
                 WITH n, COUNT { (n)--() } as degree
                 RETURN labels(n) as node_labels, n.nodeId as node_id, 
-                       COALESCE(n.name, n.typeName, n.difficulty, toString(n.level), n.caliber) as name, degree
+                       COALESCE(n.name, n.typeName, n.class, n.difficulty, toString(n.level), n.caliber) as name, degree
                 ORDER BY degree DESC
                 LIMIT 1000
                 """
@@ -245,13 +256,22 @@ class GraphRAGRetrieval:
         if not isinstance(constraints, dict):
             constraints = {}
 
+        max_depth = self._normalize_max_depth(payload.get("max_depth", 2))
+        max_nodes = int(payload.get("max_nodes", 50) or 50)
+        max_nodes = max(10, min(max_nodes, 100))
+
+        # 简单“实体介绍/定义”查询默认收敛到 1-hop，减少高频枢纽节点污染（如六级、类型节点扩散）。
+        if query_type == QueryType.SUBGRAPH and len(source_entities) <= 1 and self._is_simple_entity_lookup(fallback_query):
+            max_depth = 1
+            max_nodes = min(max_nodes, 20)
+
         return GraphQuery(
             query_type=query_type,
             source_entities=source_entities,
             target_entities=target_entities,
             relation_types=relation_types,
-            max_depth=self._normalize_max_depth(payload.get("max_depth", 2)),
-            max_nodes=50,
+            max_depth=max_depth,
+            max_nodes=max_nodes,
             constraints=constraints,
         )
     
@@ -333,15 +353,18 @@ class GraphRAGRetrieval:
                WHEN toLower(toString(n.nodeId)) = toLower(source_name)
                  OR toLower(COALESCE(toString(n.name), "")) = toLower(source_name)
                  OR toLower(COALESCE(toString(n.typeName), "")) = toLower(source_name)
+                 OR toLower(COALESCE(toString(n.class), "")) = toLower(source_name)
                THEN 1.0
                WHEN any(alias IN COALESCE(n.aliases, []) WHERE toLower(toString(alias)) = toLower(source_name))
                THEN 0.95
                WHEN toLower(COALESCE(toString(n.name), "")) STARTS WITH toLower(source_name)
                  OR toLower(COALESCE(toString(n.typeName), "")) STARTS WITH toLower(source_name)
+                 OR toLower(COALESCE(toString(n.class), "")) STARTS WITH toLower(source_name)
                THEN 0.80
                WHEN size(source_name) >= 3 AND (
                     toLower(COALESCE(toString(n.name), "")) CONTAINS toLower(source_name)
                  OR toLower(COALESCE(toString(n.typeName), "")) CONTAINS toLower(source_name)
+                 OR toLower(COALESCE(toString(n.class), "")) CONTAINS toLower(source_name)
                )
                THEN 0.60
                ELSE 0.0
@@ -814,8 +837,29 @@ class GraphRAGRetrieval:
         central_names = [node.get("name", "未知") for node in subgraph.central_nodes]
         node_count = len(subgraph.connected_nodes)
         rel_count = len(subgraph.relationships)
-        
-        return f"关于 {', '.join(central_names)} 的知识网络，包含 {node_count} 个相关概念和 {rel_count} 个关系。"
+
+        header = f"关于 {', '.join(central_names)} 的知识网络，包含 {node_count} 个相关概念和 {rel_count} 个关系。"
+
+        if not subgraph.central_nodes:
+            return header
+
+        focus = subgraph.central_nodes[0]
+        details = []
+        labels = focus.get("labels") or []
+        if labels:
+            details.append(f"实体类型: {', '.join([str(x) for x in labels])}")
+        for field in ("desc", "description", "class", "difficulty", "typeName", "caliber"):
+            value = focus.get(field)
+            if value not in (None, ""):
+                details.append(f"{field}: {value}")
+        for field in ("weight", "number", "tradable", "mapRestriction"):
+            value = focus.get(field)
+            if value not in (None, ""):
+                details.append(f"{field}: {value}")
+
+        if details:
+            return header + "\n核心实体信息:\n- " + "\n- ".join(details)
+        return header
     
     def _rank_by_graph_relevance(self, documents: List[Document], query: str) -> List[Document]:
         """基于图结构相关性排序"""

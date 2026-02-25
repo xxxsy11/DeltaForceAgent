@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""数据脚本：统计、导出、导入、清库。"""
+"""
+Delta Agent 数据处理统一脚本。
+
+整合能力：
+- 统计 JSON 图数据
+- JSON -> CSV（neo4j-admin/import 可用）
+- JSON -> Cypher 导入素材
+- 直接导入 Neo4j
+- 清空 Neo4j
+- 重建 Neo4j（清空 + 导入）
+"""
 
 from __future__ import annotations
 

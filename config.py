@@ -18,7 +18,7 @@ class GraphRAGConfig:
     run_mode: str = os.getenv("RAG_RUN_MODE", "agent")
 
     # Neo4j数据库配置（可通过环境变量覆盖）
-    neo4j_uri: str = os.getenv("NEO4J_URI", "neo4j://58.199.146.145:7687")
+    neo4j_uri: str = os.getenv("NEO4J_URI", "neo4j://localhost:7687")
     neo4j_user: str = os.getenv("NEO4J_USER", "neo4j")
     neo4j_password: str = os.getenv("NEO4J_PASSWORD", "delta_agent")
     neo4j_database: str = os.getenv("NEO4J_DATABASE", "neo4j")
@@ -32,6 +32,11 @@ class GraphRAGConfig:
     # 模型配置
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
     llm_model: str = os.getenv("LLM_MODEL", "kimi-k2-0711-preview")
+    # Agent 节点模型（默认都回落到 llm_model）
+    agent_intent_model: str = os.getenv("AGENT_INTENT_MODEL", os.getenv("LLM_MODEL", "kimi-k2-0711-preview"))
+    agent_planner_model: str = os.getenv("AGENT_PLANNER_MODEL", os.getenv("LLM_MODEL", "kimi-k2-0711-preview"))
+    agent_specialist_model: str = os.getenv("AGENT_SPECIALIST_MODEL", os.getenv("LLM_MODEL", "kimi-k2-0711-preview"))
+    agent_summary_model: str = os.getenv("AGENT_SUMMARY_MODEL", os.getenv("LLM_MODEL", "kimi-k2-0711-preview"))
 
     # 检索配置（LightRAG Round-robin策略）
     top_k: int = 5
@@ -49,6 +54,22 @@ class GraphRAGConfig:
     chunk_overlap: int = 50
     max_graph_depth: int = 2  # 图遍历最大深度
     enable_llm_relation_keys: bool = False
+
+    # 市场数据后端配置（默认不提供公开实现）
+    df_market_backend_module: str = os.getenv("DF_MARKET_BACKEND_MODULE", "")
+    df_market_backend_class: str = os.getenv("DF_MARKET_BACKEND_CLASS", "MarketDataBackendImpl")
+    df_market_latest_price_operation: str = os.getenv("DF_MARKET_LATEST_PRICE_OPERATION", "latest_price")
+    df_market_history_price_operation: str = os.getenv("DF_MARKET_HISTORY_PRICE_OPERATION", "history_price")
+    df_market_object_lookup_operation: str = os.getenv("DF_MARKET_OBJECT_LOOKUP_OPERATION", "object_lookup")
+    df_market_place_profit_rank_operation: str = os.getenv(
+        "DF_MARKET_PLACE_PROFIT_RANK_OPERATION",
+        "place_profit_rank",
+    )
+    df_market_place_profit_history_operation: str = os.getenv(
+        "DF_MARKET_PLACE_PROFIT_HISTORY_OPERATION",
+        "place_profit_history",
+    )
+    df_market_object_lookup_limit: int = int(os.getenv("DF_MARKET_OBJECT_LOOKUP_LIMIT", "3000"))
 
     def __post_init__(self):
         """初始化后的处理"""
@@ -83,6 +104,10 @@ class GraphRAGConfig:
             'milvus_dimension': self.milvus_dimension,
             'embedding_model': self.embedding_model,
             'llm_model': self.llm_model,
+            'agent_intent_model': self.agent_intent_model,
+            'agent_planner_model': self.agent_planner_model,
+            'agent_specialist_model': self.agent_specialist_model,
+            'agent_summary_model': self.agent_summary_model,
             'top_k': self.top_k,
             'hybrid_dual_weight': self.hybrid_dual_weight,
             'hybrid_vector_weight': self.hybrid_vector_weight,
@@ -93,7 +118,16 @@ class GraphRAGConfig:
             'max_tokens': self.max_tokens,
             'chunk_size': self.chunk_size,
             'chunk_overlap': self.chunk_overlap,
-            'max_graph_depth': self.max_graph_depth
+            'max_graph_depth': self.max_graph_depth,
+
+            'df_market_backend_module': self.df_market_backend_module,
+            'df_market_backend_class': self.df_market_backend_class,
+            'df_market_latest_price_operation': self.df_market_latest_price_operation,
+            'df_market_history_price_operation': self.df_market_history_price_operation,
+            'df_market_object_lookup_operation': self.df_market_object_lookup_operation,
+            'df_market_place_profit_rank_operation': self.df_market_place_profit_rank_operation,
+            'df_market_place_profit_history_operation': self.df_market_place_profit_history_operation,
+            'df_market_object_lookup_limit': self.df_market_object_lookup_limit,
         }
 
 # 默认配置实例

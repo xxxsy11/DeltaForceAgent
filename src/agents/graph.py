@@ -1,78 +1,75 @@
-"""
-Multi-Agent LangGraph：
-- Intent 节点做意图分析
-- Planner 节点选择工具
-- Tool 节点执行
-- Responder 输出
-"""
+"""LangGraph 主Agent+子Agent A2A 编排。"""
 
-from typing import Dict
+from __future__ import annotations
 
 from langgraph.graph import END, START, StateGraph
 
-from tools import ToolRegistry
-from agents.intent_analyzer import IntentAnalyzer
+from agents.execution_agent import ExecutionAgent
+from agents.intent_recognition import IntentRecognitionAgent
+from agents.main_orchestrator import MainOrchestratorAgent
+from agents.specialist_analysis import SpecialistAnalysisAgent
 from agents.state import AgentState
-
-
-def _intent_node(state: AgentState, analyzer: IntentAnalyzer) -> Dict:
-    decision = analyzer.analyze(state.get("user_query", ""))
-    return {
-        "intent": decision.intent,
-        "selected_tool": decision.tool_name,
-        "tool_query": decision.tool_query,
-        "debug_steps": state.get("debug_steps", []) + [f"intent: {decision.reason}"],
-    }
-
-
-def _tool_exec_node(state: AgentState, registry: ToolRegistry) -> Dict:
-    tool_name = state.get("selected_tool", "none")
-    query = state.get("tool_query", "")
-    if tool_name == "none":
-        return {
-            "tool_output": "未提供有效问题。",
-            "debug_steps": state.get("debug_steps", []) + ["tool: none"],
-        }
-
-    output = registry.invoke(tool_name, query)
-    return {
-        "tool_output": output,
-        "debug_steps": state.get("debug_steps", []) + [f"tool: {tool_name}"],
-    }
-
-
-def _response_node(state: AgentState) -> Dict:
-    output = (state.get("tool_output") or "").strip()
-    if not output:
-        output = "未获得可用结果。"
-    return {
-        "final_answer": output,
-        "debug_steps": state.get("debug_steps", []) + ["responder: done"],
-    }
+from agents.summary_agent import SummaryAgent
+from agents.task_planning import TaskPlanningAgent
+from agents.tool_planner import LLMToolPlanner
+from tools import ToolRegistry
 
 
 def _route_after_intent(state: AgentState) -> str:
-    if state.get("selected_tool") == "none":
-        return "responder"
-    return "tool_exec"
+    if not state.get("tool_calls"):
+        return "summary"
+    if state.get("flow_type") == "complex" and state.get("requires_task_planning", False):
+        return "task_planning"
+    return "execution"
+
+
+def _route_after_execution(state: AgentState) -> str:
+    if state.get("flow_type") == "complex" and state.get("requires_specialist_analysis", False):
+        return "specialist_analysis"
+    return "summary"
 
 
 def build_multi_agent_graph(registry: ToolRegistry):
-    analyzer = IntentAnalyzer()
-    builder = StateGraph(AgentState)
-    builder.add_node("intent", lambda s: _intent_node(s, analyzer))
-    builder.add_node("tool_exec", lambda s: _tool_exec_node(s, registry))
-    builder.add_node("responder", _response_node)
+    config = registry.config
 
-    builder.add_edge(START, "intent")
+    orchestrator = MainOrchestratorAgent()
+    intent_agent = IntentRecognitionAgent()
+    task_planner = TaskPlanningAgent(
+        planner=LLMToolPlanner(config=config, model_name=config.agent_planner_model),
+        registry=registry,
+    )
+    execution = ExecutionAgent(registry=registry, sell_fee_rate=0.13)
+    specialist = SpecialistAnalysisAgent(model_name=config.agent_specialist_model)
+    summary = SummaryAgent(planner=LLMToolPlanner(config=config, model_name=config.agent_summary_model))
+
+    builder = StateGraph(AgentState)
+    builder.add_node("main_orchestrator", orchestrator.run)
+    builder.add_node("intent_recognition", intent_agent.run)
+    builder.add_node("task_planning", task_planner.run)
+    builder.add_node("execution", execution.run)
+    builder.add_node("specialist_analysis", specialist.run)
+    builder.add_node("summary", summary.run)
+
+    builder.add_edge(START, "main_orchestrator")
+    builder.add_edge("main_orchestrator", "intent_recognition")
     builder.add_conditional_edges(
-        "intent",
+        "intent_recognition",
         _route_after_intent,
         {
-            "tool_exec": "tool_exec",
-            "responder": "responder",
+            "task_planning": "task_planning",
+            "execution": "execution",
+            "summary": "summary",
         },
     )
-    builder.add_edge("tool_exec", "responder")
-    builder.add_edge("responder", END)
+    builder.add_edge("task_planning", "execution")
+    builder.add_conditional_edges(
+        "execution",
+        _route_after_execution,
+        {
+            "specialist_analysis": "specialist_analysis",
+            "summary": "summary",
+        },
+    )
+    builder.add_edge("specialist_analysis", "summary")
+    builder.add_edge("summary", END)
     return builder.compile()

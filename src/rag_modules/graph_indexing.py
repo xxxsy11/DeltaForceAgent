@@ -80,7 +80,7 @@ class GraphIndexingModule:
             aliases = props.get("aliases")
             if isinstance(aliases, list):
                 index_keys.extend([str(a) for a in aliases])
-            for key in ("typeName", "difficulty", "caliber", "colorName"):
+            for key in ("typeName", "class", "difficulty", "caliber", "colorName"):
                 if props.get(key):
                     index_keys.append(str(props.get(key)))
             if props.get("level") is not None:

@@ -117,7 +117,7 @@ class GraphDataPreparationModule:
 
     def _display_name(self, props: Dict[str, Any]) -> str:
         """选择更稳定的显示名称"""
-        for key in ("name", "typeName", "difficulty", "caliber", "colorName"):
+        for key in ("name", "typeName", "class", "difficulty", "caliber", "colorName"):
             value = props.get(key)
             if value:
                 return str(value)
@@ -238,7 +238,7 @@ class GraphDataPreparationModule:
             RETURN type(r) as rel_type, dir as direction,
                    labels(n) as source_labels,
                    labels(m) as labels,
-                   COALESCE(m.name, m.typeName, m.difficulty, toString(m.level), m.caliber) as name
+                   COALESCE(m.name, m.typeName, m.class, m.difficulty, toString(m.level), m.caliber) as name
             LIMIT $limit
             """
             result = session.run(query, {"node_id": node_id, "limit": limit})
