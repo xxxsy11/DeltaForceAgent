@@ -29,25 +29,14 @@ class GenerationIntegrationModule:
         if not api_key:
             raise ValueError("请设置 MOONSHOT_API_KEY 环境变量")
 
-        try:
-            self.llm = ChatOpenAI(
-                model=self.model_name,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                api_key=api_key,
-                base_url="https://api.moonshot.cn/v1",
-                timeout=60,
-            )
-        except TypeError:
-            # 兼容旧版本参数命名
-            self.llm = ChatOpenAI(
-                model=self.model_name,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                openai_api_key=api_key,
-                openai_api_base="https://api.moonshot.cn/v1",
-                request_timeout=60,
-            )
+        self.llm = ChatOpenAI(
+            model=self.model_name,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            api_key=api_key,
+            base_url="https://api.moonshot.cn/v1",
+            timeout=60,
+        )
 
         # 向后兼容：其余模块通过 llm_client 注入
         self.client = self.llm

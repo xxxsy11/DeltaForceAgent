@@ -318,7 +318,6 @@ class GraphRAGRetrieval:
             llm_text = invoke_llm_text(
                 llm_client=self.llm_client,
                 prompt=prompt,
-                model=self.config.llm_model,
                 temperature=0.0,
                 max_tokens=1000,
             )

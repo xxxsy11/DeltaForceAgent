@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import Dict, List, Optional
 
@@ -10,6 +11,8 @@ from langchain_openai import ChatOpenAI
 
 from agents.state import AgentState
 from rag_modules.llm_utils import extract_text_content
+
+logger = logging.getLogger(__name__)
 
 
 class SpecialistAnalysisAgent:
@@ -23,24 +26,14 @@ class SpecialistAnalysisAgent:
         api_key = os.getenv("MOONSHOT_API_KEY", "").strip()
         if not api_key:
             return None
-        try:
-            return ChatOpenAI(
-                model=self.model_name,
-                temperature=0,
-                max_tokens=512,
-                api_key=api_key,
-                base_url="https://api.moonshot.cn/v1",
-                timeout=60,
-            )
-        except TypeError:
-            return ChatOpenAI(
-                model=self.model_name,
-                temperature=0,
-                max_tokens=512,
-                openai_api_key=api_key,
-                openai_api_base="https://api.moonshot.cn/v1",
-                request_timeout=60,
-            )
+        return ChatOpenAI(
+            model=self.model_name,
+            temperature=0,
+            max_tokens=512,
+            api_key=api_key,
+            base_url="https://api.moonshot.cn/v1",
+            timeout=60,
+        )
 
     @staticmethod
     def _extract_json(text: str) -> Dict:
@@ -50,7 +43,8 @@ class SpecialistAnalysisAgent:
         try:
             parsed = json.loads(raw)
             return parsed if isinstance(parsed, dict) else {}
-        except Exception:
+        except Exception as exc:
+            logger.debug("specialist_analysis: failed to parse json output: %s", exc)
             return {}
 
     @staticmethod
@@ -94,8 +88,8 @@ class SpecialistAnalysisAgent:
             if parsed.get("insights"):
                 parsed["model"] = self.model_name
                 return parsed
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("specialist_analysis: llm insight failed, fallback to heuristic: %s", exc)
         return self._heuristic_insights(report)
 
     def run(self, state: AgentState) -> Dict:
@@ -105,7 +99,11 @@ class SpecialistAnalysisAgent:
                 "debug_steps": state.get("debug_steps", []) + ["specialist_analysis: skipped"],
             }
 
-        specialist = self._llm_insights(query=state.get("user_query", ""), report=report)
+        query = str(state.get("user_query", "") or "")
+        memory_context = str(state.get("memory_context", "") or "").strip()
+        if memory_context:
+            query = f"{query}\n\n[会话上下文]\n{memory_context}"
+        specialist = self._llm_insights(query=query, report=report)
         updated = dict(report)
         updated["specialist"] = {
             "enabled": True,

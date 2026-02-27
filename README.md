@@ -48,9 +48,13 @@
   - 多物品价格对比
   - 利润稳定性分析
   - 综合回答编排（资料 + 价格 + 建议）
+- 记忆能力升级：支持多轮对话连续理解，自动保留最近对话并压缩较早内容，避免上下文丢失。
+- 历史记忆能力：支持本地持久化历史对话，并在需要时召回关键信息辅助回答。
+- 用户会话管理：支持多用户与多会话隔离，可切换用户、新建会话、查看记忆状态和清空当前会话记忆。
 - 离线数据工程能力：Neo4j/Milvus 建库、重建、CSV/Cypher 导出、数据管道脚本。
+- 工程验证能力：新增覆盖工具调用、记忆召回、跨会话重入和用户隔离的集成测试脚本。
 
-功能的调用方式与示例请查看：`docs/USAGE_GUIDE.md`
+最新全功能测试示例请查看：`docs/INTEGRATION_TEST_REPORT.md`
 
 ## 关于实时数据
 
@@ -63,6 +67,60 @@
 # 当前版本
 
 <details open>
+<summary><b> V0.4.0 - 记忆系统与用户会话管理 </b></summary>
+
+## 升级内容
+
+- 新增短期记忆链路：`recent_raw`、`pending_buffer`、`rolling_summary`，支持多轮上下文连续对话。
+- 新增长期记忆链路：基于 `PostgreSQL + pgvector` 的 `chat_turns`、`memory_summaries`、`memory_facts`。
+- 新增记忆门控召回：根据问题特征打分，按需触发长期深召回（向量检索 + BM25 + RRF 融合）。
+- 新增 `user_id` 维度：长短期记忆均按用户隔离，支持多用户并行使用。
+- 交互能力升级：支持 `new session`、`switch user <id>`、`memory stats`、`clear memory`。
+- 会话归档增强：会话结束时自动压缩并落盘，避免 `pending_buffer` 信息丢失。
+- 测试能力升级：新增记忆与工具联合集成测试脚本，覆盖跨会话重入与 user 隔离验证。
+
+## Agent Memory 逻辑
+
+- 短期记忆（内存态）
+  - `recent_raw`：保存最近原文对话窗口
+  - `pending_buffer`：超窗后待压缩缓冲
+  - `rolling_summary`：历史压缩摘要
+- 长期记忆（持久化）
+  - `chat_turns`：完整对话与工具输出
+  - `memory_summaries`：阶段摘要快照
+  - `memory_facts`：可复用事实条目
+- 召回策略
+  - 先构建短期上下文
+  - 达到门控阈值时触发长期深召回
+  - 未达阈值时仅补充长期最新摘要
+
+## 关键模块
+
+- 记忆模块：`src/memory/`
+- 记忆召回节点：`src/memory/persistent_memory_recall_node.py`
+- 记忆写入节点：`src/memory/persistent_memory_write_node.py`
+- 会话管理：`src/agents/runner.py`
+- 编排入口：`src/agents/graph.py`
+
+## 运行与验证
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+python main.py
+
+# 可选：初始化长期记忆数据库
+bash data/scripts/init_postgres_memory.sh
+
+# 可选：运行记忆+工具集成测试
+python data/scripts/integration_memory_tools_suite.py
+```
+
+</details>
+
+---
+
+<details>
 <summary><b> V0.3.0 - 主Agent + 子Agent 编排</b></summary>
 
 ## 升级内容

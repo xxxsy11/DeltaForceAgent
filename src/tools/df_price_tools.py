@@ -100,7 +100,7 @@ class DFPriceTools:
         stop_words = [
             "查一下", "查下", "查询", "帮我查", "帮我看", "请问", "告诉我", "看看",
             "最新", "实时", "历史", "走势", "曲线", "价格", "价位", "多少钱", "行情", "交易行",
-            "现在", "当前", "目前", "什么",
+            "现在", "当前", "目前",
             "的", "一下", "帮忙", "想知道", "到", "之间",
         ]
         for token in stop_words:
@@ -562,6 +562,12 @@ class DFPriceTools:
     def _extract_primary_item_name(cls, query: str, params: Dict[str, Any]) -> str:
         def _normalize_name(raw: str) -> str:
             name = str(raw or "").strip()
+            if not name:
+                return ""
+
+            # 先按连接词截断，避免把“并告诉我现在价格”一并当作实体
+            name = re.split(r"并告诉我|并告诉|并且告诉我|并且告诉|并且|以及|同时|和|与|并|；|;|，|,", name)[0].strip()
+
             prefix_tokens = [
                 "分析一下",
                 "分析",
@@ -573,10 +579,13 @@ class DFPriceTools:
                 "查下",
                 "告诉我",
                 "帮我看",
+                "再介绍一下",
+                "再介绍",
             ]
             for token in prefix_tokens:
                 if name.startswith(token) and len(name) > len(token):
                     name = name[len(token):].strip()
+
             suffix_tokens = [
                 "利润稳定性",
                 "稳定性",
@@ -587,11 +596,19 @@ class DFPriceTools:
                 "利润",
                 "价格",
                 "历史价格",
+                "现在价格",
+                "当前价格",
+                "是否建议买",
+                "建议买吗",
             ]
             for token in suffix_tokens:
                 if name.endswith(token) and len(name) > len(token):
                     name = name[: -len(token)].strip()
+
             name = name.strip(" ：:，,。.")
+            # 排除明显非实体短语
+            if any(x in name for x in ("总结", "聊了什么", "资料介绍", "买卖建议")):
+                return ""
             return name
 
         if params.get("objectName"):
@@ -813,6 +830,26 @@ class DFPriceTools:
         lowered = text.lower()
         return any((k in text) or (k in lowered) for k in keywords)
 
+    @staticmethod
+    def _sanitize_knowledge_text(text: str) -> str:
+        raw = str(text or "").strip()
+        if not raw:
+            return ""
+        noise_markers = (
+            "挂单", "成交", "游戏币", "价格", "价位", "报价", "行情", "区间", "回撤", "涨跌", "建议买", "建议卖",
+            "建议", "是否建议", "能不能卖", "贵了", "便宜", "万元", "万游戏币",
+        )
+        cleaned_lines: List[str] = []
+        for line in raw.splitlines():
+            item = line.strip()
+            if not item:
+                continue
+            if any(marker in item for marker in noise_markers):
+                continue
+            cleaned_lines.append(item)
+        cleaned = "\n".join(cleaned_lines).strip()
+        return cleaned or raw
+
     def _format_answer_composer_result(self, query: str, params: Dict[str, Any]) -> str:
         if self.rag_service is None:
             return "综合回答工具不可用：RAG 服务未注入。"
@@ -822,10 +859,17 @@ class DFPriceTools:
 
         knowledge_text = ""
         try:
-            knowledge = self.rag_service.query(question=query, explain_routing=False)
-            knowledge_text = str(knowledge.get("answer", "")).strip()
+            # 介绍信息与行情信息解耦，减少知识回答中的价格幻觉
+            knowledge_query = query
+            if primary_name:
+                knowledge_query = f"介绍一下{primary_name}，仅给资料介绍，不要价格和买卖建议"
+            knowledge = self.rag_service.query(question=knowledge_query, explain_routing=False)
+            knowledge_text = self._sanitize_knowledge_text(str(knowledge.get("answer", "")).strip())
         except Exception as exc:
             knowledge_text = f"知识检索失败：{exc}"
+
+        if any(token in knowledge_text for token in ("Error code: 429", "engine_overloaded", "生成回答时出现错误")):
+            knowledge_text = "资料介绍暂不可用（知识模型限流），已返回可用行情数据。"
 
         latest_text = ""
         advice_text = ""
@@ -854,7 +898,7 @@ class DFPriceTools:
         )
         profit_rank_text = self._format_place_profit_rank_result(query=query, params=params) if need_profit_rank else ""
 
-        sections = ["综合回答："]
+        sections: List[str] = []
         if knowledge_text:
             sections.append("【资料介绍】\n" + knowledge_text)
         if latest_text:
@@ -864,6 +908,8 @@ class DFPriceTools:
         if profit_rank_text:
             sections.append("【制造利润】\n" + profit_rank_text)
 
+        if not sections:
+            return "未获得可用结果。"
         return "\n\n".join(sections).strip()
 
     @staticmethod

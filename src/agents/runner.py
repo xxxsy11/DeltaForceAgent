@@ -2,16 +2,65 @@
 Multi-Agent 运行入口
 """
 
-from typing import Optional
+from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+
+from agents.graph import build_multi_agent_graph
 from config import DEFAULT_CONFIG, GraphRAGConfig
+from memory import PersistentMemoryStore, SessionMemoryManager
+from memory.components import MemoryCompressionAgent, PersistentMemoryWriteNode
 from services import RAGService
 from tools import ToolRegistry
-from agents.graph import build_multi_agent_graph
+
+_GLOBAL_MEMORY_MANAGER = SessionMemoryManager()
+_QUERY_RUNTIME_CACHE: Dict[int, "QueryRuntime"] = {}
 
 
-def _build_initial_state(query: str):
-    return {
+@dataclass
+class QueryRuntime:
+    config: GraphRAGConfig
+    registry: ToolRegistry
+    persistent_store: PersistentMemoryStore
+    graph: Any
+
+    def close(self) -> None:
+        self.registry.close()
+
+
+def _build_runtime(config: GraphRAGConfig) -> QueryRuntime:
+    rag_service = RAGService(config)
+    registry = ToolRegistry(rag_service=rag_service, config=config)
+    persistent_store = PersistentMemoryStore(config)
+    graph = build_multi_agent_graph(registry, persistent_store=persistent_store)
+    return QueryRuntime(
+        config=config,
+        registry=registry,
+        persistent_store=persistent_store,
+        graph=graph,
+    )
+
+
+def _get_query_runtime(config: GraphRAGConfig) -> QueryRuntime:
+    cache_key = id(config)
+    runtime = _QUERY_RUNTIME_CACHE.get(cache_key)
+    if runtime is not None:
+        return runtime
+    runtime = _build_runtime(config)
+    _QUERY_RUNTIME_CACHE[cache_key] = runtime
+    return runtime
+
+
+def _build_initial_state(
+    query: str,
+    session_id: str,
+    user_id: str = "default_user",
+    memory_patch: Optional[Dict[str, Any]] = None,
+):
+    base = {
+        "user_id": user_id,
+        "session_id": session_id,
         "user_query": query,
         "intent": "",
         "intent_reason": "",
@@ -27,39 +76,202 @@ def _build_initial_state(query: str):
         "analysis_report": {},
         "agent_messages": [],
         "orchestration_meta": {},
+        "memory_context": "",
+        "memory_pending_digest": "",
+        "memory_recent_raw": [],
+        "memory_pending_buffer": [],
+        "memory_rolling_summary": "",
+        "memory_merge_count": 0,
+        "memory_persistent_context": "",
+        "memory_persistent_entities": [],
+        "memory_persistent_hits": [],
+        "memory_persistent_used": False,
+        "memory_persistent_gate_score": 0,
+        "memory_keyword_candidates": [],
+        "memory_fact_candidates": [],
+        "understanding_entities": [],
+        "understanding_entity_count": 0,
+        "understanding_confidence": 0.0,
+        "understanding_compare_target_count": 2,
         "tool_output": "",
         "final_answer": "",
         "debug_steps": [],
     }
+    if memory_patch:
+        base.update(memory_patch)
+    return base
 
 
-def run_agent_query(query: str, config: Optional[GraphRAGConfig] = None) -> str:
+def _finalize_session_memory(
+    user_id: str,
+    session_id: str,
+    config: GraphRAGConfig,
+    memory_manager: SessionMemoryManager,
+    persistent_store: PersistentMemoryStore,
+) -> None:
+    memory_patch = memory_manager.build_state_patch(
+        user_id=user_id,
+        session_id=session_id,
+        include_pending_in_prompt=config.memory_include_pending_in_prompt,
+    )
+    recent = [dict(x) for x in memory_patch.get("memory_recent_raw", []) if isinstance(x, dict)]
+    pending = [dict(x) for x in memory_patch.get("memory_pending_buffer", []) if isinstance(x, dict)]
+    if not recent and not pending:
+        return
+
+    compression = MemoryCompressionAgent(config=config)
+    flush_input = {
+        "user_id": user_id,
+        "session_id": session_id,
+        "user_query": "",
+        "final_answer": "",
+        "memory_recent_raw": [],
+        "memory_pending_buffer": pending + recent,
+        "memory_rolling_summary": str(memory_patch.get("memory_rolling_summary", "") or ""),
+        "memory_merge_count": int(memory_patch.get("memory_merge_count", 0) or 0),
+        "memory_context": str(memory_patch.get("memory_context", "") or ""),
+        "memory_force_compress": True,
+        "agent_messages": [],
+        "debug_steps": [],
+    }
+    compressed = compression.run(flush_input)
+    memory_manager.save_from_state(user_id=user_id, session_id=session_id, state=compressed)
+
+    writer = PersistentMemoryWriteNode(store=persistent_store, config=config)
+    writer.run(
+        {
+            "user_id": user_id,
+            "session_id": session_id,
+            "user_query": "",
+            "final_answer": "",
+            "tool_results": [],
+            "memory_merge_count": compressed.get("memory_merge_count", 0),
+            "memory_rolling_summary": compressed.get("memory_rolling_summary", ""),
+            "memory_fact_candidates": compressed.get("memory_fact_candidates", []),
+            "agent_messages": compressed.get("agent_messages", []),
+            "debug_steps": [],
+        }
+    )
+
+
+def run_agent_query(
+    query: str,
+    config: Optional[GraphRAGConfig] = None,
+    session_id: str = "default",
+    user_id: str = "default_user",
+    memory_manager: Optional[SessionMemoryManager] = None,
+) -> str:
     cfg = config or DEFAULT_CONFIG
-    rag_service = RAGService(cfg)
-    registry = ToolRegistry(rag_service=rag_service, config=cfg)
-    graph = build_multi_agent_graph(registry)
-    result = graph.invoke(_build_initial_state(query))
-    registry.close()
+    manager = memory_manager or _GLOBAL_MEMORY_MANAGER
+    runtime = _get_query_runtime(cfg)
+
+    memory_patch = manager.build_state_patch(
+        user_id=user_id,
+        session_id=session_id,
+        include_pending_in_prompt=cfg.memory_include_pending_in_prompt,
+    )
+    result = runtime.graph.invoke(
+        _build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=memory_patch)
+    )
+    manager.save_from_state(user_id=user_id, session_id=session_id, state=result)
     return result.get("final_answer", "")
 
 
 def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
     cfg = config or DEFAULT_CONFIG
-    rag_service = RAGService(cfg)
-    registry = ToolRegistry(rag_service=rag_service, config=cfg)
-    graph = build_multi_agent_graph(registry)
+    runtime = _build_runtime(cfg)
+    memory_manager = SessionMemoryManager()
+    user_id = "user-0001"
+    session_id = memory_manager.next_session_id(prefix="chat")
 
-    tool_names = ", ".join(registry.list_tools())
+    tool_names = ", ".join(runtime.registry.list_tools())
     print(f"\nMulti-Agent 模式已启动（当前工具: {tool_names}）")
-    print("输入 'quit' 退出。")
-    while True:
-        query = input("\nAgent问题: ").strip()
-        if not query:
-            continue
-        if query.lower() == "quit":
-            break
+    print(f"当前用户: {user_id}")
+    print(f"当前会话: {session_id}")
+    print("输入 'quit' 退出，'new session' 新会话，'switch user <id>' 切换用户，'clear memory' 清空当前会话记忆，'memory stats' 查看记忆状态。")
+    try:
+        while True:
+            query = input("\nAgent问题: ").strip()
+            if not query:
+                continue
 
-        result = graph.invoke(_build_initial_state(query))
-        print(f"\n回答:\n{result.get('final_answer', '')}")
+            lower = query.lower()
+            if lower == "quit":
+                _finalize_session_memory(
+                    user_id=user_id,
+                    session_id=session_id,
+                    config=cfg,
+                    memory_manager=memory_manager,
+                    persistent_store=runtime.persistent_store,
+                )
+                break
 
-    registry.close()
+            if lower == "new session":
+                _finalize_session_memory(
+                    user_id=user_id,
+                    session_id=session_id,
+                    config=cfg,
+                    memory_manager=memory_manager,
+                    persistent_store=runtime.persistent_store,
+                )
+                session_id = memory_manager.next_session_id(prefix="chat")
+                print(f"已切换到新会话: {session_id}")
+                continue
+
+            if lower.startswith("switch user"):
+                parts = query.split(maxsplit=2)
+                if len(parts) < 3 or not parts[2].strip():
+                    print("用法: switch user <id>")
+                    continue
+                new_user_id = parts[2].strip()
+                _finalize_session_memory(
+                    user_id=user_id,
+                    session_id=session_id,
+                    config=cfg,
+                    memory_manager=memory_manager,
+                    persistent_store=runtime.persistent_store,
+                )
+                user_id = new_user_id
+                session_id = memory_manager.next_session_id(prefix="chat")
+                print(f"已切换用户: {user_id}")
+                print(f"当前会话: {session_id}")
+                continue
+
+            if lower == "clear memory":
+                _finalize_session_memory(
+                    user_id=user_id,
+                    session_id=session_id,
+                    config=cfg,
+                    memory_manager=memory_manager,
+                    persistent_store=runtime.persistent_store,
+                )
+                memory_manager.clear_session(user_id=user_id, session_id=session_id)
+                print(f"已清空会话记忆: {session_id}")
+                continue
+
+            if lower == "memory stats":
+                stats = memory_manager.stats(user_id=user_id, session_id=session_id)
+                print(f"记忆状态: {stats}")
+                continue
+
+            memory_patch = memory_manager.build_state_patch(
+                user_id=user_id,
+                session_id=session_id,
+                include_pending_in_prompt=cfg.memory_include_pending_in_prompt,
+            )
+            result = runtime.graph.invoke(
+                _build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=memory_patch)
+            )
+            memory_manager.save_from_state(user_id=user_id, session_id=session_id, state=result)
+            print(f"\n回答:\n{result.get('final_answer', '')}")
+    except KeyboardInterrupt:
+        _finalize_session_memory(
+            user_id=user_id,
+            session_id=session_id,
+            config=cfg,
+            memory_manager=memory_manager,
+            persistent_store=runtime.persistent_store,
+        )
+        print("\n已中断，当前会话记忆已归档。")
+    finally:
+        runtime.close()

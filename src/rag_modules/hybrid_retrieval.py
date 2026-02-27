@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
 from neo4j import GraphDatabase
+from retrieval import rank_ids_by_score, weighted_reciprocal_rank_fusion
 from .graph_indexing import GraphIndexingModule
 from .llm_utils import invoke_llm_text
 
@@ -121,7 +122,6 @@ class HybridRetrievalModule:
             llm_text = invoke_llm_text(
                 llm_client=self.llm_client,
                 prompt=prompt,
-                model=self.config.llm_model,
                 temperature=0.1,
                 max_tokens=400,
             )
@@ -578,31 +578,47 @@ class HybridRetrievalModule:
 
     def _fuse_retrieval_results(self, dual_docs: List[Document], vector_docs: List[Document], top_k: int) -> List[Document]:
         doc_store: Dict[str, Document] = {}
-        dual_rank: Dict[str, int] = {}
-        vector_rank: Dict[str, int] = {}
+        dual_order: List[str] = []
+        vector_order: List[str] = []
 
         for rank, doc in enumerate(dual_docs):
             doc_id = self._doc_identity(doc)
             if doc_id not in doc_store:
                 doc_store[doc_id] = doc
-            dual_rank.setdefault(doc_id, rank + 1)
+            if doc_id not in dual_order:
+                dual_order.append(doc_id)
 
         for rank, doc in enumerate(vector_docs):
             doc_id = self._doc_identity(doc)
             if doc_id not in doc_store:
                 doc_store[doc_id] = doc
-            vector_rank.setdefault(doc_id, rank + 1)
+            if doc_id not in vector_order:
+                vector_order.append(doc_id)
+
+        score_map = weighted_reciprocal_rank_fusion(
+            ranked_lists={"dual": dual_order, "vector": vector_order},
+            weights={"dual": self.hybrid_dual_weight, "vector": self.hybrid_vector_weight},
+            rrf_k=self.rrf_k,
+        )
+        dual_rank_map = {doc_id: idx + 1 for idx, doc_id in enumerate(dual_order)}
+        vector_rank_map = {doc_id: idx + 1 for idx, doc_id in enumerate(vector_order)}
+        ranked_doc_ids = rank_ids_by_score(
+            ids=list(doc_store.keys()),
+            scores=score_map,
+        )
 
         scored_docs: List[Tuple[float, Document]] = []
-        k_rrf = float(self.rrf_k)
-        for doc_id, doc in doc_store.items():
+        for doc_id in ranked_doc_ids:
+            doc = doc_store[doc_id]
+            dual_rank = dual_rank_map.get(doc_id)
+            vector_rank = vector_rank_map.get(doc_id)
             dual_rrf = (
-                self.hybrid_dual_weight / (k_rrf + dual_rank[doc_id])
-                if doc_id in dual_rank else 0.0
+                self.hybrid_dual_weight / (float(self.rrf_k) + float(dual_rank))
+                if dual_rank is not None else 0.0
             )
             vector_rrf = (
-                self.hybrid_vector_weight / (k_rrf + vector_rank[doc_id])
-                if doc_id in vector_rank else 0.0
+                self.hybrid_vector_weight / (float(self.rrf_k) + float(vector_rank))
+                if vector_rank is not None else 0.0
             )
             final_score = dual_rrf + vector_rrf
 
@@ -612,12 +628,11 @@ class HybridRetrievalModule:
             doc.metadata["final_score"] = final_score
             doc.metadata["search_method"] = (
                 "hybrid_fused"
-                if doc_id in dual_rank and doc_id in vector_rank
-                else ("dual_level" if doc_id in dual_rank else "vector_enhanced")
+                if dual_rank is not None and vector_rank is not None
+                else ("dual_level" if dual_rank is not None else "vector_enhanced")
             )
             scored_docs.append((final_score, doc))
 
-        scored_docs.sort(key=lambda item: item[0], reverse=True)
         return [doc for _, doc in scored_docs[:top_k]]
 
     def close(self):

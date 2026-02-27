@@ -37,12 +37,14 @@ class SummaryAgent:
         flow_type = str(state.get("flow_type", "simple")).strip().lower()
         tool_results = state.get("tool_results", [])
         user_query = state.get("user_query", "")
+        memory_context = str(state.get("memory_context", "") or "").strip()
+        composed_query = user_query if not memory_context else f"{user_query}\n\n[会话上下文]\n{memory_context}"
 
         if flow_type == "simple":
             answer = self._compose_simple(tool_results=tool_results, user_query=user_query)
         else:
             answer = self.planner.compose_from_analysis(
-                user_query=user_query,
+                user_query=composed_query,
                 analysis_report=report,
                 tool_results=tool_results,
             ).strip()

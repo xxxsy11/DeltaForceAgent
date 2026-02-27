@@ -29,7 +29,6 @@ def extract_text_content(content: Any) -> str:
 def invoke_llm_text(
     llm_client: Any,
     prompt: str,
-    model: str = "",
     temperature: float = 0.1,
     max_tokens: int = 512,
 ) -> str:
@@ -37,7 +36,6 @@ def invoke_llm_text(
     统一调用 LLM 并返回文本。
     仅支持 LangChain v1（bind + invoke）。
     """
-    _ = model  # 兼容旧调用签名；纯 LangChain 路径不使用 model 参数
     if hasattr(llm_client, "bind") and hasattr(llm_client, "invoke"):
         runnable = llm_client.bind(temperature=temperature, max_tokens=max_tokens)
         response = runnable.invoke(prompt)

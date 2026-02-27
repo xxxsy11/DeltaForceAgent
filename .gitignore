@@ -4,6 +4,13 @@ __pycache__/
 
 .env
 
-data/milvus/volumes/
+# Runtime data
+data/memory/
+data/milvus/
+
+# Generated graph export artifacts
 data/neo4j/csv/
 data/neo4j/cypher/
+
+# Optional generated reports
+docs/INTEGRATION_TEST_RESULT.json

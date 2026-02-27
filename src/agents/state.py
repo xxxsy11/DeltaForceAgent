@@ -22,6 +22,8 @@ class AgentMessage(TypedDict):
 
 
 class AgentState(TypedDict):
+    user_id: str
+    session_id: str
     user_query: str
     intent: str
     intent_reason: str
@@ -37,6 +39,23 @@ class AgentState(TypedDict):
     analysis_report: Dict[str, Any]
     agent_messages: List[AgentMessage]
     orchestration_meta: Dict[str, Any]
+    memory_context: str
+    memory_pending_digest: str
+    memory_recent_raw: List[Dict[str, str]]
+    memory_pending_buffer: List[Dict[str, str]]
+    memory_rolling_summary: str
+    memory_merge_count: int
+    memory_persistent_context: str
+    memory_persistent_entities: List[str]
+    memory_persistent_hits: List[Dict[str, Any]]
+    memory_persistent_used: bool
+    memory_persistent_gate_score: int
+    memory_keyword_candidates: List[str]
+    memory_fact_candidates: List[Dict[str, Any]]
+    understanding_entities: List[str]
+    understanding_entity_count: int
+    understanding_confidence: float
+    understanding_compare_target_count: int
     tool_output: str
     final_answer: str
     debug_steps: List[str]

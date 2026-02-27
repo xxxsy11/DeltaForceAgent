@@ -52,24 +52,14 @@ class LLMToolPlanner:
             logger.warning("MOONSHOT_API_KEY 未设置，工具规划将回退到规则路由。")
             return None
 
-        try:
-            return ChatOpenAI(
-                model=self.model_name,
-                temperature=0,
-                max_tokens=512,
-                api_key=api_key,
-                base_url="https://api.moonshot.cn/v1",
-                timeout=60,
-            )
-        except TypeError:
-            return ChatOpenAI(
-                model=self.model_name,
-                temperature=0,
-                max_tokens=512,
-                openai_api_key=api_key,
-                openai_api_base="https://api.moonshot.cn/v1",
-                request_timeout=60,
-            )
+        return ChatOpenAI(
+            model=self.model_name,
+            temperature=0,
+            max_tokens=512,
+            api_key=api_key,
+            base_url="https://api.moonshot.cn/v1",
+            timeout=60,
+        )
 
     @staticmethod
     def _extract_json_object(text: str) -> Dict:
@@ -79,8 +69,8 @@ class LLMToolPlanner:
         try:
             parsed = json.loads(raw)
             return parsed if isinstance(parsed, dict) else {}
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("tool_planner: direct json parse failed, fallback to regex: %s", exc)
 
         match = re.search(r"\{[\s\S]*\}", raw)
         if not match:
@@ -88,7 +78,8 @@ class LLMToolPlanner:
         try:
             parsed = json.loads(match.group(0))
             return parsed if isinstance(parsed, dict) else {}
-        except Exception:
+        except Exception as exc:
+            logger.debug("tool_planner: regex json parse failed: %s", exc)
             return {}
 
     def _sanitize_tool_calls(
@@ -258,7 +249,7 @@ class LLMToolPlanner:
         raw = (text or "").strip()
         if not raw:
             return True
-        markers = ("工具调用失败", "查询失败", "未找到工具", "系统错误", "未获得可用结果", "不可用")
+        markers = ("工具调用失败", "查询失败", "未找到工具", "系统错误", "未获得可用结果", "不可用", "请至少提供两个物品名称")
         return any(token in raw for token in markers)
 
     def compose_answer(self, user_query: str, tool_results: List[Dict[str, str]]) -> str:
@@ -294,11 +285,13 @@ class LLMToolPlanner:
             return fallback
 
         prompt = f"""
-请根据用户问题和工具结果，给出一段合并后的最终回答。
+你是最终回答整合器。请根据用户问题和工具结果给出最终回答。
 要求：
-1) 回答必须覆盖用户问题中的所有子任务。
-2) 不要编造，严格依据工具结果。
-3) 语言简洁自然。
+1) 先给结论，再给最多3条依据。
+2) 严格引用工具结果，不得补充工具中没有的数值、区间或结论。
+3) 若同一信息来源冲突：价格/历史/建议以市场工具输出为准，资料描述以知识检索为准。
+4) 若某部分工具失败，明确写“该部分数据不可用”，不要猜测。
+5) 回答控制在 6~12 行，避免冗长模板化。
 
 用户问题：{user_query}
 工具结果：{json.dumps(tool_results, ensure_ascii=False)}
@@ -307,7 +300,8 @@ class LLMToolPlanner:
             response = self.llm.invoke(prompt)
             text = extract_text_content(getattr(response, "content", response)).strip()
             return text or fallback
-        except Exception:
+        except Exception as exc:
+            logger.warning("tool_planner: compose_answer llm failed, fallback to raw tool outputs: %s", exc)
             return fallback
 
     def compose_from_analysis(self, user_query: str, analysis_report: Dict, tool_results: List[Dict[str, str]]) -> str:
@@ -344,12 +338,13 @@ class LLMToolPlanner:
             return "\n".join(lines).strip()
 
         prompt = f"""
-你是回答 Agent。请根据用户问题和“数据分析 Agent”的结构化报告，给出最终回答。
+你是回答 Agent。请根据用户问题和“数据分析 Agent”的结构化报告输出最终回答。
 要求：
-1) 先给结论，再给简要依据。
-2) 明确说明手续费假设（若有）。
-3) 若有失败工具，要诚实说明不确定性。
-4) 语言简洁、可执行，不要编造。
+1) 结构固定：结论 -> 关键依据(最多3条) -> 不确定性(如有)。
+2) 所有价格、区间、样本数、利润等数值必须来自工具原始结果，不得自造或改写数量级。
+3) 若存在失败工具，必须单独列出“不可用部分”，且不要用猜测补齐。
+4) 若报告含手续费假设，必须原样说明。
+5) 文本简洁，避免大段背景描述。
 
 用户问题：{user_query}
 分析报告：{json.dumps(report, ensure_ascii=False)}
@@ -360,7 +355,7 @@ class LLMToolPlanner:
             text = extract_text_content(getattr(response, "content", response)).strip()
             if text:
                 return text
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("tool_planner: compose_from_analysis llm failed, fallback to compose_answer: %s", exc)
 
         return self.compose_answer(user_query=user_query, tool_results=tool_results)

@@ -16,10 +16,48 @@ class TaskPlanningAgent:
         self.planner = planner
         self.registry = registry
 
+    @staticmethod
+    def _build_compare_query(entities: List[str], target_count: int) -> str:
+        uniq: List[str] = []
+        for item in entities:
+            value = str(item or "").strip()
+            if value and value not in uniq:
+                uniq.append(value)
+        if len(uniq) < 2:
+            return ""
+        count = max(2, int(target_count or 2))
+        return f"{'、'.join(uniq[:count])} 对比"
+
+    @staticmethod
+    def _normalize_tool_query(
+        tool_name: str,
+        tool_query: str,
+        understanding_entities: List[str],
+        compare_target_count: int,
+    ) -> str:
+        query = str(tool_query or "").strip()
+        if tool_name != "df_multi_item_compare":
+            return query
+        # 比较工具必须拿到明确实体，否则“这两个物品”场景会直接失败。
+        if "、" in query and len(query) >= 3:
+            return query
+        fallback = TaskPlanningAgent._build_compare_query(
+            entities=understanding_entities,
+            target_count=compare_target_count,
+        )
+        return fallback or query
+
     def run(self, state: AgentState) -> Dict:
         query = state.get("user_query", "")
+        planning_query = str(state.get("tool_query", "") or "").strip() or query
         fallback_intent = state.get("intent", "")
         fallback_tool = state.get("selected_tool", "")
+        understanding_entities = [
+            str(x).strip()
+            for x in (state.get("understanding_entities", []) or [])
+            if str(x).strip()
+        ]
+        compare_target_count = int(state.get("understanding_compare_target_count", 2) or 2)
 
         if not state.get("requires_task_planning", False):
             return {
@@ -27,19 +65,31 @@ class TaskPlanningAgent:
             }
 
         decision = self.planner.plan_with_hint(
-            query=query,
+            query=planning_query,
             available_tools=self.registry.list_tools(),
             fallback_intent=fallback_intent,
             fallback_tool=fallback_tool,
             force_llm=True,
         )
-        task_plan: List[Dict] = [
-            {"tool_name": call.tool_name, "tool_query": call.tool_query}
-            for call in decision.tool_calls
-        ]
+        task_plan: List[Dict] = []
+        for call in decision.tool_calls:
+            tool_name = str(call.tool_name or "").strip()
+            tool_query = self._normalize_tool_query(
+                tool_name=tool_name,
+                tool_query=str(call.tool_query or "").strip(),
+                understanding_entities=understanding_entities,
+                compare_target_count=compare_target_count,
+            )
+            task_plan.append({"tool_name": tool_name, "tool_query": tool_query})
 
         if not task_plan and fallback_tool and fallback_tool != "none":
-            task_plan = [{"tool_name": fallback_tool, "tool_query": query}]
+            fallback_query = self._normalize_tool_query(
+                tool_name=fallback_tool,
+                tool_query=planning_query,
+                understanding_entities=understanding_entities,
+                compare_target_count=compare_target_count,
+            )
+            task_plan = [{"tool_name": fallback_tool, "tool_query": fallback_query}]
 
         plan_source = "llm_task_planning" if "LLM" in decision.reason or "规划" in decision.reason else "fallback_task_planning"
         message = {

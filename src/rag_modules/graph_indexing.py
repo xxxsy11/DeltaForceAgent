@@ -188,7 +188,6 @@ class GraphIndexingModule:
             llm_text = invoke_llm_text(
                 llm_client=self.llm_client,
                 prompt=prompt,
-                model=self.config.llm_model,
                 temperature=0.1,
                 max_tokens=200,
             )
