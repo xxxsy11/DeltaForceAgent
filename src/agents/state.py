@@ -52,6 +52,12 @@ class AgentState(TypedDict):
     memory_persistent_gate_score: int
     memory_keyword_candidates: List[str]
     memory_fact_candidates: List[Dict[str, Any]]
+    selected_skill: str
+    skill_reason: str
+    skill_confidence: float
+    skill_matched_by: List[str]
+    skill_locked_plan: bool
+    skill_tool_chain: List[AgentToolCall]
     understanding_entities: List[str]
     understanding_entity_count: int
     understanding_confidence: float

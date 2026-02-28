@@ -1,0 +1,16 @@
+{
+  "skill_id": "answer_composer",
+  "display_name": "综合回答编排",
+  "description": "用于资料介绍与市场信息组合回答。",
+  "intent_hints": ["answer_composer_query"],
+  "tool_hints": ["df_answer_composer"],
+  "query_keywords_any": ["并告诉", "同时告诉", "顺便", "综合", "介绍一下"],
+  "default_chain": ["df_answer_composer"],
+  "flow_type": "complex",
+  "requires_task_planning": false,
+  "requires_specialist_analysis": true,
+  "locked_plan": true,
+  "min_entities": 1,
+  "max_entities": 3,
+  "min_compare_targets": 2
+}

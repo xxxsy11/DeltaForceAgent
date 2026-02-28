@@ -14,6 +14,7 @@ from agents.intent_analyzer import IntentAnalyzer
 from agents.state import AgentState
 from config import DEFAULT_CONFIG, GraphRAGConfig
 from rag_modules.llm_utils import extract_text_content
+from skills import SkillRegistry, SkillPlan, SkillSelection
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,8 @@ class IntentRecognitionAgent:
         self.available_tools = list(available_tools or [])
         self.analyzer = IntentAnalyzer()
         self.llm = self._build_llm()
+        self.skills_enabled = os.getenv("AGENT_SKILLS_ENABLED", "1").strip().lower() not in {"0", "false", "off", "no"}
+        self.skill_registry = SkillRegistry(definitions_dir=None, available_tools=self.available_tools) if self.skills_enabled else None
 
     def _build_llm(self):
         api_key = os.getenv("MOONSHOT_API_KEY", "").strip()
@@ -498,19 +501,66 @@ class IntentRecognitionAgent:
         confidence = resolved["confidence"]
         compare_target_count = int(resolved.get("compare_target_count", 2) or 2)
 
+        if self.skills_enabled and self.skill_registry is not None:
+            skill_selection = self.skill_registry.select(
+                query=query,
+                intent=intent,
+                tool_name=tool_name,
+                entity_count=entity_count,
+                compare_target_count=compare_target_count,
+            )
+            skill = self.skill_registry.get(skill_selection.skill_id)
+            skill_plan = self.skill_registry.build_plan(
+                selection=skill_selection,
+                query=query,
+                entities=entities,
+                compare_target_count=compare_target_count,
+                fallback_tool=tool_name,
+                fallback_query=tool_query,
+            )
+        else:
+            skill_selection = SkillSelection(
+                skill_id="",
+                score=0,
+                confidence=0.0,
+                reason="skills_disabled",
+                matched_by=[],
+            )
+            skill = None
+            fallback_calls = []
+            if tool_name and tool_name != "none":
+                fallback_calls = [{"tool_name": tool_name, "tool_query": tool_query}]
+            skill_plan = SkillPlan(skill_id="", tool_calls=fallback_calls, locked_plan=False)
+
+        tool_calls = skill_plan.tool_calls
+        if not tool_calls and tool_name and tool_name != "none":
+            tool_calls = [{"tool_name": tool_name, "tool_query": tool_query}]
+
+        selected_tool = "none"
+        selected_query = ""
+        if tool_calls:
+            selected_tool = str(tool_calls[0].get("tool_name", "") or "").strip() or "none"
+            selected_query = str(tool_calls[0].get("tool_query", "") or "").strip()
+
         is_complex = self.analyzer.is_complex_intent(intent) or self._contains_complex_markers(query)
         flow_type = "complex" if is_complex else "simple"
+        if skill and skill.flow_type in {"simple", "complex"}:
+            flow_type = skill.flow_type
 
-        requires_task_planning = self._should_use_task_planning(
+        base_task_planning = self._should_use_task_planning(
             query=query,
-            tool_name=tool_name,
+            tool_name=selected_tool,
             entity_count=entity_count,
             is_complex=is_complex,
         )
-        requires_specialist = intent in self.SPECIALIST_INTENTS
+        requires_task_planning = (
+            bool(getattr(self.config, "task_planning_enabled", False))
+            and (base_task_planning or bool(skill.requires_task_planning if skill else False))
+            and not bool(skill_plan.locked_plan)
+        )
+        requires_specialist = bool(skill.requires_specialist_analysis if skill else False) or intent in self.SPECIALIST_INTENTS
 
-        call = {"tool_name": tool_name, "tool_query": tool_query}
-        task_plan = [] if tool_name == "none" else [call]
+        task_plan = [] if selected_tool == "none" else tool_calls
 
         message = {
             "from_agent": "intent_recognition",
@@ -518,13 +568,17 @@ class IntentRecognitionAgent:
             "message_type": "intent_result",
             "payload": {
                 "intent": intent,
-                "tool_name": tool_name,
+                "tool_name": selected_tool,
                 "flow_type": flow_type,
                 "reason": reason,
                 "entities": entities,
                 "entity_count": entity_count,
                 "confidence": confidence,
                 "compare_target_count": compare_target_count,
+                "skill_id": skill_selection.skill_id,
+                "skill_confidence": skill_selection.confidence,
+                "skill_reason": skill_selection.reason,
+                "skill_matched_by": list(skill_selection.matched_by),
             },
         }
 
@@ -532,19 +586,25 @@ class IntentRecognitionAgent:
             "intent": intent,
             "intent_reason": reason,
             "flow_type": flow_type,
-            "plan_source": "query_understanding",
+            "plan_source": "skill_planning" if skill_selection.skill_id else "query_understanding",
             "requires_task_planning": requires_task_planning,
             "requires_specialist_analysis": requires_specialist,
-            "selected_tool": tool_name,
-            "tool_query": tool_query,
+            "selected_tool": selected_tool,
+            "tool_query": selected_query,
             "task_plan": task_plan,
             "tool_calls": task_plan,
             "understanding_entities": entities,
             "understanding_entity_count": entity_count,
             "understanding_confidence": confidence,
             "understanding_compare_target_count": compare_target_count,
+            "selected_skill": skill_selection.skill_id,
+            "skill_reason": skill_selection.reason,
+            "skill_confidence": skill_selection.confidence,
+            "skill_matched_by": list(skill_selection.matched_by),
+            "skill_locked_plan": bool(skill_plan.locked_plan),
+            "skill_tool_chain": task_plan,
             "agent_messages": state.get("agent_messages", []) + [message],
             "debug_steps": state.get("debug_steps", []) + [
-                f"intent_recognition: {intent}/{flow_type}/tool={tool_name}/entities={entity_count}/compare_n={compare_target_count}"
+                f"intent_recognition: {intent}/{flow_type}/skill={skill_selection.skill_id or 'none'}/tool={selected_tool}/entities={entity_count}/compare_n={compare_target_count}"
             ],
         }

@@ -1,0 +1,16 @@
+{
+  "skill_id": "profit_stability",
+  "display_name": "利润稳定性",
+  "description": "分析目标物品的利润波动、回撤与稳定性。",
+  "intent_hints": ["profit_stability_query"],
+  "tool_hints": ["df_profit_stability"],
+  "query_keywords_any": ["稳定性", "波动", "回撤", "风险", "利润稳定"],
+  "default_chain": ["df_profit_stability"],
+  "flow_type": "complex",
+  "requires_task_planning": false,
+  "requires_specialist_analysis": true,
+  "locked_plan": true,
+  "min_entities": 1,
+  "max_entities": 3,
+  "min_compare_targets": 2
+}

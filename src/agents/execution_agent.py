@@ -67,6 +67,12 @@ class ExecutionAgent:
             "route_reason": state.get("intent_reason", ""),
             "boundary": boundary,
             "plan_source": state.get("plan_source", ""),
+            "skill": {
+                "skill_id": state.get("selected_skill", ""),
+                "skill_reason": state.get("skill_reason", ""),
+                "skill_confidence": float(state.get("skill_confidence", 0.0) or 0.0),
+                "skill_matched_by": list(state.get("skill_matched_by", []) or []),
+            },
             "used_tools": [item.get("tool_name", "") for item in tool_results],
             "successful_tools": successes,
             "failed_tools": failures,

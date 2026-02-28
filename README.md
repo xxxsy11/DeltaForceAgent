@@ -51,10 +51,12 @@
 - 记忆能力升级：支持多轮对话连续理解，自动保留最近对话并压缩较早内容，避免上下文丢失。
 - 历史记忆能力：支持本地持久化历史对话，并在需要时召回关键信息辅助回答。
 - 用户会话管理：支持多用户与多会话隔离，可切换用户、新建会话、查看记忆状态和清空当前会话记忆。
+- Agent Skills：按问题类型自动选择更合适的处理方式，支持单工具和多工具链式调用，降低误选工具概率。
 - 离线数据工程能力：Neo4j/Milvus 建库、重建、CSV/Cypher 导出、数据管道脚本。
-- 工程验证能力：新增覆盖工具调用、记忆召回、跨会话重入和用户隔离的集成测试脚本。
+- 工程验证能力：提供集成测试、Skills专项测试和A/B基准测试，覆盖工具调用、记忆召回、跨会话重入、用户隔离和结果质量对比。
 
-最新全功能测试示例请查看：`docs/INTEGRATION_TEST_REPORT.md`
+功能调用方式和示例请查看：`docs/USAGE_GUIDE.md`  
+测试与评测请查看：`docs/INTEGRATION_TEST_REPORT.md`、`docs/INTEGRATION_TEST_SKILLS_REPORT.md`、`docs/SYSTEM_AB_BENCHMARK_REPORT.md`
 
 ## 关于实时数据
 
@@ -67,6 +69,50 @@
 # 当前版本
 
 <details open>
+<summary><b> V0.5.0 - Skills能力与系统评测 </b></summary>
+
+## 升级内容
+
+- 新增 Skills 模块：按问题类别管理处理策略，统一定义工具选择、参数组织和执行链路。
+- 意图识别接入 Skills：先识别意图，再根据技能规则选择工具计划；复杂问题可自动进入多工具链路。
+- 任务规划联动升级：当技能计划已明确时直接执行，减少重复规划；当技能未锁定时继续保留规划能力。
+- 执行与可观测升级：执行结果中增加技能命中信息，便于排查“为什么用这个工具”。
+- 测试体系升级：
+  - 新增 Skills 集成测试脚本：`data/scripts/integration_memory_tools_skills_suite.py`
+  - 新增系统A/B基准脚本：`data/scripts/system_ab_benchmark.py`
+  - 新增评测基线数据：`data/benchmarks/system_eval_cases.json`
+  - 新增评测文档：`docs/INTEGRATION_TEST_SKILLS_REPORT.md`、`docs/SYSTEM_AB_BENCHMARK_REPORT.md`
+
+## 关键模块
+
+- Skills 定义：`src/skills/definitions/`
+- Skills 选择与组装：`src/skills/registry.py`
+- 意图识别接入：`src/agents/intent_recognition.py`
+- 执行阶段记录：`src/agents/execution_agent.py`
+- 任务规划联动：`src/agents/task_planning.py`
+
+## 运行与验证
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+python main.py
+
+# 集成测试（记忆 + 工具）
+python data/scripts/integration_memory_tools_suite.py
+
+# Skills 集成测试
+python data/scripts/integration_memory_tools_skills_suite.py
+
+# 系统A/B基准测试（skills_on / skills_off）
+python data/scripts/system_ab_benchmark.py
+```
+
+</details>
+
+---
+
+<details>
 <summary><b> V0.4.0 - 记忆系统与用户会话管理 </b></summary>
 
 ## 升级内容

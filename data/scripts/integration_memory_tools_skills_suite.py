@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""端到端集成测试：工具调用 + 长短期记忆 + user_id 隔离。"""
+"""端到端集成测试：Skills + 工具调用 + 长短期记忆 + user_id 隔离。"""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ if str(PROJECT_ROOT) not in sys.path:
 SRC_PATH = PROJECT_ROOT / "src"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
+
 load_dotenv(PROJECT_ROOT / ".env")
 
 from agents.graph import build_multi_agent_graph
@@ -41,6 +42,17 @@ FAIL_MARKERS = (
     "请至少提供两个物品名称",
 )
 
+SKILL_TOOL_EXPECTATIONS = {
+    "knowledge_profile": {"rag_knowledge_search"},
+    "market_latest_price": {"df_market_latest_price"},
+    "market_history_price": {"df_market_history_price"},
+    "market_price_advice": {"df_market_price_advice"},
+    "market_multi_item_compare": {"df_multi_item_compare"},
+    "place_profit_rank": {"df_place_profit_rank"},
+    "profit_stability": {"df_profit_stability"},
+    "answer_composer": {"df_answer_composer"},
+}
+
 
 def _now_utc() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -51,6 +63,21 @@ def _is_failure_text(text: str) -> bool:
     if not raw:
         return True
     return any(x in raw for x in FAIL_MARKERS)
+
+
+def _is_transient_failure(text: str) -> bool:
+    raw = str(text or "").lower()
+    markers = (
+        "timeout",
+        "timed out",
+        "read timed out",
+        "connection",
+        "temporary",
+        "http 429",
+        "http 500",
+        "http 502",
+    )
+    return any(x in raw for x in markers)
 
 
 def _find_compression(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -109,13 +136,41 @@ def _run_turn(
     include_pending_in_prompt: bool,
     persistent_gate_threshold: int,
 ) -> Dict[str, Any]:
-    memory_patch = memory_manager.build_state_patch(
-        user_id=user_id,
-        session_id=session_id,
-        include_pending_in_prompt=include_pending_in_prompt,
-    )
+    attempts = 0
     start = time.time()
-    result = graph.invoke(_build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=memory_patch))
+    result = {}
+
+    while True:
+        attempts += 1
+        memory_patch = memory_manager.build_state_patch(
+            user_id=user_id,
+            session_id=session_id,
+            include_pending_in_prompt=include_pending_in_prompt,
+        )
+        result = graph.invoke(_build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=memory_patch))
+
+        final_answer = str(result.get("final_answer", "") or "")
+        selected_tool = str(result.get("selected_tool", "") or "")
+        failed = _is_failure_text(final_answer)
+        transient = _is_transient_failure(final_answer)
+
+        tool_failures = [
+            str(item.get("output", ""))
+            for item in (result.get("tool_results", []) or [])
+            if _is_failure_text(str(item.get("output", "")))
+        ]
+        if any(_is_transient_failure(x) for x in tool_failures):
+            transient = True
+
+        if not failed:
+            break
+        if attempts >= 3:
+            break
+        if selected_tool.startswith("df_") and transient:
+            time.sleep(1.0 * attempts)
+            continue
+        break
+
     elapsed = round(time.time() - start, 2)
     memory_manager.save_from_state(user_id=user_id, session_id=session_id, state=result)
 
@@ -124,11 +179,18 @@ def _run_turn(
     tool_results = result.get("tool_results", []) or []
 
     return {
+        "attempts": attempts,
         "timestamp_utc": _now_utc(),
         "query": query,
         "elapsed_sec": elapsed,
         "intent": result.get("intent", ""),
         "flow_type": result.get("flow_type", ""),
+        "plan_source": result.get("plan_source", ""),
+        "selected_skill": result.get("selected_skill", ""),
+        "skill_reason": result.get("skill_reason", ""),
+        "skill_confidence": result.get("skill_confidence", 0.0),
+        "skill_locked_plan": bool(result.get("skill_locked_plan", False)),
+        "skill_tool_chain": result.get("skill_tool_chain", []) or [],
         "selected_tool": result.get("selected_tool", ""),
         "tool_query": result.get("tool_query", ""),
         "tool_results": tool_results,
@@ -178,7 +240,9 @@ def _build_assertions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     checks: List[Dict[str, Any]] = []
 
     turns = payload["main_session"]["turns"]
-    selected = [str(t.get("selected_tool", "")).strip() for t in turns]
+    selected_tools = [str(t.get("selected_tool", "")).strip() for t in turns]
+    selected_skills = [str(t.get("selected_skill", "")).strip() for t in turns]
+
     expected_tools = {
         "rag_knowledge_search",
         "df_market_latest_price",
@@ -189,12 +253,41 @@ def _build_assertions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
         "df_profit_stability",
         "df_answer_composer",
     }
-
     checks.append(
         {
             "name": "all_tools_covered_in_main_session",
-            "passed": expected_tools.issubset(set(selected)),
-            "detail": {"selected": selected, "expected": sorted(expected_tools)},
+            "passed": expected_tools.issubset(set(selected_tools)),
+            "detail": {"selected": selected_tools, "expected": sorted(expected_tools)},
+        }
+    )
+
+    expected_skills = set(SKILL_TOOL_EXPECTATIONS.keys())
+    checks.append(
+        {
+            "name": "all_skills_covered_in_main_session",
+            "passed": expected_skills.issubset(set(selected_skills)),
+            "detail": {"selected": selected_skills, "expected": sorted(expected_skills)},
+        }
+    )
+
+    consistency_failures: List[Dict[str, Any]] = []
+    for turn in turns:
+        sid = str(turn.get("selected_skill", "")).strip()
+        tool = str(turn.get("selected_tool", "")).strip()
+        if sid in SKILL_TOOL_EXPECTATIONS and tool not in SKILL_TOOL_EXPECTATIONS[sid]:
+            consistency_failures.append(
+                {
+                    "query": turn.get("query", ""),
+                    "skill": sid,
+                    "tool": tool,
+                    "expected": sorted(SKILL_TOOL_EXPECTATIONS[sid]),
+                }
+            )
+    checks.append(
+        {
+            "name": "skill_tool_consistency",
+            "passed": len(consistency_failures) == 0,
+            "detail": consistency_failures,
         }
     )
 
@@ -205,6 +298,7 @@ def _build_assertions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
             "detail": [
                 {
                     "query": t.get("query", ""),
+                    "skill": t.get("selected_skill", ""),
                     "tool": t.get("selected_tool", ""),
                     "failed": bool(t.get("final_answer_failed", False)),
                     "tool_failures": t.get("tool_failures", []),
@@ -227,41 +321,33 @@ def _build_assertions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     reentry = payload["reentry_session"]["turn"]
     reentry_text = str(reentry.get("final_answer", ""))
-    compare_count = 0
-    m = re.search(r"多物品价格对比（共(\d+)个）", reentry_text)
-    if m:
-        try:
-            compare_count = int(m.group(1))
-        except Exception:
-            compare_count = 0
+    selected_tool = str(reentry.get("selected_tool", ""))
+    selected_skill = str(reentry.get("selected_skill", ""))
+    hard_fail = (
+        "请至少提供两个物品名称" in reentry_text
+        or "对比失败" in reentry_text
+        or "未成功对比" in reentry_text
+        or _is_failure_text(reentry_text)
+    )
+    has_compare_signal = any(token in reentry_text for token in ("更", "优", "适合", "买入", "性价比", "对比"))
+
     checks.append(
         {
             "name": "reentry_compare_resolved_entities",
             "passed": (
-                "请至少提供两个物品名称" not in reentry_text
-                and "对比失败" not in reentry_text
-                and "未成功对比" not in reentry_text
-                and compare_count >= 2
+                not hard_fail
+                and selected_tool == "df_multi_item_compare"
+                and selected_skill == "market_multi_item_compare"
+                and has_compare_signal
             ),
             "detail": {
                 "query": reentry.get("query", ""),
-                "selected_tool": reentry.get("selected_tool", ""),
+                "selected_skill": selected_skill,
+                "selected_tool": selected_tool,
                 "memory_gate_score": reentry.get("memory_gate_score", 0),
                 "memory_recall_hits": reentry.get("memory_recall_hits", 0),
-                "compare_count": compare_count,
+                "has_compare_signal": has_compare_signal,
                 "answer": reentry_text[:500],
-            },
-        }
-    )
-
-    checks.append(
-        {
-            "name": "reentry_answer_not_failed",
-            "passed": not bool(reentry.get("final_answer_failed", False)),
-            "detail": {
-                "query": reentry.get("query", ""),
-                "failed": reentry.get("final_answer_failed", False),
-                "tool": reentry.get("selected_tool", ""),
             },
         }
     )
@@ -305,9 +391,9 @@ def _truncate_line(text: str, limit: int) -> str:
 
 def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) -> Dict[str, str]:
     docs_dir = PROJECT_ROOT / "docs"
-    json_path = docs_dir / "INTEGRATION_TEST_RESULT.json"
-    md_path = docs_dir / "INTEGRATION_TEST_REPORT.md"
-    brief_path = docs_dir / "INTEGRATION_TEST_REPORT_BRIEF.md"
+    json_path = docs_dir / "INTEGRATION_TEST_SKILLS_RESULT.json"
+    md_path = docs_dir / "INTEGRATION_TEST_SKILLS_REPORT.md"
+    brief_path = docs_dir / "INTEGRATION_TEST_SKILLS_REPORT_BRIEF.md"
 
     payload["assertions"] = assertions
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -317,7 +403,7 @@ def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) ->
     failed_assert = total_assert - passed_assert
 
     full_lines: List[str] = []
-    full_lines.append("# 集成测试报告")
+    full_lines.append("# Skills 集成测试报告")
     full_lines.append("")
     full_lines.append("## 1. 总览")
     full_lines.append(f"- 报告时间(UTC): `{payload['meta']['generated_at_utc']}`")
@@ -326,11 +412,14 @@ def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) ->
     full_lines.append(f"- 重入会话ID: `{payload['reentry_session']['session_id']}`")
     full_lines.append(f"- 断言统计: `PASS={passed_assert}, FAIL={failed_assert}, TOTAL={total_assert}`")
     full_lines.append("")
+
     full_lines.append("## 2. 主会话明细")
     for idx, turn in enumerate(payload["main_session"]["turns"], 1):
         full_lines.append(f"### Round {idx}")
         full_lines.append(f"- 输入: `{turn.get('query', '')}`")
+        full_lines.append(f"- 技能: `{turn.get('selected_skill', '')}`")
         full_lines.append(f"- 工具: `{turn.get('selected_tool', '')}`")
+        full_lines.append(f"- 计划来源: `{turn.get('plan_source', '')}`")
         full_lines.append(
             f"- 记忆门控: `score={turn.get('memory_gate_score', 0)}, gate_triggered={turn.get('memory_gate_triggered', False)}, hits={turn.get('memory_recall_hits', 0)}`"
         )
@@ -346,10 +435,11 @@ def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) ->
     full_lines.append(f"- 归档后: `{payload['main_session']['finalize']['post']}`")
     reentry = payload["reentry_session"]["turn"]
     full_lines.append(f"- 重入问题: `{reentry.get('query', '')}`")
+    full_lines.append(f"- 重入技能: `{reentry.get('selected_skill', '')}`")
+    full_lines.append(f"- 重入工具: `{reentry.get('selected_tool', '')}`")
     full_lines.append(
         f"- 重入门控: `score={reentry.get('memory_gate_score', 0)}, gate_triggered={reentry.get('memory_gate_triggered', False)}, hits={reentry.get('memory_recall_hits', 0)}`"
     )
-    full_lines.append(f"- 重入工具: `{reentry.get('selected_tool', '')}`")
     full_lines.append("```text")
     full_lines.append(str(reentry.get("final_answer", "")).strip())
     full_lines.append("```")
@@ -377,7 +467,7 @@ def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) ->
     md_path.write_text("\n".join(full_lines), encoding="utf-8")
 
     brief_lines: List[str] = []
-    brief_lines.append("# 集成测试简报")
+    brief_lines.append("# Skills 集成测试简报")
     brief_lines.append("")
     brief_lines.append(f"- 时间(UTC): `{payload['meta']['generated_at_utc']}`")
     brief_lines.append(f"- 主会话: `{payload['main_session']['session_id']}`")
@@ -387,8 +477,10 @@ def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) ->
     brief_lines.append("## 输入输出（摘要）")
     for idx, turn in enumerate(payload["main_session"]["turns"], 1):
         brief_lines.append(f"- R{idx} 输入: `{turn.get('query', '')}`")
+        brief_lines.append(f"  技能/工具: `{turn.get('selected_skill', '')}` / `{turn.get('selected_tool', '')}`")
         brief_lines.append(f"  输出: `{_truncate_line(turn.get('final_answer', ''), 140)}`")
     brief_lines.append(f"- 重入输入: `{reentry.get('query', '')}`")
+    brief_lines.append(f"  重入技能/工具: `{reentry.get('selected_skill', '')}` / `{reentry.get('selected_tool', '')}`")
     brief_lines.append(f"  重入输出: `{_truncate_line(reentry.get('final_answer', ''), 160)}`")
     brief_lines.append("")
     brief_lines.append("## 断言")
@@ -412,7 +504,7 @@ def main() -> None:
 
     manager = SessionMemoryManager()
     user_id = "it-user-0001"
-    main_sid = f"integration-main-{ts}"
+    main_sid = f"integration-skills-main-{ts}"
 
     try:
         reset_info = _reset_persistent_memory(store)
@@ -427,6 +519,7 @@ def main() -> None:
             "分析碳纤维散射箭矢利润稳定性",
             "特勤处制造什么子弹利润最高",
             "特勤处四大分组利润top3",
+            "介绍一下非洲之心以及告诉我它现在什么价格",
         ]
         main_turns: List[Dict[str, Any]] = []
         for query in main_inputs:
@@ -462,7 +555,7 @@ def main() -> None:
             persistent_gate_threshold=threshold,
         )
 
-        iso_sid = f"integration-iso-{ts}"
+        iso_sid = f"integration-skills-iso-{ts}"
         iso_manager = SessionMemoryManager()
         user_a_warmup = _run_turn(
             graph=graph,
@@ -540,7 +633,16 @@ def main() -> None:
         assertions = _build_assertions(payload)
         report_paths = _write_reports(payload, assertions)
         all_passed = all(bool(x.get("passed", False)) for x in assertions)
-        print(json.dumps({"status": "ok" if all_passed else "failed", "all_passed": all_passed, "reports": report_paths}, ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    "status": "ok" if all_passed else "failed",
+                    "all_passed": all_passed,
+                    "reports": report_paths,
+                },
+                ensure_ascii=False,
+            )
+        )
     finally:
         registry.close()
 

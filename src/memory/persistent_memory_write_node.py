@@ -22,7 +22,7 @@ class PersistentMemoryWriteNode:
         self.enabled = bool(getattr(config, "memory_persistent_enabled", False))
         self.default_market_ttl_hours = int(getattr(config, "memory_persistent_market_ttl_hours", 24) or 24)
         self.local_observer_enabled = bool(getattr(config, "memory_local_observer_enabled", True))
-        self.local_observer_dir = str(getattr(config, "memory_local_observer_dir", "/data/delta_agent/data/memory/readable") or "").strip()
+        self.local_observer_dir = str(getattr(config, "memory_local_observer_dir", "/data/DeltaForce_Agent/data/memory/readable") or "").strip()
 
     @staticmethod
     def _now_utc() -> str:

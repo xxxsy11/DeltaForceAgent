@@ -1,0 +1,16 @@
+{
+  "skill_id": "market_multi_item_compare",
+  "display_name": "多物品对比",
+  "description": "对比两个及以上物品的价格区间与性价比。",
+  "intent_hints": ["market_compare_query"],
+  "tool_hints": ["df_multi_item_compare"],
+  "query_keywords_any": ["对比", "比较", "哪个好", "哪一个", "两者", "三者", "这两个", "这三个"],
+  "default_chain": ["df_multi_item_compare"],
+  "flow_type": "complex",
+  "requires_task_planning": true,
+  "requires_specialist_analysis": true,
+  "locked_plan": false,
+  "min_entities": 2,
+  "max_entities": 6,
+  "min_compare_targets": 2
+}

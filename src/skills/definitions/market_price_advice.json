@@ -1,0 +1,16 @@
+{
+  "skill_id": "market_price_advice",
+  "display_name": "买卖建议分析",
+  "description": "结合当前价格和历史区间给出买卖建议。",
+  "intent_hints": ["market_price_advice_query"],
+  "tool_hints": ["df_market_price_advice"],
+  "query_keywords_any": ["建议买", "建议卖", "能不能卖", "贵了", "便宜了", "赚", "亏", "值不值得"],
+  "default_chain": ["df_market_price_advice"],
+  "flow_type": "complex",
+  "requires_task_planning": false,
+  "requires_specialist_analysis": true,
+  "locked_plan": true,
+  "min_entities": 1,
+  "max_entities": 3,
+  "min_compare_targets": 2
+}

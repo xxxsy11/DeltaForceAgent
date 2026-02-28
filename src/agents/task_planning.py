@@ -64,6 +64,11 @@ class TaskPlanningAgent:
                 "debug_steps": state.get("debug_steps", []) + ["task_planning: skipped"],
             }
 
+        if bool(state.get("skill_locked_plan", False)):
+            return {
+                "debug_steps": state.get("debug_steps", []) + ["task_planning: skipped(skill_locked_plan)"],
+            }
+
         decision = self.planner.plan_with_hint(
             query=planning_query,
             available_tools=self.registry.list_tools(),
@@ -81,6 +86,20 @@ class TaskPlanningAgent:
                 compare_target_count=compare_target_count,
             )
             task_plan.append({"tool_name": tool_name, "tool_query": tool_query})
+
+        if not task_plan:
+            skill_chain = [x for x in (state.get("skill_tool_chain", []) or []) if isinstance(x, dict)]
+            for call in skill_chain:
+                tool_name = str(call.get("tool_name", "") or "").strip()
+                if not tool_name:
+                    continue
+                tool_query = self._normalize_tool_query(
+                    tool_name=tool_name,
+                    tool_query=str(call.get("tool_query", "") or "").strip(),
+                    understanding_entities=understanding_entities,
+                    compare_target_count=compare_target_count,
+                )
+                task_plan.append({"tool_name": tool_name, "tool_query": tool_query})
 
         if not task_plan and fallback_tool and fallback_tool != "none":
             fallback_query = self._normalize_tool_query(

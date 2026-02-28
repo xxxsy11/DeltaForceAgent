@@ -1,0 +1,16 @@
+{
+  "skill_id": "market_latest_price",
+  "display_name": "实时价格查询",
+  "description": "用于查询单个物品的最新市场价格。",
+  "intent_hints": ["market_price_latest_query"],
+  "tool_hints": ["df_market_latest_price"],
+  "query_keywords_any": ["最新价格", "现在价格", "当前价格", "多少钱", "实时价格"],
+  "default_chain": ["df_market_latest_price"],
+  "flow_type": "simple",
+  "requires_task_planning": false,
+  "requires_specialist_analysis": false,
+  "locked_plan": true,
+  "min_entities": 1,
+  "max_entities": 3,
+  "min_compare_targets": 2
+}

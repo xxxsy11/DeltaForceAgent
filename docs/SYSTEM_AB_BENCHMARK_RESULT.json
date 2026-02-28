@@ -1,0 +1,927 @@
+{
+  "meta": {
+    "generated_at_utc": "2026-02-27T23:52:44.523733+00:00",
+    "benchmark_file": "data/benchmarks/system_eval_cases.json",
+    "note": "A/B 对比仅差异于 skills 开关，其余配置保持一致。"
+  },
+  "variants": {
+    "A_skills_on": {
+      "variant": "skills_on",
+      "skills_enabled": true,
+      "duration_sec": 176.89,
+      "memory_reset": {
+        "db_reset": true,
+        "local_reset": true
+      },
+      "metrics": {
+        "intent_accuracy": 1.0,
+        "tool_accuracy": 1.0,
+        "skill_accuracy": 1.0,
+        "entity_resolution_accuracy": 1.0,
+        "answer_keyword_coverage": 0.9167,
+        "single_turn_success_rate": 1.0,
+        "multi_turn_success_rate": 1.0,
+        "multi_turn_keyword_coverage": 0.75,
+        "user_isolation_success": true,
+        "avg_latency_sec": 8.53,
+        "p95_latency_sec": 15.73,
+        "avg_attempts": 1,
+        "overall_score": 0.98
+      },
+      "single_turn_results": [
+        {
+          "query": "介绍一下非洲之心",
+          "attempts": 1,
+          "elapsed_sec": 11.12,
+          "intent": "介绍非洲之心",
+          "selected_tool": "rag_knowledge_search",
+          "selected_skill": "knowledge_profile",
+          "tool_query": "介绍一下非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚六级“工艺藏品”类可交易收藏品，也是目前检索到的最高等级钻石藏品。\n\n关键依据  \n1. 基础属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索范围内最高）  \n   • 描述：世界上最大的钻石，璀璨夺目，象征永恒的爱。  \n   • 可交易：是  \n   • 重量：0.62  \n   • 尺寸：长 1、宽 1（单位格）  \n   • 持有数量：1  \n\n2. 关联关系  \n   • 属于“工艺藏品”这一大类，与非洲木雕、非洲鼓、古老的海盗望远镜等 14 件藏品并列。  \n   • 在等级维度上，它是唯一被标记为“六级”的藏品，其余同类藏品最高仅为二级。",
+          "final_answer_failed": false,
+          "case_id": "st_01",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "非洲之心现在什么价格",
+          "attempts": 1,
+          "elapsed_sec": 2.45,
+          "intent": "查询非洲之心的最新市场价格",
+          "selected_tool": "df_market_latest_price",
+          "selected_skill": "market_latest_price",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "非洲之心 的最新价格为 12841004。 更新时间：2026-02-27 23:52:59。",
+          "final_answer_failed": false,
+          "case_id": "st_02",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "非洲之心历史价格",
+          "attempts": 1,
+          "elapsed_sec": 1.86,
+          "intent": "查询非洲之心的历史价格",
+          "selected_tool": "df_market_history_price",
+          "selected_skill": "market_history_price",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 3,
+          "memory_recall_hits": 0,
+          "final_answer": "非洲之心 历史价格查询成功，共 4926 条记录。最新样本价：12841004.0（2026-02-28 07:30:00），最早样本价：13448785.0（2025-10-31 08:00:00），区间最低：12439045.0，区间最高：13458000.0。",
+          "final_answer_failed": false,
+          "case_id": "st_03",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "非洲之心现在建议买吗",
+          "attempts": 1,
+          "elapsed_sec": 7.98,
+          "intent": "询问当前是否建议购买非洲之心",
+          "selected_tool": "df_market_price_advice",
+          "selected_skill": "market_price_advice",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：可小仓位分批买入，但不宜重仓追买。  \n关键依据：  \n1. 当前价 12,841,004 处于历史区间 12,439,045–13,458,000 的 39.4% 中位。  \n2. 工具明确建议“小仓位分批，不要重仓追买”。  \n3. 若价格回到区间最高，理论上行 616,996；若跌至区间最低，理论回撤 401,959。  \n\n不确定性：卖出统一按 13% 手续费估算净收益。",
+          "final_answer_failed": false,
+          "case_id": "st_04",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 0.5
+        },
+        {
+          "query": "介绍一下海洋之泪并告诉我现在价格",
+          "attempts": 1,
+          "elapsed_sec": 15.73,
+          "intent": "介绍并查询当前价格",
+          "selected_tool": "df_answer_composer",
+          "selected_skill": "answer_composer",
+          "tool_query": "介绍一下海洋之泪并告诉我现在价格",
+          "understanding_entities": [
+            "海洋之泪"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：海洋之泪是一件六级工艺藏品（天然珍珠类），当前价格 32,735,162（更新：2026-02-27 23:53:17）。\n\n关键依据  \n1. 基本属性：六级工艺藏品，天然珍珠，背包 1×1，重量 0.05。  \n2. 价格区间：历史 22,004,899 ~ 36,829,220（样本 4936 条，均价 26,636,433.63），现价处于 72.4% 分位。  \n3. 手续费假设：卖出统一按 13% 手续费估算净收益。\n\n不确定性  \n若价格回落到区间最低，理论回撤 10,730,263；若回到最高，理论上行 4,094,058。",
+          "final_answer_failed": false,
+          "case_id": "st_05",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "对比一下非洲之心和海洋之泪",
+          "attempts": 1,
+          "elapsed_sec": 10.82,
+          "intent": "多物品对比",
+          "selected_tool": "df_multi_item_compare",
+          "selected_skill": "market_multi_item_compare",
+          "tool_query": "非洲之心、海洋之泪 对比",
+          "understanding_entities": [
+            "非洲之心",
+            "海洋之泪"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：当前性价比更优的是非洲之心。  \n关键依据：  \n1. 非洲之心现价12,841,004，区间位置39.4%，上行空间616,996，下行风险401,959。  \n2. 海洋之泪现价32,735,162，区间位置72.4%，上行空间4,094,058，但下行风险高达10,730,263。  \n3. 卖出统一按13%手续费估算净收益。  \n\n不确定性：无。",
+          "final_answer_failed": false,
+          "case_id": "st_06",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 0.6667
+        },
+        {
+          "query": "分析碳纤维散射箭矢利润稳定性",
+          "attempts": 1,
+          "elapsed_sec": 9.24,
+          "intent": "分析碳纤维散射箭矢的利润稳定性",
+          "selected_tool": "df_profit_stability",
+          "selected_skill": "profit_stability",
+          "tool_query": "objectName=碳纤维散射箭矢",
+          "understanding_entities": [
+            "碳纤维散射箭矢"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：碳纤维散射箭矢利润稳定性低，不建议继续扩产。  \n关键依据：  \n1) 正利润占比仅33.0%，最大回撤高达259.6%。  \n2) 平均利润-21,313.74，波动系数CV=3.80，波动极大。  \n3) 样本115条，趋势变化+127.1%仍不足以扭转负利润主导局面。  \n不确定性：卖出手续费按13%估算，若实际费率变化，净收益将相应调整。",
+          "final_answer_failed": false,
+          "case_id": "st_07",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "特勤处制造什么子弹利润最高",
+          "attempts": 1,
+          "elapsed_sec": 2.33,
+          "intent": "查询特勤处制造子弹的利润排名",
+          "selected_tool": "df_place_profit_rank",
+          "selected_skill": "place_profit_rank",
+          "tool_query": "特勤处制造什么子弹利润最高",
+          "understanding_entities": [
+            "特勤处"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "特勤处制造净利润榜（指定分组，Top1，排序维度: totalprofit）\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 398,869｜小时利润 49,858.63｜采样时间 2026-02-28 07:30:00",
+          "final_answer_failed": false,
+          "case_id": "st_08",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "特勤处四大分组利润top3",
+          "attempts": 1,
+          "elapsed_sec": 2.88,
+          "intent": "查询特勤处四大分组中利润最高的前3名",
+          "selected_tool": "df_place_profit_rank",
+          "selected_skill": "place_profit_rank",
+          "tool_query": "特勤处四大分组利润top3",
+          "understanding_entities": [
+            "特勤处四大分组"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "特勤处制造净利润榜（全部分组，Top3，排序维度: totalprofit）\n\n技术中心（枪械/配件）\n1. M14射手步枪｜净利润 98,979｜小时利润 3,299.30｜采样时间 2026-02-28 07:30:00\n2. SR-3M紧凑突击步枪｜净利润 48,998｜小时利润 1,020.79｜采样时间 2026-02-28 07:30:00\n3. AUG突击步枪｜净利润 46,175｜小时利润 1,923.96｜采样时间 2026-02-28 07:30:00\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 398,869｜小时利润 49,858.63｜采样时间 2026-02-28 07:30:00\n2. 5.45x39mm BS｜净利润 384,422｜小时利润 48,052.75｜采样时间 2026-02-28 07:30:00\n3. 4.6x30mm AP SX｜净利润 383,146｜小时利润 47,893.25｜采样时间 2026-02-28 07:30:00\n\n制药台（药品/针剂/维修工具包）\n1. 高级护甲维修组合｜净利润 75,906｜小时利润 9,488.25｜采样时间 2026-02-28 07:30:00\n2. 精密护甲维修包｜净利润 70,914｜小时利润 8,864.25｜采样时间 2026-02-28 07:30:00\n3. 高级头盔维修组合｜净利润 68,027｜小时利润 8,503.38｜采样时间 2026-02-28 07:30:00\n\n防具台（头盔/护甲/胸挂/背包）\n1. 重型突击背心｜净利润 262,538｜小时利润 32,817.25｜采样时间 2026-02-28 07:30:00\n2. 精英防弹背心｜净利润 222,824｜小时利润 27,853｜采样时间 2026-02-28 07:30:00\n3. FS复合防弹衣｜净利润 219,330｜小时利润 27,416.25｜采样时间 2026-02-28 07:30:00",
+          "final_answer_failed": false,
+          "case_id": "st_09",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "介绍一下QBZ95-1突击步枪",
+          "attempts": 1,
+          "elapsed_sec": 20.88,
+          "intent": "介绍武器",
+          "selected_tool": "rag_knowledge_search",
+          "selected_skill": "knowledge_profile",
+          "tool_query": "介绍一下QBZ95-1突击步枪",
+          "understanding_entities": [
+            "QBZ95-1突击步枪"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "QBZ95-1突击步枪是一把以“高射速、易操控”为核心定位的5.8 mm口径无托突击步枪，适合中近距离持续火力压制。\n\n关键结论与依据  \n1. 基础性能  \n   • 口径/弹药：5.8×42 mm（检索信息：caliber: 5.8x42mm）  \n   • 射速：679 RPM，属于同口径步枪中的高射速段（fireSpeed: 679）  \n   • 有效射程：55 m（shootDistance: 55），配合575 m/s 的枪口初速，可在中距离保持较好弹道。  \n   • 弹匣容量：30 发（capacity: 30），支持单发/全自动两种射击模式（fireMode）。  \n\n2. 操控与稳定性  \n   • 后坐力：52（recoil），在无托结构中属于中等偏低，易于连发控制。  \n   • 稳定性：58（stable），配合55 的操控值（control），整体手感舒适。  \n   • 新增空仓挂机功能（desc），换弹节奏更直观。  \n\n3. 可选改装路径（关联附件）  \n   • 长弓枪管组合（barrel_100）  \n     – 优势：后坐力控制+9、稳定性+4、射程/初速+30%  \n     – 代价：操控速度-7、腰射精度-12  \n   • 实用短枪管（barrel_120）  \n     – 优势：操控速度+6、腰射精度+8、后坐力控制+2  \n     – 代价：稳定性-6  \n   结论：想打远点选“长弓”，想打CQB选“短管”，两条路径均直接挂载在QBZ95-1枪管位。  \n\n4. 适用干员与战术定位  \n   • 与“突击”兵种（class_assault）天然匹配，举镜移速更快。  \n   • 典型使用者：凯·席尔瓦（红狼），其战术滑铲与烟雾弹可弥补无托枪换弹/转火时的机动短板。  \n\n一句话总结  \nQBZ95-1凭借高射速、低后坐与空仓挂机，成为中近距离突击首选；通过“长弓”或“短管”两种枪管附件，可在远距精准压制与近战快速反应之间自由切换。",
+          "final_answer_failed": false,
+          "case_id": "st_10",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        }
+      ],
+      "multi_turn_results": [
+        {
+          "case_id": "mt_01_pronoun_price",
+          "session_id": "ab-skills_on-mt-001",
+          "turns": [
+            {
+              "query": "介绍一下非洲之心",
+              "attempts": 1,
+              "elapsed_sec": 10.02,
+              "intent": "介绍非洲之心",
+              "selected_tool": "rag_knowledge_search",
+              "selected_skill": "knowledge_profile",
+              "tool_query": "介绍一下非洲之心",
+              "understanding_entities": [
+                "非洲之心"
+              ],
+              "memory_gate_score": 0,
+              "memory_recall_hits": 0,
+              "final_answer": "结论：非洲之心是《三角洲行动》中唯一一枚“六级”工艺藏品，也是目前等级最高、描述最华丽的可交易钻石类收藏品。\n\n关键依据  \n1. 基础属性  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索范围内仅此一件达到六级）  \n   • 重量：0.62（单位未给出，但明显轻于同系木雕、非洲鼓）  \n   • 尺寸：1×1（最小占用空间，便于携带或展示）  \n   • 可交易：True（允许玩家间流通）  \n\n2. 描述亮点  \n   • 官方描述：“世界上最大的钻石，璀璨夺目，象征永恒的爱。”——直接点明其“世界最大”与情感象征，稀有度与话题性极高。  \n\n3. 关联关系  \n   • 属于“工艺藏品”这一大类别，与非洲木雕、非洲鼓、古老的海盗望远镜等 14 件藏品并列。  \n   • 在所有列出的藏品中，仅“非洲之心”达到六级，其余最高为二级（如非洲木雕、非洲鼓），因此它在等级上独占鳌头。",
+              "final_answer_failed": false
+            },
+            {
+              "query": "它现在什么价格",
+              "attempts": 1,
+              "elapsed_sec": 2.21,
+              "intent": "查询当前价格",
+              "selected_tool": "df_market_latest_price",
+              "selected_skill": "market_latest_price",
+              "tool_query": "objectName=非洲之心",
+              "understanding_entities": [
+                "非洲之心"
+              ],
+              "memory_gate_score": 2,
+              "memory_recall_hits": 0,
+              "final_answer": "非洲之心 的最新价格为 12841004。 更新时间：2026-02-27 23:54:23。",
+              "final_answer_failed": false
+            }
+          ],
+          "target": {
+            "query": "它现在什么价格",
+            "attempts": 1,
+            "elapsed_sec": 2.21,
+            "intent": "查询当前价格",
+            "selected_tool": "df_market_latest_price",
+            "selected_skill": "market_latest_price",
+            "tool_query": "objectName=非洲之心",
+            "understanding_entities": [
+              "非洲之心"
+            ],
+            "memory_gate_score": 2,
+            "memory_recall_hits": 0,
+            "final_answer": "非洲之心 的最新价格为 12841004。 更新时间：2026-02-27 23:54:23。",
+            "final_answer_failed": false
+          },
+          "tool_ok": true,
+          "skill_ok": true,
+          "tool_query_ok": true,
+          "answer_keyword_coverage": 1.0,
+          "final_answer_failed": false
+        },
+        {
+          "case_id": "mt_02_pronoun_compare",
+          "session_id": "ab-skills_on-mt-002",
+          "turns": [
+            {
+              "query": "介绍一下非洲之心",
+              "attempts": 1,
+              "elapsed_sec": 9.36,
+              "intent": "介绍非洲之心",
+              "selected_tool": "rag_knowledge_search",
+              "selected_skill": "knowledge_profile",
+              "tool_query": "介绍一下非洲之心",
+              "understanding_entities": [
+                "非洲之心"
+              ],
+              "memory_gate_score": 0,
+              "memory_recall_hits": 0,
+              "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级”工艺藏品，也是目前等级最高、描述最奢华的钻石类可交易收藏品。\n\n关键依据  \n1. 基础属性  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索信息中唯一达到此等级的藏品）  \n   • 描述：世界上最大的钻石，璀璨夺目，象征永恒的爱  \n   • 重量：0.62（单位未标明，但明显轻于同系木雕、非洲鼓）  \n   • 尺寸：1×1（最小占用空间）  \n   • 可交易：True  \n\n2. 关联关系  \n   • 属于“工艺藏品”这一大类，与非洲木雕、非洲鼓等并列  \n   • 在知识图谱中，被“CollectibleType:工艺藏品”反向索引，说明它是该类型的代表性物品之一",
+              "final_answer_failed": false
+            },
+            {
+              "query": "介绍一下海洋之泪",
+              "attempts": 1,
+              "elapsed_sec": 17.26,
+              "intent": "介绍海洋之泪",
+              "selected_tool": "rag_knowledge_search",
+              "selected_skill": "knowledge_profile",
+              "tool_query": "介绍一下海洋之泪",
+              "understanding_entities": [
+                "海洋之泪"
+              ],
+              "memory_gate_score": 0,
+              "memory_recall_hits": 0,
+              "final_answer": "结论  \n海洋之泪是《三角洲行动》中一枚六级“工艺藏品”类可交易收藏品，外形为一颗珠圆玉润、通体散发镭射光泽的巨大天然珍珠。\n\n关键依据与属性  \n1. 基本信息  \n   • 名称：海洋之泪（nodeId: collect_craft_2）  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级  \n   • 可交易：是（tradable: True）  \n   • 数量：1  \n   • 重量：0.05  \n   • 尺寸：1×1（length 1, width 1）\n\n2. 描述  \n   “浑然天成，珠圆玉润的巨大天然珍珠，其通体散发镭射光泽，令人目眩神迷。”\n\n关联关系  \n• 属于“工艺藏品”这一 CollectibleType。  \n• 与万金泪冠、非洲之心等同为六级工艺藏品。",
+              "final_answer_failed": false
+            },
+            {
+              "query": "对比一下这两个物品",
+              "attempts": 1,
+              "elapsed_sec": 14.68,
+              "intent": "多物品对比",
+              "selected_tool": "df_multi_item_compare",
+              "selected_skill": "market_multi_item_compare",
+              "tool_query": "非洲之心、海洋之泪 对比",
+              "understanding_entities": [
+                "非洲之心",
+                "海洋之泪"
+              ],
+              "memory_gate_score": 4,
+              "memory_recall_hits": 0,
+              "final_answer": "结论  \n当前非洲之心性价比优于海洋之泪，建议优先建仓非洲之心。\n\n关键依据  \n1. 价格区间：非洲之心现价 12,841,004，仅处区间 12,439,045~13,458,000 的 39.4%；海洋之泪现价 32,735,162，已处区间 22,004,899~36,829,220 的 72.4%。  \n2. 风险收益：非洲之心上行空间 616,996，下行风险 401,959；海洋之泪上行空间 4,094,058，但下行风险高达 10,730,263。  \n3. 工具结论：df_multi_item_compare 直接判定“当前性价比相对更优的是非洲之心”。\n\n不确定性  \n卖出统一按 13% 手续费估算净收益，实际费率可能不同。",
+              "final_answer_failed": false
+            }
+          ],
+          "target": {
+            "query": "对比一下这两个物品",
+            "attempts": 1,
+            "elapsed_sec": 14.68,
+            "intent": "多物品对比",
+            "selected_tool": "df_multi_item_compare",
+            "selected_skill": "market_multi_item_compare",
+            "tool_query": "非洲之心、海洋之泪 对比",
+            "understanding_entities": [
+              "非洲之心",
+              "海洋之泪"
+            ],
+            "memory_gate_score": 4,
+            "memory_recall_hits": 0,
+            "final_answer": "结论  \n当前非洲之心性价比优于海洋之泪，建议优先建仓非洲之心。\n\n关键依据  \n1. 价格区间：非洲之心现价 12,841,004，仅处区间 12,439,045~13,458,000 的 39.4%；海洋之泪现价 32,735,162，已处区间 22,004,899~36,829,220 的 72.4%。  \n2. 风险收益：非洲之心上行空间 616,996，下行风险 401,959；海洋之泪上行空间 4,094,058，但下行风险高达 10,730,263。  \n3. 工具结论：df_multi_item_compare 直接判定“当前性价比相对更优的是非洲之心”。\n\n不确定性  \n卖出统一按 13% 手续费估算净收益，实际费率可能不同。",
+            "final_answer_failed": false
+          },
+          "tool_ok": true,
+          "skill_ok": true,
+          "tool_query_ok": true,
+          "answer_keyword_coverage": 0.5,
+          "final_answer_failed": false
+        }
+      ],
+      "user_isolation": {
+        "session_id": "ab-iso-skills_on",
+        "user_a_warmup": {
+          "query": "介绍一下非洲之心",
+          "attempts": 1,
+          "elapsed_sec": 9.69,
+          "intent": "介绍非洲之心",
+          "selected_tool": "rag_knowledge_search",
+          "selected_skill": "knowledge_profile",
+          "tool_query": "介绍一下非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级”工艺藏品，也是当前已知最大、最稀有的可交易钻石类收藏品。\n\n关键依据  \n1. 基础属性  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（最高档）  \n   • 重量：0.62  \n   • 尺寸：1×1 格  \n   • 可交易：是  \n   • 描述：世界上最大的钻石，璀璨夺目，象征永恒的爱。  \n\n2. 关联关系  \n   • 属于“工艺藏品”这一 CollectibleType 分支。  \n   • 在知识图谱中，被“工艺藏品”节点反向关联，证实其分类无误。",
+          "final_answer_failed": false
+        },
+        "user_b_warmup": {
+          "query": "介绍一下QBZ95-1突击步枪",
+          "attempts": 1,
+          "elapsed_sec": 14.35,
+          "intent": "介绍武器",
+          "selected_tool": "rag_knowledge_search",
+          "selected_skill": "knowledge_profile",
+          "tool_query": "介绍一下QBZ95-1突击步枪",
+          "understanding_entities": [
+            "QBZ95-1突击步枪"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "结论  \nQBZ95-1 是一款 5.8×42 mm 口径的全自动无托突击步枪，以高射速、良好操控性和空仓挂机改进为主要卖点，在《三角洲行动》中定位为中近距离高射速步枪。\n\n关键依据与特征  \n1. 基本属性  \n   • 口径：5.8×42 mm  \n   • 射击模式：单发 / 全自动  \n   • 射速：679 RPM（每分钟 679 发）  \n   • 弹匣容量：30 发  \n   • 初速：575 m/s  \n   • 有效射程：约 55 m（游戏内标定）  \n\n2. 性能数值（游戏内）  \n   • 肉体伤害：28  \n   • 护甲伤害：42  \n   • 后坐力：52  \n   • 操控性：55  \n   • 稳定性：58  \n   • 腰射精度：54  \n   • 枪声传播距离：500 m  \n\n3. 设计特点  \n   • 无托结构：全长缩短，便于近战机动。  \n   • 空仓挂机：改进后可在弹尽时自动挂机，提示换弹。  \n   • 综合平衡：射速与稳定性兼顾，适合持续火力压制。  \n\n4. 类型归属  \n   • 实体关系：QBZ95-1 → OF_FIRE_TYPE → 步枪（FirearmType），与 M4A1、AKM 等并列同属“步枪”大类。",
+          "final_answer_failed": false
+        },
+        "user_a_reentry": {
+          "query": "它现在价格是多少",
+          "attempts": 1,
+          "elapsed_sec": 3.46,
+          "intent": "查询当前价格",
+          "selected_tool": "df_market_latest_price",
+          "selected_skill": "market_latest_price",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "非洲之心 的最新价格为 12841004。 更新时间：2026-02-27 23:55:31。",
+          "final_answer_failed": false
+        },
+        "user_b_reentry": {
+          "query": "它现在价格是多少",
+          "attempts": 1,
+          "elapsed_sec": 10.57,
+          "intent": "查询当前价格",
+          "selected_tool": "df_market_latest_price",
+          "selected_skill": "market_latest_price",
+          "tool_query": "objectName=QBZ95-1突击步枪",
+          "understanding_entities": [
+            "QBZ95-1突击步枪"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "QBZ95-1突击步枪 的最新价格为 37620。 更新时间：2026-02-27 23:55:42。",
+          "final_answer_failed": false
+        },
+        "isolation_ok": true
+      },
+      "db_meta": {
+        "checked": true,
+        "chat_turns": 57,
+        "memory_summaries": 0,
+        "memory_facts": 0
+      }
+    },
+    "B_skills_off": {
+      "variant": "skills_off",
+      "skills_enabled": false,
+      "duration_sec": 172.66,
+      "memory_reset": {
+        "db_reset": true,
+        "local_reset": true
+      },
+      "metrics": {
+        "intent_accuracy": 1.0,
+        "tool_accuracy": 1.0,
+        "skill_accuracy": 1.0,
+        "entity_resolution_accuracy": 1.0,
+        "answer_keyword_coverage": 0.9167,
+        "single_turn_success_rate": 1.0,
+        "multi_turn_success_rate": 1.0,
+        "multi_turn_keyword_coverage": 0.75,
+        "user_isolation_success": true,
+        "avg_latency_sec": 7.75,
+        "p95_latency_sec": 12.52,
+        "avg_attempts": 1,
+        "overall_score": 0.98
+      },
+      "single_turn_results": [
+        {
+          "query": "介绍一下非洲之心",
+          "attempts": 1,
+          "elapsed_sec": 12.52,
+          "intent": "介绍非洲之心",
+          "selected_tool": "rag_knowledge_search",
+          "selected_skill": "",
+          "tool_query": "介绍一下非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级”工艺藏品，也是目前等级最高、描述最奢华的可交易钻石类收藏品。\n\n关键依据  \n1. 基础属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索信息中唯一达到此级别的藏品）  \n   • 描述：世界上最大的钻石，璀璨夺目，象征永恒的爱。  \n   • 可交易：是（tradable: True）  \n   • 重量：0.62  \n   • 占位：长 1、宽 1（shape: {\"length\": 1, \"width\": 1}）\n\n2. 关联关系  \n   • 属于“工艺藏品”这一 CollectibleType 分支。  \n   • 在知识图谱中，被同类型节点（如非洲木雕、非洲鼓、古老的海盗望远镜等）反向指向，表明它们共享“工艺藏品”这一分类标签。",
+          "final_answer_failed": false,
+          "case_id": "st_01",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "非洲之心现在什么价格",
+          "attempts": 1,
+          "elapsed_sec": 3.64,
+          "intent": "查询当前价格",
+          "selected_tool": "df_market_latest_price",
+          "selected_skill": "",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "非洲之心 的最新价格为 12841004。 更新时间：2026-02-27 23:55:59。",
+          "final_answer_failed": false,
+          "case_id": "st_02",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "非洲之心历史价格",
+          "attempts": 1,
+          "elapsed_sec": 3.36,
+          "intent": "查询非洲之心的历史价格",
+          "selected_tool": "df_market_history_price",
+          "selected_skill": "",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 3,
+          "memory_recall_hits": 0,
+          "final_answer": "非洲之心 历史价格查询成功，共 4926 条记录。最新样本价：12841004.0（2026-02-28 07:30:00），最早样本价：13448785.0（2025-10-31 08:00:00），区间最低：12439045.0，区间最高：13458000.0。",
+          "final_answer_failed": false,
+          "case_id": "st_03",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "非洲之心现在建议买吗",
+          "attempts": 1,
+          "elapsed_sec": 6.51,
+          "intent": "询问当前是否建议购买非洲之心",
+          "selected_tool": "df_market_price_advice",
+          "selected_skill": "",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：可小仓位分批买入，不宜重仓追买。  \n关键依据：  \n1. 当前价 12,841,004 处于历史区间 12,439,045~13,458,000 的 39.4% 中位。  \n2. 工具明确建议“小仓位分批，不要重仓追买”。  \n3. 若回落至区间最低，理论回撤 401,959；若升至区间最高，理论上行 616,996。  \n\n不确定性：卖出统一按 13% 手续费估算净收益。",
+          "final_answer_failed": false,
+          "case_id": "st_04",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 0.5
+        },
+        {
+          "query": "介绍一下海洋之泪并告诉我现在价格",
+          "attempts": 1,
+          "elapsed_sec": 12.32,
+          "intent": "介绍并查询海洋之泪的当前价格",
+          "selected_tool": "df_answer_composer",
+          "selected_skill": "",
+          "tool_query": "介绍一下海洋之泪并告诉我现在价格",
+          "understanding_entities": [
+            "海洋之泪"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "【资料介绍】\n结论：海洋之泪是一件六级工艺藏品类可交易收藏品。\n关键依据与介绍：\n- 基本属性\n• 名称：海洋之泪\n• 类型：Collectible（工艺藏品）\n• 等级：六级\n• 描述：浑然天成、珠圆玉润的巨大天然珍珠，通体散发镭射光泽，令人目眩神迷。\n• 规格：占用空间 1×1（长×宽），重量 0.05。\n- 关联关系\n• 属于工艺藏品类别（OF_COL_TYPE → CollectibleType:工艺藏品）。\n• 等级为六级（HAS_LEVEL → Level:六级）。\n\n【实时价格】\n海洋之泪 的最新价格为 32735162。 更新时间：2026-02-27 23:56:21。\n\n【买卖建议】\n海洋之泪 价格策略分析：\n- 当前价格：32,735,162（更新时间：2026-02-27 23:56:21）\n- 历史区间：22,004,899 ~ 36,829,220（样本 4936 条，均价 26,636,433.63）\n- 当前区间位置：72.4%（中位）\n- 买入建议：当前处于历史中位区，建议小仓位分批，不要重仓追买。\n- 卖出建议：当前不属于明显高位，是否卖出取决于你的持仓成本和周期。\n- 区间测算：若回到区间最高，每件理论上行 4,094,058；若回落到区间最低，每件理论回撤 10,730,263。",
+          "final_answer_failed": false,
+          "case_id": "st_05",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "对比一下非洲之心和海洋之泪",
+          "attempts": 1,
+          "elapsed_sec": 8.17,
+          "intent": "多物品对比",
+          "selected_tool": "df_multi_item_compare",
+          "selected_skill": "",
+          "tool_query": "非洲之心、海洋之泪 对比",
+          "understanding_entities": [
+            "非洲之心",
+            "海洋之泪"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：非洲之心当前性价比优于海洋之泪。\n\n关键依据：\n1. 区间位置：非洲之心 39.4%，海洋之泪 72.4%，前者更接近区间底部。\n2. 下行风险：非洲之心 401,959，远低于海洋之泪的 10,730,263。\n3. 上行空间：非洲之心 616,996，虽小于海洋之泪的 4,094,058，但风险收益比更优。\n\n不确定性：卖出统一按13%手续费估算净收益，实际费率可能不同。",
+          "final_answer_failed": false,
+          "case_id": "st_06",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 0.6667
+        },
+        {
+          "query": "分析碳纤维散射箭矢利润稳定性",
+          "attempts": 1,
+          "elapsed_sec": 10.08,
+          "intent": "分析碳纤维散射箭矢的利润稳定性",
+          "selected_tool": "df_profit_stability",
+          "selected_skill": "",
+          "tool_query": "objectName=碳纤维散射箭矢",
+          "understanding_entities": [
+            "碳纤维散射箭矢"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：碳纤维散射箭矢利润稳定性低，不建议扩大生产。  \n关键依据：  \n1. 正利润占比仅33.0%，最大回撤高达259.6%。  \n2. 平均利润-21,313.74，波动系数CV=3.80，波动极大。  \n3. 样本115条，稳定性评级为“低”。  \n不确定性：卖出手续费按13%估算，实际费率可能不同。",
+          "final_answer_failed": false,
+          "case_id": "st_07",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "特勤处制造什么子弹利润最高",
+          "attempts": 1,
+          "elapsed_sec": 3.07,
+          "intent": "查询特勤处制造子弹的利润排名",
+          "selected_tool": "df_place_profit_rank",
+          "selected_skill": "",
+          "tool_query": "特勤处制造什么子弹利润最高",
+          "understanding_entities": [
+            "特勤处"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "特勤处制造净利润榜（指定分组，Top1，排序维度: totalprofit）\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 398,869｜小时利润 49,858.63｜采样时间 2026-02-28 07:30:00",
+          "final_answer_failed": false,
+          "case_id": "st_08",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "特勤处四大分组利润top3",
+          "attempts": 1,
+          "elapsed_sec": 3.29,
+          "intent": "查询特勤处四大分组中利润最高的前3名",
+          "selected_tool": "df_place_profit_rank",
+          "selected_skill": "",
+          "tool_query": "特勤处四大分组利润top3",
+          "understanding_entities": [
+            "特勤处四大分组"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "特勤处制造净利润榜（全部分组，Top3，排序维度: totalprofit）\n\n技术中心（枪械/配件）\n1. M14射手步枪｜净利润 98,979｜小时利润 3,299.30｜采样时间 2026-02-28 07:30:00\n2. SR-3M紧凑突击步枪｜净利润 48,998｜小时利润 1,020.79｜采样时间 2026-02-28 07:30:00\n3. AUG突击步枪｜净利润 46,175｜小时利润 1,923.96｜采样时间 2026-02-28 07:30:00\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 398,869｜小时利润 49,858.63｜采样时间 2026-02-28 07:30:00\n2. 5.45x39mm BS｜净利润 384,422｜小时利润 48,052.75｜采样时间 2026-02-28 07:30:00\n3. 4.6x30mm AP SX｜净利润 383,146｜小时利润 47,893.25｜采样时间 2026-02-28 07:30:00\n\n制药台（药品/针剂/维修工具包）\n1. 高级护甲维修组合｜净利润 75,906｜小时利润 9,488.25｜采样时间 2026-02-28 07:30:00\n2. 精密护甲维修包｜净利润 70,914｜小时利润 8,864.25｜采样时间 2026-02-28 07:30:00\n3. 高级头盔维修组合｜净利润 68,027｜小时利润 8,503.38｜采样时间 2026-02-28 07:30:00\n\n防具台（头盔/护甲/胸挂/背包）\n1. 重型突击背心｜净利润 262,538｜小时利润 32,817.25｜采样时间 2026-02-28 07:30:00\n2. 精英防弹背心｜净利润 222,824｜小时利润 27,853｜采样时间 2026-02-28 07:30:00\n3. FS复合防弹衣｜净利润 219,330｜小时利润 27,416.25｜采样时间 2026-02-28 07:30:00",
+          "final_answer_failed": false,
+          "case_id": "st_09",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        },
+        {
+          "query": "介绍一下QBZ95-1突击步枪",
+          "attempts": 1,
+          "elapsed_sec": 14.59,
+          "intent": "介绍武器",
+          "selected_tool": "rag_knowledge_search",
+          "selected_skill": "",
+          "tool_query": "介绍一下QBZ95-1突击步枪",
+          "understanding_entities": [
+            "QBZ95-1突击步枪"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：QBZ95-1 是一款采用 5.8×42 mm 弹药的无托式全自动突击步枪，以高射速、良好操控性和空仓挂机改进为主要卖点，综合属性在同类步枪中处于中上水平。\n\n关键依据与特征  \n1. 基本定位  \n   • 枪械类型：步枪（与 M4A1、AKM、AKS-74U、ASh-12 同属“步枪”类别）。  \n   • 结构：无托布局，全长仅 5（单位），宽 2（单位），紧凑便携。  \n\n2. 火力与弹道  \n   • 口径：5.8×42 mm。  \n   • 射速：679 RPM，高于多数 5.56 mm 步枪。  \n   • 初速：575 m/s，保证 55 的射击距离（有效射程）。  \n\n3. 操控与稳定性  \n   • 后坐力：52（中等）。  \n   • 控制：55，稳定：58，腰射：54——整体易于压枪与移动射击。  \n\n4. 伤害与穿透  \n   • 肉体伤害：28；护甲伤害：42——对无甲目标尚可，对护甲需连续命中。  \n   • 弹匣容量：30 发；支持单发/全自动切换。  \n\n5. 功能改进  \n   • 新增空仓挂机，换弹节奏更直观，提升实战续航。  \n\n6. 声学与隐蔽  \n   • 枪声传播距离：500 m，属于中等偏大，需注意开火位置暴露风险。  \n\n综上，QBZ95-1 适合需要高射速、紧凑枪身的突击场景，在控枪与持续火力间取得平衡，是步枪类别中兼顾机动与火力的代表之一。",
+          "final_answer_failed": false,
+          "case_id": "st_10",
+          "intent_ok": true,
+          "tool_ok": true,
+          "skill_ok": true,
+          "entity_ok": true,
+          "answer_keyword_coverage": 1.0
+        }
+      ],
+      "multi_turn_results": [
+        {
+          "case_id": "mt_01_pronoun_price",
+          "session_id": "ab-skills_off-mt-001",
+          "turns": [
+            {
+              "query": "介绍一下非洲之心",
+              "attempts": 1,
+              "elapsed_sec": 14.04,
+              "intent": "介绍非洲之心",
+              "selected_tool": "rag_knowledge_search",
+              "selected_skill": "",
+              "tool_query": "介绍一下非洲之心",
+              "understanding_entities": [
+                "非洲之心"
+              ],
+              "memory_gate_score": 0,
+              "memory_recall_hits": 0,
+              "final_answer": "结论：非洲之心是《三角洲行动》中等级最高的工艺藏品级可交易收藏品，被誉为“世界上最大的钻石”，象征永恒的爱。\n\n关键依据  \n1. 基础属性  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索信息中唯一标注为六级的藏品）  \n   • 重量：0.62  \n   • 尺寸：1×1 单位格  \n   • 可交易：是（tradable: True）  \n\n2. 描述与象征意义  \n   • 官方描述：“世界上最大的钻石，璀璨夺目，象征永恒的爱。”  \n\n3. 关联关系  \n   • 属于“工艺藏品”这一 CollectibleType 分类。  \n   • 在知识图谱中，被其他多个藏品（如非洲木雕、非洲鼓、海盗系列藏品等）反向关联到“工艺藏品”节点，表明它是该分类的代表性物品之一。",
+              "final_answer_failed": false
+            },
+            {
+              "query": "它现在什么价格",
+              "attempts": 1,
+              "elapsed_sec": 4.27,
+              "intent": "查询当前价格",
+              "selected_tool": "df_market_latest_price",
+              "selected_skill": "",
+              "tool_query": "objectName=非洲之心",
+              "understanding_entities": [
+                "非洲之心"
+              ],
+              "memory_gate_score": 2,
+              "memory_recall_hits": 0,
+              "final_answer": "非洲之心 的最新价格为 12841004。 更新时间：2026-02-27 23:57:19。",
+              "final_answer_failed": false
+            }
+          ],
+          "target": {
+            "query": "它现在什么价格",
+            "attempts": 1,
+            "elapsed_sec": 4.27,
+            "intent": "查询当前价格",
+            "selected_tool": "df_market_latest_price",
+            "selected_skill": "",
+            "tool_query": "objectName=非洲之心",
+            "understanding_entities": [
+              "非洲之心"
+            ],
+            "memory_gate_score": 2,
+            "memory_recall_hits": 0,
+            "final_answer": "非洲之心 的最新价格为 12841004。 更新时间：2026-02-27 23:57:19。",
+            "final_answer_failed": false
+          },
+          "tool_ok": true,
+          "skill_ok": true,
+          "tool_query_ok": true,
+          "answer_keyword_coverage": 1.0,
+          "final_answer_failed": false
+        },
+        {
+          "case_id": "mt_02_pronoun_compare",
+          "session_id": "ab-skills_off-mt-002",
+          "turns": [
+            {
+              "query": "介绍一下非洲之心",
+              "attempts": 1,
+              "elapsed_sec": 13.38,
+              "intent": "介绍非洲之心",
+              "selected_tool": "rag_knowledge_search",
+              "selected_skill": "",
+              "tool_query": "介绍一下非洲之心",
+              "understanding_entities": [
+                "非洲之心"
+              ],
+              "memory_gate_score": 0,
+              "memory_recall_hits": 0,
+              "final_answer": "结论：非洲之心是《三角洲行动》中唯一一枚“六级”工艺藏品，也是目前等级最高、描述最华丽的可交易钻石类收藏品。\n\n关键依据  \n1. 基础属性  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索范围内仅此一件达到六级）  \n   • 描述：官方文本称其为“世界上最大的钻石，璀璨夺目，象征永恒的爱”  \n   • 可交易：True（允许玩家间流通）  \n   • 占位：1×1 单位格，重量 0.62  \n\n2. 关联关系  \n   • 属于“工艺藏品”这一大类别，与非洲木雕、非洲鼓、古老的海盗望远镜等 14 件藏品并列。  \n   • 在所有列出的工艺藏品中，仅“非洲之心”达到六级，其余最高为二级（如非洲木雕、非洲鼓）。",
+              "final_answer_failed": false
+            },
+            {
+              "query": "介绍一下海洋之泪",
+              "attempts": 1,
+              "elapsed_sec": 10.87,
+              "intent": "介绍海洋之泪",
+              "selected_tool": "rag_knowledge_search",
+              "selected_skill": "",
+              "tool_query": "介绍一下海洋之泪",
+              "understanding_entities": [
+                "海洋之泪"
+              ],
+              "memory_gate_score": 0,
+              "memory_recall_hits": 0,
+              "final_answer": "结论  \n海洋之泪是《三角洲行动》中一枚六级“工艺藏品”类可交易收藏品，外形为一颗珠圆玉润、通体散发镭射光泽的巨大天然珍珠。\n\n关键依据与属性  \n1. 基本信息  \n   • 名称：海洋之泪  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级  \n   • 编号：1（唯一）  \n   • 重量：0.05  \n   • 尺寸：1×1（最小占用空间）  \n   • 可交易：是  \n\n2. 描述  \n   “浑然天成，珠圆玉润的巨大天然珍珠，其通体散发镭射光泽，令人目眩神迷。”  \n\n关联关系  \n• 属于“工艺藏品”这一 CollectibleType 分支。  \n• 与万金泪冠、非洲之心等同为六级工艺藏品。",
+              "final_answer_failed": false
+            },
+            {
+              "query": "对比一下这两个物品",
+              "attempts": 1,
+              "elapsed_sec": 11.5,
+              "intent": "多物品对比",
+              "selected_tool": "df_multi_item_compare",
+              "selected_skill": "",
+              "tool_query": "非洲之心、海洋之泪 对比",
+              "understanding_entities": [
+                "非洲之心",
+                "海洋之泪"
+              ],
+              "memory_gate_score": 4,
+              "memory_recall_hits": 0,
+              "final_answer": "结论：非洲之心当前性价比优于海洋之泪。\n\n关键依据  \n1. 价格：非洲之心现价 12,841,004，海洋之泪现价 32,735,162。  \n2. 区间位置：非洲之心 39.4%，海洋之泪 72.4%，前者更接近区间底部。  \n3. 风险收益：非洲之心下行风险 401,959，上行空间 616,996；海洋之泪下行风险 10,730,263，上行空间 4,094,058。\n\n不确定性  \n卖出统一按 13% 手续费估算净收益。",
+              "final_answer_failed": false
+            }
+          ],
+          "target": {
+            "query": "对比一下这两个物品",
+            "attempts": 1,
+            "elapsed_sec": 11.5,
+            "intent": "多物品对比",
+            "selected_tool": "df_multi_item_compare",
+            "selected_skill": "",
+            "tool_query": "非洲之心、海洋之泪 对比",
+            "understanding_entities": [
+              "非洲之心",
+              "海洋之泪"
+            ],
+            "memory_gate_score": 4,
+            "memory_recall_hits": 0,
+            "final_answer": "结论：非洲之心当前性价比优于海洋之泪。\n\n关键依据  \n1. 价格：非洲之心现价 12,841,004，海洋之泪现价 32,735,162。  \n2. 区间位置：非洲之心 39.4%，海洋之泪 72.4%，前者更接近区间底部。  \n3. 风险收益：非洲之心下行风险 401,959，上行空间 616,996；海洋之泪下行风险 10,730,263，上行空间 4,094,058。\n\n不确定性  \n卖出统一按 13% 手续费估算净收益。",
+            "final_answer_failed": false
+          },
+          "tool_ok": true,
+          "skill_ok": true,
+          "tool_query_ok": true,
+          "answer_keyword_coverage": 0.5,
+          "final_answer_failed": false
+        }
+      ],
+      "user_isolation": {
+        "session_id": "ab-iso-skills_off",
+        "user_a_warmup": {
+          "query": "介绍一下非洲之心",
+          "attempts": 1,
+          "elapsed_sec": 12.3,
+          "intent": "介绍非洲之心",
+          "selected_tool": "rag_knowledge_search",
+          "selected_skill": "",
+          "tool_query": "介绍一下非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：非洲之心是《三角洲行动》中唯一一枚“六级”工艺藏品，也是目前等级最高、描述最奢华的可交易钻石类收藏品。\n\n关键依据  \n1. 基础属性  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索信息中唯一达到此等级的藏品）  \n   • 重量：0.62（单位未注明，但明显轻于同系木雕、非洲鼓）  \n   • 尺寸：1×1（最小占用空间，便于携带或展示）  \n   • 可交易：True（允许玩家间流通）  \n\n2. 描述与象征意义  \n   • 官方描述：“世界上最大的钻石，璀璨夺目，象征永恒的爱。”——直接点明其稀有度与情感价值。  \n\n3. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分支。  \n   • 与非洲木雕、非洲鼓等同分支藏品共享“工艺藏品”标签，但等级独占六级，形成纵向差异。",
+          "final_answer_failed": false
+        },
+        "user_b_warmup": {
+          "query": "介绍一下QBZ95-1突击步枪",
+          "attempts": 1,
+          "elapsed_sec": 13.9,
+          "intent": "介绍武器",
+          "selected_tool": "rag_knowledge_search",
+          "selected_skill": "",
+          "tool_query": "介绍一下QBZ95-1突击步枪",
+          "understanding_entities": [
+            "QBZ95-1突击步枪"
+          ],
+          "memory_gate_score": 0,
+          "memory_recall_hits": 0,
+          "final_answer": "结论：QBZ95-1 是一款采用 5.8×42 mm 弹药的全自动无托突击步枪，以高射速、良好操控性和空仓挂机改进为显著特征，综合性能在同类步枪中处于中上水平。\n\n关键依据与特征  \n1. 基本定位  \n   • 枪械类型：步枪（OF_FIRE_TYPE 关系已确认其与 M4A1、AKM 等并列于“步枪”类别）。  \n   • 结构：无托式布局，长度等级 5，宽度等级 2，紧凑便携。\n\n2. 火力与弹道  \n   • 口径：5.8×42 mm。  \n   • 射速：679 RPM，属于高射速步枪。  \n   • 初速：575 m/s，有效射程约 55（游戏内距离单位）。  \n   • 枪口声传播距离：500 m。\n\n3. 操控与稳定性  \n   • 后坐力：52（中等略高）。  \n   • 控制性：55，稳定性：58，腰射精度：54——整体易于压枪，连发可控。  \n   • 空仓挂机：改进后新增功能，提升实战换弹效率。\n\n4. 伤害与穿透  \n   • 对无甲目标伤害：28。  \n   • 对护甲伤害：42，具备一定穿透力。  \n   • 弹匣容量：30 发，支持单发/全自动两种射击模式。\n\n综上，QBZ95-1 兼顾高射速与紧凑设计，适合中近距离突击作战；空仓挂机与平衡的属性使其在步枪类别中拥有明显操作优势。",
+          "final_answer_failed": false
+        },
+        "user_a_reentry": {
+          "query": "它现在价格是多少",
+          "attempts": 1,
+          "elapsed_sec": 4.65,
+          "intent": "查询当前价格",
+          "selected_tool": "df_market_latest_price",
+          "selected_skill": "",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "非洲之心 的最新价格为 12841004。 更新时间：2026-02-27 23:58:25。",
+          "final_answer_failed": false
+        },
+        "user_b_reentry": {
+          "query": "它现在价格是多少",
+          "attempts": 1,
+          "elapsed_sec": 10.19,
+          "intent": "查询当前价格",
+          "selected_tool": "df_market_latest_price",
+          "selected_skill": "",
+          "tool_query": "objectName=QBZ95-1突击步枪",
+          "understanding_entities": [
+            "QBZ95-1突击步枪"
+          ],
+          "memory_gate_score": 2,
+          "memory_recall_hits": 0,
+          "final_answer": "QBZ95-1突击步枪 的最新价格为 37620。 更新时间：2026-02-27 23:58:35。",
+          "final_answer_failed": false
+        },
+        "isolation_ok": true
+      },
+      "db_meta": {
+        "checked": true,
+        "chat_turns": 57,
+        "memory_summaries": 0,
+        "memory_facts": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "single_turn_cases": [
+    {
+      "id": "st_01",
+      "query": "介绍一下非洲之心",
+      "expected_intents": ["knowledge_query", "general_query"],
+      "expected_tool": "rag_knowledge_search",
+      "expected_skill": "knowledge_profile",
+      "expected_entities": ["非洲之心"],
+      "answer_keywords": ["非洲之心", "工艺藏品"]
+    },
+    {
+      "id": "st_02",
+      "query": "非洲之心现在什么价格",
+      "expected_intents": ["market_price_latest_query"],
+      "expected_tool": "df_market_latest_price",
+      "expected_skill": "market_latest_price",
+      "expected_entities": ["非洲之心"],
+      "answer_keywords": ["非洲之心", "最新价格"]
+    },
+    {
+      "id": "st_03",
+      "query": "非洲之心历史价格",
+      "expected_intents": ["market_price_history_query"],
+      "expected_tool": "df_market_history_price",
+      "expected_skill": "market_history_price",
+      "expected_entities": ["非洲之心"],
+      "answer_keywords": ["历史价格", "区间"]
+    },
+    {
+      "id": "st_04",
+      "query": "非洲之心现在建议买吗",
+      "expected_intents": ["market_price_advice_query"],
+      "expected_tool": "df_market_price_advice",
+      "expected_skill": "market_price_advice",
+      "expected_entities": ["非洲之心"],
+      "answer_keywords": ["建议", "当前价格"]
+    },
+    {
+      "id": "st_05",
+      "query": "介绍一下海洋之泪并告诉我现在价格",
+      "expected_intents": ["answer_composer_query"],
+      "expected_tool": "df_answer_composer",
+      "expected_skill": "answer_composer",
+      "expected_entities": ["海洋之泪"],
+      "answer_keywords": ["海洋之泪", "当前"]
+    },
+    {
+      "id": "st_06",
+      "query": "对比一下非洲之心和海洋之泪",
+      "expected_intents": ["market_compare_query"],
+      "expected_tool": "df_multi_item_compare",
+      "expected_skill": "market_multi_item_compare",
+      "expected_entities": ["非洲之心", "海洋之泪"],
+      "answer_keywords": ["对比", "非洲之心", "海洋之泪"]
+    },
+    {
+      "id": "st_07",
+      "query": "分析碳纤维散射箭矢利润稳定性",
+      "expected_intents": ["profit_stability_query"],
+      "expected_tool": "df_profit_stability",
+      "expected_skill": "profit_stability",
+      "expected_entities": ["碳纤维散射箭矢"],
+      "answer_keywords": ["稳定", "利润"]
+    },
+    {
+      "id": "st_08",
+      "query": "特勤处制造什么子弹利润最高",
+      "expected_intents": ["place_profit_query"],
+      "expected_tool": "df_place_profit_rank",
+      "expected_skill": "place_profit_rank",
+      "expected_entities": [],
+      "answer_keywords": ["特勤处", "利润"]
+    },
+    {
+      "id": "st_09",
+      "query": "特勤处四大分组利润top3",
+      "expected_intents": ["place_profit_query"],
+      "expected_tool": "df_place_profit_rank",
+      "expected_skill": "place_profit_rank",
+      "expected_entities": [],
+      "answer_keywords": ["Top3", "利润"]
+    },
+    {
+      "id": "st_10",
+      "query": "介绍一下QBZ95-1突击步枪",
+      "expected_intents": ["knowledge_query", "general_query"],
+      "expected_tool": "rag_knowledge_search",
+      "expected_skill": "knowledge_profile",
+      "expected_entities": ["QBZ95-1突击步枪"],
+      "answer_keywords": ["QBZ95-1", "突击步枪"]
+    }
+  ],
+  "multi_turn_cases": [
+    {
+      "id": "mt_01_pronoun_price",
+      "steps": [
+        {"query": "介绍一下非洲之心"},
+        {
+          "query": "它现在什么价格",
+          "expected_tool": "df_market_latest_price",
+          "expected_skill": "market_latest_price",
+          "expected_tool_query_contains": ["非洲之心"],
+          "answer_keywords": ["非洲之心", "最新价格"]
+        }
+      ]
+    },
+    {
+      "id": "mt_02_pronoun_compare",
+      "steps": [
+        {"query": "介绍一下非洲之心"},
+        {"query": "介绍一下海洋之泪"},
+        {
+          "query": "对比一下这两个物品",
+          "expected_tool": "df_multi_item_compare",
+          "expected_skill": "market_multi_item_compare",
+          "expected_tool_query_contains": ["非洲之心", "海洋之泪"],
+          "answer_keywords": ["更", "买入"]
+        }
+      ]
+    }
+  ],
+  "user_isolation_case": {
+    "session_id_prefix": "ab-iso",
+    "user_a": {
+      "warmup": "介绍一下非洲之心",
+      "reentry": "它现在价格是多少",
+      "answer_keywords": ["非洲之心"]
+    },
+    "user_b": {
+      "warmup": "介绍一下QBZ95-1突击步枪",
+      "reentry": "它现在价格是多少",
+      "answer_keywords": ["QBZ95"]
+    }
+  }
+}

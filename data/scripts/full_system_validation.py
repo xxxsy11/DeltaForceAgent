@@ -174,8 +174,8 @@ def main() -> None:
     config = DEFAULT_CONFIG
     session_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    report_json = Path("/data/delta_agent/docs/SYSTEM_FULL_VALIDATION_RESULT.json")
-    report_md = Path("/data/delta_agent/docs/SYSTEM_FULL_VALIDATION_REPORT.md")
+    report_json = PROJECT_ROOT / "docs/SYSTEM_FULL_VALIDATION_RESULT.json"
+    report_md = PROJECT_ROOT / "docs/SYSTEM_FULL_VALIDATION_REPORT.md"
 
     rag_service = RAGService(config)
     registry = ToolRegistry(rag_service=rag_service, config=config)
