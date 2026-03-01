@@ -59,12 +59,14 @@ class TaskPlanningAgent:
         ]
         compare_target_count = int(state.get("understanding_compare_target_count", 2) or 2)
 
-        if not state.get("requires_task_planning", False):
+        force_replan = bool(state.get("force_replan", False))
+
+        if not state.get("requires_task_planning", False) and not force_replan:
             return {
                 "debug_steps": state.get("debug_steps", []) + ["task_planning: skipped"],
             }
 
-        if bool(state.get("skill_locked_plan", False)):
+        if bool(state.get("skill_locked_plan", False)) and not force_replan:
             return {
                 "debug_steps": state.get("debug_steps", []) + ["task_planning: skipped(skill_locked_plan)"],
             }
@@ -128,5 +130,6 @@ class TaskPlanningAgent:
             "task_plan": task_plan,
             "tool_calls": task_plan,
             "agent_messages": state.get("agent_messages", []) + [message],
+            "force_replan": False,
             "debug_steps": state.get("debug_steps", []) + [f"task_planning: {plan_source}"],
         }

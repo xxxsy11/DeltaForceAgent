@@ -1,0 +1,3957 @@
+{
+  "meta": {
+    "generated_at_utc": "2026-03-01T03:13:45.692657+00:00",
+    "user_id": "full-user-main",
+    "benchmark_file": "/data/delta_agent/data/benchmarks/system_eval_cases.json",
+    "memory_reset": {
+      "db_reset": true,
+      "local_reset": true
+    },
+    "tools": [
+      "rag_knowledge_search",
+      "df_market_latest_price",
+      "df_market_history_price",
+      "df_market_price_advice",
+      "df_place_profit_rank",
+      "df_multi_item_compare",
+      "df_profit_stability",
+      "df_answer_composer"
+    ]
+  },
+  "single_turn_suite": {
+    "case_count": 10,
+    "results": [
+      {
+        "timestamp_utc": "2026-03-01T03:07:29.784774+00:00",
+        "query": "介绍一下非洲之心",
+        "attempts": 1,
+        "elapsed_sec": 18.02,
+        "intent": "介绍非洲之心",
+        "flow_type": "simple",
+        "selected_tool": "rag_knowledge_search",
+        "selected_skill": "knowledge_profile",
+        "tool_query": "介绍一下非洲之心",
+        "understanding_entities": [
+          "非洲之心"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "rag_knowledge_search",
+            "tool_query": "介绍一下非洲之心",
+            "output": "结论  \n非洲之心是《三角洲行动》中唯一一枚六级“工艺藏品”类可交易收藏品，也是目前检索到的最高等级钻石藏品。\n\n关键信息  \n1. 基本属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索范围内最高）  \n   • 重量：0.62  \n   • 尺寸：1×1（长×宽）  \n   • 数量：1  \n   • 交易：可交易（tradable: True）  \n\n2. 描述  \n   “世界上最大的钻石，璀璨夺目，象征永恒的爱。”  \n\n3. 关联关系  \n   • 属于“工艺藏品”这一CollectibleType  \n   • 等级为六级，高于同类的非洲木雕、非洲鼓（均为二级）  \n   • 在知识图谱中，被其他若干藏品（如非洲木雕、非洲鼓、太阳碟等）反向关联为“OF_COL_TYPE”，表明它们共同归属“工艺藏品”这一大类。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 403,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-001",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:07:29.784766+00:00"
+        },
+        "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚六级“工艺藏品”类可交易收藏品，也是目前检索到的最高等级钻石藏品。\n\n关键信息  \n1. 基本属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（检索范围内最高）  \n   • 重量：0.62  \n   • 尺寸：1×1（长×宽）  \n   • 数量：1  \n   • 交易：可交易（tradable: True）  \n\n2. 描述  \n   “世界上最大的钻石，璀璨夺目，象征永恒的爱。”  \n\n3. 关联关系  \n   • 属于“工艺藏品”这一CollectibleType  \n   • 等级为六级，高于同类的非洲木雕、非洲鼓（均为二级）  \n   • 在知识图谱中，被其他若干藏品（如非洲木雕、非洲鼓、太阳碟等）反向关联为“OF_COL_TYPE”，表明它们共同归属“工艺藏品”这一大类。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 介绍非洲之心/simple/skill=knowledge_profile/tool=rag_knowledge_search/entities=1/compare_n=2",
+          "execution: tool=rag_knowledge_search",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_01",
+        "expected_tool": "rag_knowledge_search",
+        "expected_skill": "knowledge_profile",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:07:45.304632+00:00",
+        "query": "非洲之心现在什么价格",
+        "attempts": 1,
+        "elapsed_sec": 15.52,
+        "intent": "查询当前市场价格",
+        "flow_type": "simple",
+        "selected_tool": "df_market_latest_price",
+        "selected_skill": "market_latest_price",
+        "tool_query": "objectName=非洲之心",
+        "understanding_entities": [
+          "非洲之心"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_market_latest_price",
+            "tool_query": "objectName=非洲之心",
+            "output": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:07:44。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 47,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-002",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:07:45.304624+00:00"
+        },
+        "final_answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:07:44。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 查询当前市场价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+          "execution: tool=df_market_latest_price",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_02",
+        "expected_tool": "df_market_latest_price",
+        "expected_skill": "market_latest_price",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:07:48.203611+00:00",
+        "query": "非洲之心历史价格",
+        "attempts": 1,
+        "elapsed_sec": 2.9,
+        "intent": "查询非洲之心的历史价格",
+        "flow_type": "simple",
+        "selected_tool": "df_market_history_price",
+        "selected_skill": "market_history_price",
+        "tool_query": "objectName=非洲之心",
+        "understanding_entities": [
+          "非洲之心"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_market_history_price",
+            "tool_query": "objectName=非洲之心",
+            "output": "非洲之心 历史价格查询成功，共 4924 条记录。最新样本价：13412037.0（2026-03-01 11:00:00），最早样本价：12972936.0（2025-11-01 11:30:00），区间最低：12439045.0，区间最高：13458000.0。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 133,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 3,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-003",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:07:48.203604+00:00"
+        },
+        "final_answer": "非洲之心 历史价格查询成功，共 4924 条记录。最新样本价：13412037.0（2026-03-01 11:00:00），最早样本价：12972936.0（2025-11-01 11:30:00），区间最低：12439045.0，区间最高：13458000.0。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=3, used=True, hits=0",
+          "intent_recognition: 查询非洲之心的历史价格/simple/skill=market_history_price/tool=df_market_history_price/entities=1/compare_n=2",
+          "execution: tool=df_market_history_price",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_03",
+        "expected_tool": "df_market_history_price",
+        "expected_skill": "market_history_price",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:07:58.233557+00:00",
+        "query": "非洲之心现在建议买吗",
+        "attempts": 1,
+        "elapsed_sec": 10.03,
+        "intent": "询问当前是否建议购买非洲之心",
+        "flow_type": "complex",
+        "selected_tool": "df_market_price_advice",
+        "selected_skill": "market_price_advice",
+        "tool_query": "objectName=非洲之心",
+        "understanding_entities": [
+          "非洲之心"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_market_price_advice",
+            "tool_query": "objectName=非洲之心",
+            "output": "非洲之心 价格策略分析：\n- 当前价格：13,412,037（更新时间：2026-03-01 03:07:51）\n- 历史区间：12,439,045 ~ 13,458,000（样本 4924 条，均价 12,759,847.52）\n- 当前区间位置：95.5%（高位）\n- 买入建议：当前处于历史偏高区，谨慎追高，建议等待回调再买。\n- 卖出建议：若你已持有，当前更适合分批止盈或减仓。\n- 区间测算：若回到区间最高，每件理论上行 45,963；若回落到区间最低，每件理论回撤 972,992。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 247,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 2,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-004",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:07:58.233551+00:00"
+        },
+        "final_answer": "结论：不建议现在买入非洲之心，应等待回调。\n\n关键依据：\n1. 当前价格 13,412,037 已处于历史区间 12,439,045~13,458,000 的 95.5% 高位，风险收益比差。\n2. 若回落到区间最低，理论回撤 972,992；即使回到区间最高，仅上行 45,963，潜在亏损远大于潜在收益。\n3. 工具明确提示“谨慎追高，建议等待回调再买”。\n\n不确定性：无。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=2, used=True, hits=0",
+          "intent_recognition: 询问当前是否建议购买非洲之心/complex/skill=market_price_advice/tool=df_market_price_advice/entities=1/compare_n=2",
+          "execution: tool=df_market_price_advice",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "specialist_analysis: done",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_04",
+        "expected_tool": "df_market_price_advice",
+        "expected_skill": "market_price_advice",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:08:17.660368+00:00",
+        "query": "介绍一下海洋之泪并告诉我现在价格",
+        "attempts": 1,
+        "elapsed_sec": 19.43,
+        "intent": "介绍并查询当前价格",
+        "flow_type": "complex",
+        "selected_tool": "df_answer_composer",
+        "selected_skill": "answer_composer",
+        "tool_query": "介绍一下海洋之泪并告诉我现在价格",
+        "understanding_entities": [
+          "海洋之泪"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_answer_composer",
+            "tool_query": "介绍一下海洋之泪并告诉我现在价格",
+            "output": "【资料介绍】\n结论\n海洋之泪是一件六级工艺藏品级 Collectible，外形为 1×1 格、重量 0.05 的巨型天然珍珠，通体散发镭射光泽，珠圆玉润，浑然天成。\n关键依据\n• 类型与分级：检索信息中明确标注其 CollectibleType 为“工艺藏品”，Level 为“六级”。\n• 外观描述：官方描述为“浑然天成，珠圆玉润的巨大天然珍珠，其通体散发镭射光泽，令人目眩神迷”。\n• 物理属性：shape {\"length\": 1, \"width\": 1}、weight 0.05，占用背包空间最小。\n\n【实时价格】\n海洋之泪 的最新价格为 31721258。 更新时间：2026-03-01 03:08:10。\n\n【买卖建议】\n海洋之泪 价格策略分析：\n- 当前价格：31,721,258（更新时间：2026-03-01 03:08:10）\n- 历史区间：22,004,899 ~ 36,829,220（样本 4934 条，均价 26,647,451.76）\n- 当前区间位置：65.5%（中位）\n- 买入建议：当前处于历史中位区，建议小仓位分批，不要重仓追买。\n- 卖出建议：当前不属于明显高位，是否卖出取决于你的持仓成本和周期。\n- 区间测算：若回到区间最高，每件理论上行 5,107,962；若回落到区间最低，每件理论回撤 9,716,359。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 579,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-005",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:08:17.660362+00:00"
+        },
+        "final_answer": "结论  \n海洋之泪是一件六级工艺藏品级 Collectible，当前最新价格为 31,721,258（更新于 2026-03-01 03:08:10）。\n\n关键依据  \n1. 物品属性：六级工艺藏品，1×1 格、重量 0.05 的巨型天然珍珠，通体镭射光泽。  \n2. 实时价格：31,721,258（2026-03-01 03:08:10）。  \n3. 历史区间：22,004,899 ~ 36,829,220（样本 4,934 条，均价 26,647,451.76），现价位于 65.5% 分位。\n\n不确定性  \n- 卖出统一按 13% 手续费估算净收益。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 介绍并查询当前价格/complex/skill=answer_composer/tool=df_answer_composer/entities=1/compare_n=2",
+          "execution: tool=df_answer_composer",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "specialist_analysis: done",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_05",
+        "expected_tool": "df_answer_composer",
+        "expected_skill": "answer_composer",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:08:30.406016+00:00",
+        "query": "对比一下非洲之心和海洋之泪",
+        "attempts": 1,
+        "elapsed_sec": 12.75,
+        "intent": "多物品对比",
+        "flow_type": "complex",
+        "selected_tool": "df_multi_item_compare",
+        "selected_skill": "market_multi_item_compare",
+        "tool_query": "非洲之心、海洋之泪 对比",
+        "understanding_entities": [
+          "非洲之心",
+          "海洋之泪"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_multi_item_compare",
+            "tool_query": "非洲之心、海洋之泪 对比",
+            "output": "多物品价格对比（共2个）\n1. 非洲之心｜现价 13,412,037｜区间 12,439,045~13,458,000｜区间位置 95.5%｜上行空间 45,963｜下行风险 972,992\n2. 海洋之泪｜现价 31,721,258｜区间 22,004,899~36,829,220｜区间位置 65.5%｜上行空间 5,107,962｜下行风险 9,716,359\n结论：当前性价比相对更优的是 非洲之心（区间位置 95.5%）。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 216,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 2,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-006",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:08:30.406008+00:00"
+        },
+        "final_answer": "结论：当前性价比更优的是非洲之心。\n\n关键依据  \n1. 区间位置：非洲之心 95.5%，已接近区间顶部；海洋之泪 65.5%，仍在中位偏上。  \n2. 上行空间：非洲之心仅 45,963，海洋之泪达 5,107,962。  \n3. 下行风险：非洲之心 972,992，海洋之泪 9,716,359。\n\n不确定性  \n卖出统一按 13% 手续费估算净收益。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=2, used=True, hits=0",
+          "intent_recognition: 对比非洲之心和海洋之泪/complex/skill=market_multi_item_compare/tool=df_multi_item_compare/entities=2/compare_n=2",
+          "task_planning: fallback_task_planning",
+          "execution: tool=df_multi_item_compare",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "specialist_analysis: done",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_06",
+        "expected_tool": "df_multi_item_compare",
+        "expected_skill": "market_multi_item_compare",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 0.6667
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:08:37.995304+00:00",
+        "query": "分析碳纤维散射箭矢利润稳定性",
+        "attempts": 1,
+        "elapsed_sec": 7.59,
+        "intent": "分析碳纤维散射箭矢的利润稳定性",
+        "flow_type": "complex",
+        "selected_tool": "df_profit_stability",
+        "selected_skill": "profit_stability",
+        "tool_query": "objectName=碳纤维散射箭矢",
+        "understanding_entities": [
+          "碳纤维散射箭矢"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_profit_stability",
+            "tool_query": "objectName=碳纤维散射箭矢",
+            "output": "碳纤维散射箭矢 利润稳定性分析（工作台）\n- 样本数：167\n- 最新利润：60,393（2026-03-01 11:00:00）\n- 最早利润：-125,219（2026-02-23 23:00:00）\n- 平均利润：-5,193.32，利润标准差：76,510.52，波动系数CV：14.73\n- 正利润占比：44.3%，最大回撤：259.6%，趋势变化：+148.2%\n- 稳定性评级：低\n- 建议：利润波动较大或负利润占比偏高，建议谨慎生产。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 225,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 2,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-007",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:08:37.995298+00:00"
+        },
+        "final_answer": "结论：碳纤维散射箭矢利润稳定性低，不建议扩大生产。  \n关键依据：  \n1. 正利润占比仅44.3%，最大回撤高达259.6%。  \n2. 平均利润-5,193.32，标准差76,510.52，波动系数14.73。  \n3. 工具评级为“低”，并提示“利润波动较大或负利润占比偏高”。  \n\n不确定性：卖出手续费按13%估算，实际费率可能不同。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=2, used=True, hits=0",
+          "intent_recognition: 分析碳纤维散射箭矢的利润稳定性/complex/skill=profit_stability/tool=df_profit_stability/entities=1/compare_n=2",
+          "execution: tool=df_profit_stability",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "specialist_analysis: done",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_07",
+        "expected_tool": "df_profit_stability",
+        "expected_skill": "profit_stability",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:08:43.801653+00:00",
+        "query": "特勤处制造什么子弹利润最高",
+        "attempts": 1,
+        "elapsed_sec": 5.81,
+        "intent": "查询特勤处制造子弹中利润最高的物品",
+        "flow_type": "simple",
+        "selected_tool": "df_place_profit_rank",
+        "selected_skill": "place_profit_rank",
+        "tool_query": "特勤处制造什么子弹利润最高",
+        "understanding_entities": [
+          "特勤处制造子弹"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_place_profit_rank",
+            "tool_query": "特勤处制造什么子弹利润最高",
+            "output": "特勤处制造净利润榜（指定分组，Top1，排序维度: totalprofit）\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 374,241｜小时利润 46,780.13｜采样时间 2026-03-01 11:00:00",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 112,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-008",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:08:43.801645+00:00"
+        },
+        "final_answer": "特勤处制造净利润榜（指定分组，Top1，排序维度: totalprofit）\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 374,241｜小时利润 46,780.13｜采样时间 2026-03-01 11:00:00",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 查询特勤处制造子弹中利润最高的物品/simple/skill=place_profit_rank/tool=df_place_profit_rank/entities=1/compare_n=2",
+          "execution: tool=df_place_profit_rank",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_08",
+        "expected_tool": "df_place_profit_rank",
+        "expected_skill": "place_profit_rank",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:08:47.925138+00:00",
+        "query": "特勤处四大分组利润top3",
+        "attempts": 1,
+        "elapsed_sec": 4.12,
+        "intent": "查询特勤处四大分组中利润最高的前3名",
+        "flow_type": "simple",
+        "selected_tool": "df_place_profit_rank",
+        "selected_skill": "place_profit_rank",
+        "tool_query": "特勤处四大分组利润top3",
+        "understanding_entities": [
+          "特勤处四大分组"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_place_profit_rank",
+            "tool_query": "特勤处四大分组利润top3",
+            "output": "特勤处制造净利润榜（全部分组，Top3，排序维度: totalprofit）\n\n技术中心（枪械/配件）\n1. M14射手步枪｜净利润 99,736｜小时利润 3,324.53｜采样时间 2026-03-01 11:00:00\n2. SR-3M紧凑突击步枪｜净利润 49,975｜小时利润 1,041.15｜采样时间 2026-03-01 11:00:00\n3. AUG突击步枪｜净利润 47,416｜小时利润 1,975.67｜采样时间 2026-03-01 11:00:00\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 374,241｜小时利润 46,780.13｜采样时间 2026-03-01 11:00:00\n2. 4.6x30mm AP SX｜净利润 347,438｜小时利润 43,429.75｜采样时间 2026-03-01 11:00:00\n3. 7.62*39mm AP SUB｜净利润 344,497｜小时利润 43,062.13｜采样时间 2026-03-01 11:00:00\n\n制药台（药品/针剂/维修工具包）\n1. 精密护甲维修包｜净利润 61,376｜小时利润 7,672｜采样时间 2026-03-01 11:00:00\n2. 战地医疗箱｜净利润 47,987｜小时利润 5,998.38｜采样时间 2026-03-01 11:00:00\n3. 体能强化剂｜净利润 41,927｜小时利润 5,240.88｜采样时间 2026-03-01 11:00:00\n\n防具台（头盔/护甲/胸挂/背包）\n1. 重型突击背心｜净利润 250,887｜小时利润 31,360.88｜采样时间 2026-03-01 11:00:00\n2. 精英防弹背心｜净利润 235,105｜小时利润 29,388.13｜采样时间 2026-03-01 11:00:00\n3. FS复合防弹衣｜净利润 203,191｜小时利润 25,398.88｜采样时间 2026-03-01 11:00:00",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 853,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-009",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:08:47.925132+00:00"
+        },
+        "final_answer": "特勤处制造净利润榜（全部分组，Top3，排序维度: totalprofit）\n\n技术中心（枪械/配件）\n1. M14射手步枪｜净利润 99,736｜小时利润 3,324.53｜采样时间 2026-03-01 11:00:00\n2. SR-3M紧凑突击步枪｜净利润 49,975｜小时利润 1,041.15｜采样时间 2026-03-01 11:00:00\n3. AUG突击步枪｜净利润 47,416｜小时利润 1,975.67｜采样时间 2026-03-01 11:00:00\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 374,241｜小时利润 46,780.13｜采样时间 2026-03-01 11:00:00\n2. 4.6x30mm AP SX｜净利润 347,438｜小时利润 43,429.75｜采样时间 2026-03-01 11:00:00\n3. 7.62*39mm AP SUB｜净利润 344,497｜小时利润 43,062.13｜采样时间 2026-03-01 11:00:00\n\n制药台（药品/针剂/维修工具包）\n1. 精密护甲维修包｜净利润 61,376｜小时利润 7,672｜采样时间 2026-03-01 11:00:00\n2. 战地医疗箱｜净利润 47,987｜小时利润 5,998.38｜采样时间 2026-03-01 11:00:00\n3. 体能强化剂｜净利润 41,927｜小时利润 5,240.88｜采样时间 2026-03-01 11:00:00\n\n防具台（头盔/护甲/胸挂/背包）\n1. 重型突击背心｜净利润 250,887｜小时利润 31,360.88｜采样时间 2026-03-01 11:00:00\n2. 精英防弹背心｜净利润 235,105｜小时利润 29,388.13｜采样时间 2026-03-01 11:00:00\n3. FS复合防弹衣｜净利润 203,191｜小时利润 25,398.88｜采样时间 2026-03-01 11:00:00",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 查询特勤处四大分组中利润最高的前3名/simple/skill=place_profit_rank/tool=df_place_profit_rank/entities=1/compare_n=2",
+          "execution: tool=df_place_profit_rank",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_09",
+        "expected_tool": "df_place_profit_rank",
+        "expected_skill": "place_profit_rank",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:09:00.287844+00:00",
+        "query": "介绍一下QBZ95-1突击步枪",
+        "attempts": 1,
+        "elapsed_sec": 12.36,
+        "intent": "介绍武器",
+        "flow_type": "simple",
+        "selected_tool": "rag_knowledge_search",
+        "selected_skill": "knowledge_profile",
+        "tool_query": "介绍一下QBZ95-1突击步枪",
+        "understanding_entities": [
+          "QBZ95-1突击步枪"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "rag_knowledge_search",
+            "tool_query": "介绍一下QBZ95-1突击步枪",
+            "output": "QBZ95-1突击步枪是一款采用5.8×42mm弹药的全自动无托式突击步枪，归类于“步枪”这一枪械类型。其核心特点与性能如下：\n\n1. 基本属性  \n   • 射速：679 RPM（较快）  \n   • 弹匣容量：30 发  \n   • 射击模式：单发 / 全自动  \n   • 枪口初速：575 m/s  \n   • 有效射程：约 55 m（游戏内标定）  \n   • 空仓挂机：改进后新增，换弹更便捷  \n\n2. 操控与稳定性  \n   • 后坐力：52（中等，易于控制）  \n   • 操控性：55（舒适）  \n   • 稳定性：58（较高）  \n   • 腰射精度：54（尚可）  \n\n3. 伤害表现  \n   • 肉体伤害：28  \n   • 护甲伤害：42  \n\n4. 声学与隐蔽  \n   • 枪声传播距离：500 m  \n\n结论：QBZ95-1凭借高射速、良好的操控与稳定性，以及新增的空仓挂机功能，在近距离到中距离交火中表现均衡，是一把适合持续火力压制的无托式突击步枪。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 444,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-single",
+          "session_id": "full-single-20260301_030710-010",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:09:00.287837+00:00"
+        },
+        "final_answer": "QBZ95-1突击步枪是一款采用5.8×42mm弹药的全自动无托式突击步枪，归类于“步枪”这一枪械类型。其核心特点与性能如下：\n\n1. 基本属性  \n   • 射速：679 RPM（较快）  \n   • 弹匣容量：30 发  \n   • 射击模式：单发 / 全自动  \n   • 枪口初速：575 m/s  \n   • 有效射程：约 55 m（游戏内标定）  \n   • 空仓挂机：改进后新增，换弹更便捷  \n\n2. 操控与稳定性  \n   • 后坐力：52（中等，易于控制）  \n   • 操控性：55（舒适）  \n   • 稳定性：58（较高）  \n   • 腰射精度：54（尚可）  \n\n3. 伤害表现  \n   • 肉体伤害：28  \n   • 护甲伤害：42  \n\n4. 声学与隐蔽  \n   • 枪声传播距离：500 m  \n\n结论：QBZ95-1凭借高射速、良好的操控与稳定性，以及新增的空仓挂机功能，在近距离到中距离交火中表现均衡，是一把适合持续火力压制的无托式突击步枪。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 介绍武器/simple/skill=knowledge_profile/tool=rag_knowledge_search/entities=1/compare_n=2",
+          "execution: tool=rag_knowledge_search",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ],
+        "case_id": "st_10",
+        "expected_tool": "rag_knowledge_search",
+        "expected_skill": "knowledge_profile",
+        "intent_ok": true,
+        "tool_ok": true,
+        "skill_ok": true,
+        "entity_ok": true,
+        "answer_keyword_coverage": 1.0
+      }
+    ]
+  },
+  "multi_turn_suite": {
+    "case_count": 2,
+    "results": [
+      {
+        "case_id": "mt_01_pronoun_price",
+        "session_id": "full-multi-20260301_030710-001",
+        "turns": [
+          {
+            "timestamp_utc": "2026-03-01T03:09:10.317805+00:00",
+            "query": "介绍一下非洲之心",
+            "attempts": 1,
+            "elapsed_sec": 10.03,
+            "intent": "介绍非洲之心",
+            "flow_type": "simple",
+            "selected_tool": "rag_knowledge_search",
+            "selected_skill": "knowledge_profile",
+            "tool_query": "介绍一下非洲之心",
+            "understanding_entities": [
+              "非洲之心"
+            ],
+            "tool_results": [
+              {
+                "tool_name": "rag_knowledge_search",
+                "tool_query": "介绍一下非洲之心",
+                "output": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级工艺藏品”级别的可交易钻石类收藏品，也是目前检索到的最高等级工艺藏品。\n\n关键信息  \n1. 基本属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（最高级）  \n   • 重量：0.62  \n   • 尺寸：1×1（最小格占用）  \n   • 数量：1（单件）  \n   • 可交易：是  \n\n2. 描述与象征  \n   “世界上最大的钻石，璀璨夺目，象征永恒的爱。”——官方描述将其定位为极具象征意义的顶级珍宝。\n\n3. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分类；  \n   • 在该分类下，目前仅检索到它与非洲木雕、非洲鼓等同属“工艺藏品”，但非洲之心独占六级，其余最高仅为二级，形成明显等级差异。",
+                "ok": true,
+                "error_code": "",
+                "error_type": "",
+                "retryable": false,
+                "stage": "execution",
+                "diagnostics": {
+                  "output_len": 378,
+                  "has_http_error": false
+                }
+              }
+            ],
+            "tool_result_count": 1,
+            "tool_result_fail_count": 0,
+            "memory_gate_score": 0,
+            "memory_gate_triggered": false,
+            "memory_persistent_used": false,
+            "memory_recall_hits": 0,
+            "memory_recall_effective": false,
+            "memory_compression": {
+              "triggered": false,
+              "reason": "",
+              "pending_turns": 0,
+              "pending_tokens": 0
+            },
+            "memory_stats_after": {
+              "user_id": "full-user-multi",
+              "session_id": "full-multi-20260301_030710-001",
+              "recent_raw_turns": 2,
+              "pending_turns": 0,
+              "pending_tokens": 0,
+              "rolling_summary_chars": 0,
+              "merge_count": 0,
+              "updated_at_utc": "2026-03-01T03:09:10.317797+00:00"
+            },
+            "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级工艺藏品”级别的可交易钻石类收藏品，也是目前检索到的最高等级工艺藏品。\n\n关键信息  \n1. 基本属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（最高级）  \n   • 重量：0.62  \n   • 尺寸：1×1（最小格占用）  \n   • 数量：1（单件）  \n   • 可交易：是  \n\n2. 描述与象征  \n   “世界上最大的钻石，璀璨夺目，象征永恒的爱。”——官方描述将其定位为极具象征意义的顶级珍宝。\n\n3. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分类；  \n   • 在该分类下，目前仅检索到它与非洲木雕、非洲鼓等同属“工艺藏品”，但非洲之心独占六级，其余最高仅为二级，形成明显等级差异。",
+            "final_answer_failed": false,
+            "quality_gate_passed": true,
+            "quality_score": 1.0,
+            "validation_result": {
+              "passed": true,
+              "reason": "all_tools_success",
+              "retry_requested": false,
+              "target_stage": "",
+              "failure_count": 0,
+              "success_count": 1
+            },
+            "review_result": {
+              "passed": true,
+              "score": 1.0,
+              "reason": "ok",
+              "retry_requested": false,
+              "target_stage": "",
+              "hints": []
+            },
+            "retry_count_total": 0,
+            "retry_count_by_stage": {},
+            "retry_budget_exhausted": false,
+            "retry_trace": [],
+            "validator_reject": false,
+            "reviewer_reject": false,
+            "block_persistent_write": false,
+            "execution_attempt": 0,
+            "summary_attempt": 1,
+            "debug_steps": [
+              "main_orchestrator: start",
+              "persistent_memory_recall: gate=0, used=False, hits=0",
+              "intent_recognition: 介绍非洲之心/simple/skill=knowledge_profile/tool=rag_knowledge_search/entities=1/compare_n=2",
+              "execution: tool=rag_knowledge_search",
+              "execution: done",
+              "tool_output_validator: pass(all_tools_success)",
+              "summary: done",
+              "answer_reviewer: pass",
+              "memory_compression: triggered=False,facts=0",
+              "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+            ]
+          },
+          {
+            "timestamp_utc": "2026-03-01T03:09:13.974696+00:00",
+            "query": "它现在什么价格",
+            "attempts": 1,
+            "elapsed_sec": 3.66,
+            "intent": "查询当前价格",
+            "flow_type": "simple",
+            "selected_tool": "df_market_latest_price",
+            "selected_skill": "market_latest_price",
+            "tool_query": "objectName=非洲之心",
+            "understanding_entities": [
+              "非洲之心"
+            ],
+            "tool_results": [
+              {
+                "tool_name": "df_market_latest_price",
+                "tool_query": "objectName=非洲之心",
+                "output": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:09:13。",
+                "ok": true,
+                "error_code": "",
+                "error_type": "",
+                "retryable": false,
+                "stage": "execution",
+                "diagnostics": {
+                  "output_len": 47,
+                  "has_http_error": false
+                }
+              }
+            ],
+            "tool_result_count": 1,
+            "tool_result_fail_count": 0,
+            "memory_gate_score": 2,
+            "memory_gate_triggered": true,
+            "memory_persistent_used": true,
+            "memory_recall_hits": 0,
+            "memory_recall_effective": false,
+            "memory_compression": {
+              "triggered": false,
+              "reason": "",
+              "pending_turns": 0,
+              "pending_tokens": 0
+            },
+            "memory_stats_after": {
+              "user_id": "full-user-multi",
+              "session_id": "full-multi-20260301_030710-001",
+              "recent_raw_turns": 4,
+              "pending_turns": 0,
+              "pending_tokens": 0,
+              "rolling_summary_chars": 0,
+              "merge_count": 0,
+              "updated_at_utc": "2026-03-01T03:09:13.974689+00:00"
+            },
+            "final_answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:09:13。",
+            "final_answer_failed": false,
+            "quality_gate_passed": true,
+            "quality_score": 1.0,
+            "validation_result": {
+              "passed": true,
+              "reason": "all_tools_success",
+              "retry_requested": false,
+              "target_stage": "",
+              "failure_count": 0,
+              "success_count": 1
+            },
+            "review_result": {
+              "passed": true,
+              "score": 1.0,
+              "reason": "ok",
+              "retry_requested": false,
+              "target_stage": "",
+              "hints": []
+            },
+            "retry_count_total": 0,
+            "retry_count_by_stage": {},
+            "retry_budget_exhausted": false,
+            "retry_trace": [],
+            "validator_reject": false,
+            "reviewer_reject": false,
+            "block_persistent_write": false,
+            "execution_attempt": 0,
+            "summary_attempt": 1,
+            "debug_steps": [
+              "main_orchestrator: start",
+              "persistent_memory_recall: gate=2, used=True, hits=0",
+              "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+              "execution: tool=df_market_latest_price",
+              "execution: done",
+              "tool_output_validator: pass(all_tools_success)",
+              "summary: done",
+              "answer_reviewer: pass",
+              "memory_compression: triggered=False,facts=0",
+              "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+            ]
+          }
+        ],
+        "target": {
+          "timestamp_utc": "2026-03-01T03:09:13.974696+00:00",
+          "query": "它现在什么价格",
+          "attempts": 1,
+          "elapsed_sec": 3.66,
+          "intent": "查询当前价格",
+          "flow_type": "simple",
+          "selected_tool": "df_market_latest_price",
+          "selected_skill": "market_latest_price",
+          "tool_query": "objectName=非洲之心",
+          "understanding_entities": [
+            "非洲之心"
+          ],
+          "tool_results": [
+            {
+              "tool_name": "df_market_latest_price",
+              "tool_query": "objectName=非洲之心",
+              "output": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:09:13。",
+              "ok": true,
+              "error_code": "",
+              "error_type": "",
+              "retryable": false,
+              "stage": "execution",
+              "diagnostics": {
+                "output_len": 47,
+                "has_http_error": false
+              }
+            }
+          ],
+          "tool_result_count": 1,
+          "tool_result_fail_count": 0,
+          "memory_gate_score": 2,
+          "memory_gate_triggered": true,
+          "memory_persistent_used": true,
+          "memory_recall_hits": 0,
+          "memory_recall_effective": false,
+          "memory_compression": {
+            "triggered": false,
+            "reason": "",
+            "pending_turns": 0,
+            "pending_tokens": 0
+          },
+          "memory_stats_after": {
+            "user_id": "full-user-multi",
+            "session_id": "full-multi-20260301_030710-001",
+            "recent_raw_turns": 4,
+            "pending_turns": 0,
+            "pending_tokens": 0,
+            "rolling_summary_chars": 0,
+            "merge_count": 0,
+            "updated_at_utc": "2026-03-01T03:09:13.974689+00:00"
+          },
+          "final_answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:09:13。",
+          "final_answer_failed": false,
+          "quality_gate_passed": true,
+          "quality_score": 1.0,
+          "validation_result": {
+            "passed": true,
+            "reason": "all_tools_success",
+            "retry_requested": false,
+            "target_stage": "",
+            "failure_count": 0,
+            "success_count": 1
+          },
+          "review_result": {
+            "passed": true,
+            "score": 1.0,
+            "reason": "ok",
+            "retry_requested": false,
+            "target_stage": "",
+            "hints": []
+          },
+          "retry_count_total": 0,
+          "retry_count_by_stage": {},
+          "retry_budget_exhausted": false,
+          "retry_trace": [],
+          "validator_reject": false,
+          "reviewer_reject": false,
+          "block_persistent_write": false,
+          "execution_attempt": 0,
+          "summary_attempt": 1,
+          "debug_steps": [
+            "main_orchestrator: start",
+            "persistent_memory_recall: gate=2, used=True, hits=0",
+            "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+            "execution: tool=df_market_latest_price",
+            "execution: done",
+            "tool_output_validator: pass(all_tools_success)",
+            "summary: done",
+            "answer_reviewer: pass",
+            "memory_compression: triggered=False,facts=0",
+            "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+          ]
+        },
+        "tool_ok": true,
+        "skill_ok": true,
+        "tool_query_ok": true,
+        "answer_keyword_coverage": 1.0,
+        "final_answer_failed": false
+      },
+      {
+        "case_id": "mt_02_pronoun_compare",
+        "session_id": "full-multi-20260301_030710-002",
+        "turns": [
+          {
+            "timestamp_utc": "2026-03-01T03:09:24.538080+00:00",
+            "query": "介绍一下非洲之心",
+            "attempts": 1,
+            "elapsed_sec": 10.56,
+            "intent": "介绍非洲之心",
+            "flow_type": "simple",
+            "selected_tool": "rag_knowledge_search",
+            "selected_skill": "knowledge_profile",
+            "tool_query": "介绍一下非洲之心",
+            "understanding_entities": [
+              "非洲之心"
+            ],
+            "tool_results": [
+              {
+                "tool_name": "rag_knowledge_search",
+                "tool_query": "介绍一下非洲之心",
+                "output": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级工艺藏品”级别的可交易钻石，也是目前检索范围内等级最高的工艺藏品。\n\n关键依据  \n1. 基础属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（最高级）  \n   • 描述：世界上最大的钻石，璀璨夺目，象征永恒的爱。  \n   • 重量：0.62  \n   • 尺寸：1×1 单位  \n   • 可交易：是（tradable: True）  \n\n2. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分支  \n   • 与非洲木雕、非洲鼓等其他工艺藏品并列，但等级唯一达到六级  \n   • 在知识图谱中，被“工艺藏品”这一类型反向索引，确认其归属无误",
+                "ok": true,
+                "error_code": "",
+                "error_type": "",
+                "retryable": false,
+                "stage": "execution",
+                "diagnostics": {
+                  "output_len": 347,
+                  "has_http_error": false
+                }
+              }
+            ],
+            "tool_result_count": 1,
+            "tool_result_fail_count": 0,
+            "memory_gate_score": 0,
+            "memory_gate_triggered": false,
+            "memory_persistent_used": false,
+            "memory_recall_hits": 0,
+            "memory_recall_effective": false,
+            "memory_compression": {
+              "triggered": false,
+              "reason": "",
+              "pending_turns": 0,
+              "pending_tokens": 0
+            },
+            "memory_stats_after": {
+              "user_id": "full-user-multi",
+              "session_id": "full-multi-20260301_030710-002",
+              "recent_raw_turns": 2,
+              "pending_turns": 0,
+              "pending_tokens": 0,
+              "rolling_summary_chars": 0,
+              "merge_count": 0,
+              "updated_at_utc": "2026-03-01T03:09:24.538073+00:00"
+            },
+            "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级工艺藏品”级别的可交易钻石，也是目前检索范围内等级最高的工艺藏品。\n\n关键依据  \n1. 基础属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（最高级）  \n   • 描述：世界上最大的钻石，璀璨夺目，象征永恒的爱。  \n   • 重量：0.62  \n   • 尺寸：1×1 单位  \n   • 可交易：是（tradable: True）  \n\n2. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分支  \n   • 与非洲木雕、非洲鼓等其他工艺藏品并列，但等级唯一达到六级  \n   • 在知识图谱中，被“工艺藏品”这一类型反向索引，确认其归属无误",
+            "final_answer_failed": false,
+            "quality_gate_passed": true,
+            "quality_score": 1.0,
+            "validation_result": {
+              "passed": true,
+              "reason": "all_tools_success",
+              "retry_requested": false,
+              "target_stage": "",
+              "failure_count": 0,
+              "success_count": 1
+            },
+            "review_result": {
+              "passed": true,
+              "score": 1.0,
+              "reason": "ok",
+              "retry_requested": false,
+              "target_stage": "",
+              "hints": []
+            },
+            "retry_count_total": 0,
+            "retry_count_by_stage": {},
+            "retry_budget_exhausted": false,
+            "retry_trace": [],
+            "validator_reject": false,
+            "reviewer_reject": false,
+            "block_persistent_write": false,
+            "execution_attempt": 0,
+            "summary_attempt": 1,
+            "debug_steps": [
+              "main_orchestrator: start",
+              "persistent_memory_recall: gate=0, used=False, hits=0",
+              "intent_recognition: 介绍非洲之心/simple/skill=knowledge_profile/tool=rag_knowledge_search/entities=1/compare_n=2",
+              "execution: tool=rag_knowledge_search",
+              "execution: done",
+              "tool_output_validator: pass(all_tools_success)",
+              "summary: done",
+              "answer_reviewer: pass",
+              "memory_compression: triggered=False,facts=0",
+              "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+            ]
+          },
+          {
+            "timestamp_utc": "2026-03-01T03:09:36.209141+00:00",
+            "query": "介绍一下海洋之泪",
+            "attempts": 1,
+            "elapsed_sec": 11.67,
+            "intent": "介绍海洋之泪",
+            "flow_type": "simple",
+            "selected_tool": "rag_knowledge_search",
+            "selected_skill": "knowledge_profile",
+            "tool_query": "介绍一下海洋之泪",
+            "understanding_entities": [
+              "海洋之泪"
+            ],
+            "tool_results": [
+              {
+                "tool_name": "rag_knowledge_search",
+                "tool_query": "介绍一下海洋之泪",
+                "output": "结论  \n海洋之泪是《三角洲行动》中一枚六级“工艺藏品”类可交易收藏品，外形为珠圆玉润、散发镭射光泽的巨大天然珍珠。\n\n关键依据与属性  \n1. 基本信息  \n   • 名称：海洋之泪  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级  \n   • 编号：collect_craft_2  \n   • 重量：0.05  \n   • 尺寸：1×1（长×宽）  \n   • 可交易：是  \n\n2. 描述  \n   “浑然天成，珠圆玉润的巨大天然珍珠，其通体散发镭射光泽，令人目眩神迷。”\n\n关联关系  \n• 属于“工艺藏品”CollectibleType  \n• 与万金泪冠、非洲之心等同为六级工艺藏品  \n• 被归类在“工艺藏品”这一CollectibleType下，与古老的海盗望远镜、锈迹斑斑的海盗铜币、残弹挂坠等若干其他藏品并列",
+                "ok": true,
+                "error_code": "",
+                "error_type": "",
+                "retryable": false,
+                "stage": "execution",
+                "diagnostics": {
+                  "output_len": 382,
+                  "has_http_error": false
+                }
+              }
+            ],
+            "tool_result_count": 1,
+            "tool_result_fail_count": 0,
+            "memory_gate_score": 0,
+            "memory_gate_triggered": false,
+            "memory_persistent_used": false,
+            "memory_recall_hits": 0,
+            "memory_recall_effective": false,
+            "memory_compression": {
+              "triggered": false,
+              "reason": "",
+              "pending_turns": 0,
+              "pending_tokens": 0
+            },
+            "memory_stats_after": {
+              "user_id": "full-user-multi",
+              "session_id": "full-multi-20260301_030710-002",
+              "recent_raw_turns": 4,
+              "pending_turns": 0,
+              "pending_tokens": 0,
+              "rolling_summary_chars": 0,
+              "merge_count": 0,
+              "updated_at_utc": "2026-03-01T03:09:36.209135+00:00"
+            },
+            "final_answer": "结论  \n海洋之泪是《三角洲行动》中一枚六级“工艺藏品”类可交易收藏品，外形为珠圆玉润、散发镭射光泽的巨大天然珍珠。\n\n关键依据与属性  \n1. 基本信息  \n   • 名称：海洋之泪  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级  \n   • 编号：collect_craft_2  \n   • 重量：0.05  \n   • 尺寸：1×1（长×宽）  \n   • 可交易：是  \n\n2. 描述  \n   “浑然天成，珠圆玉润的巨大天然珍珠，其通体散发镭射光泽，令人目眩神迷。”\n\n关联关系  \n• 属于“工艺藏品”CollectibleType  \n• 与万金泪冠、非洲之心等同为六级工艺藏品  \n• 被归类在“工艺藏品”这一CollectibleType下，与古老的海盗望远镜、锈迹斑斑的海盗铜币、残弹挂坠等若干其他藏品并列",
+            "final_answer_failed": false,
+            "quality_gate_passed": true,
+            "quality_score": 1.0,
+            "validation_result": {
+              "passed": true,
+              "reason": "all_tools_success",
+              "retry_requested": false,
+              "target_stage": "",
+              "failure_count": 0,
+              "success_count": 1
+            },
+            "review_result": {
+              "passed": true,
+              "score": 1.0,
+              "reason": "ok",
+              "retry_requested": false,
+              "target_stage": "",
+              "hints": []
+            },
+            "retry_count_total": 0,
+            "retry_count_by_stage": {},
+            "retry_budget_exhausted": false,
+            "retry_trace": [],
+            "validator_reject": false,
+            "reviewer_reject": false,
+            "block_persistent_write": false,
+            "execution_attempt": 0,
+            "summary_attempt": 1,
+            "debug_steps": [
+              "main_orchestrator: start",
+              "persistent_memory_recall: gate=0, used=False, hits=0",
+              "intent_recognition: 介绍海洋之泪/simple/skill=knowledge_profile/tool=rag_knowledge_search/entities=1/compare_n=2",
+              "execution: tool=rag_knowledge_search",
+              "execution: done",
+              "tool_output_validator: pass(all_tools_success)",
+              "summary: done",
+              "answer_reviewer: pass",
+              "memory_compression: triggered=False,facts=0",
+              "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+            ]
+          },
+          {
+            "timestamp_utc": "2026-03-01T03:09:54.611376+00:00",
+            "query": "对比一下这两个物品",
+            "attempts": 1,
+            "elapsed_sec": 18.4,
+            "intent": "多物品对比",
+            "flow_type": "complex",
+            "selected_tool": "df_multi_item_compare",
+            "selected_skill": "market_multi_item_compare",
+            "tool_query": "非洲之心、海洋之泪 对比",
+            "understanding_entities": [
+              "非洲之心",
+              "海洋之泪"
+            ],
+            "tool_results": [
+              {
+                "tool_name": "df_multi_item_compare",
+                "tool_query": "非洲之心、海洋之泪 对比",
+                "output": "多物品价格对比（共2个）\n1. 非洲之心｜现价 13,412,037｜区间 12,439,045~13,458,000｜区间位置 95.5%｜上行空间 45,963｜下行风险 972,992\n2. 海洋之泪｜现价 31,721,258｜区间 22,004,899~36,829,220｜区间位置 65.5%｜上行空间 5,107,962｜下行风险 9,716,359\n结论：当前性价比相对更优的是 非洲之心（区间位置 95.5%）。",
+                "ok": true,
+                "error_code": "",
+                "error_type": "",
+                "retryable": false,
+                "stage": "execution",
+                "diagnostics": {
+                  "output_len": 216,
+                  "has_http_error": false
+                }
+              }
+            ],
+            "tool_result_count": 1,
+            "tool_result_fail_count": 0,
+            "memory_gate_score": 4,
+            "memory_gate_triggered": true,
+            "memory_persistent_used": true,
+            "memory_recall_hits": 0,
+            "memory_recall_effective": false,
+            "memory_compression": {
+              "triggered": false,
+              "reason": "",
+              "pending_turns": 0,
+              "pending_tokens": 0
+            },
+            "memory_stats_after": {
+              "user_id": "full-user-multi",
+              "session_id": "full-multi-20260301_030710-002",
+              "recent_raw_turns": 6,
+              "pending_turns": 0,
+              "pending_tokens": 0,
+              "rolling_summary_chars": 0,
+              "merge_count": 0,
+              "updated_at_utc": "2026-03-01T03:09:54.611369+00:00"
+            },
+            "final_answer": "结论  \n非洲之心现价更低、区间位置更高，短线兑现价值优于海洋之泪；海洋之泪绝对价格高、波动大，潜在收益更高但风险也更大。\n\n关键依据  \n1. 价格与区间  \n   • 非洲之心：13,412,037（区间 12,439,045~13,458,000，位置 95.5%）  \n   • 海洋之泪：31,721,258（区间 22,004,899~36,829,220，位置 65.5%）\n\n2. 风险收益  \n   • 非洲之心剩余上行空间 45,963，下行风险 972,992  \n   • 海洋之泪剩余上行空间 5,107,962，下行风险 9,716,359\n\n3. 手续费假设  \n   卖出统一按 13% 手续费估算净收益。\n\n不确定性  \n若市场波动剧烈，区间可能快速重估，导致上述空间与风险数值失效。",
+            "final_answer_failed": false,
+            "quality_gate_passed": true,
+            "quality_score": 1.0,
+            "validation_result": {
+              "passed": true,
+              "reason": "all_tools_success",
+              "retry_requested": false,
+              "target_stage": "",
+              "failure_count": 0,
+              "success_count": 1
+            },
+            "review_result": {
+              "passed": true,
+              "score": 1.0,
+              "reason": "ok",
+              "retry_requested": false,
+              "target_stage": "",
+              "hints": []
+            },
+            "retry_count_total": 0,
+            "retry_count_by_stage": {},
+            "retry_budget_exhausted": false,
+            "retry_trace": [],
+            "validator_reject": false,
+            "reviewer_reject": false,
+            "block_persistent_write": false,
+            "execution_attempt": 0,
+            "summary_attempt": 1,
+            "debug_steps": [
+              "main_orchestrator: start",
+              "persistent_memory_recall: gate=4, used=True, hits=0",
+              "intent_recognition: 对比两个物品/complex/skill=market_multi_item_compare/tool=df_multi_item_compare/entities=2/compare_n=2",
+              "task_planning: fallback_task_planning",
+              "execution: tool=df_multi_item_compare",
+              "execution: done",
+              "tool_output_validator: pass(all_tools_success)",
+              "specialist_analysis: done",
+              "summary: done",
+              "answer_reviewer: pass",
+              "memory_compression: triggered=False,facts=0",
+              "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+            ]
+          }
+        ],
+        "target": {
+          "timestamp_utc": "2026-03-01T03:09:54.611376+00:00",
+          "query": "对比一下这两个物品",
+          "attempts": 1,
+          "elapsed_sec": 18.4,
+          "intent": "多物品对比",
+          "flow_type": "complex",
+          "selected_tool": "df_multi_item_compare",
+          "selected_skill": "market_multi_item_compare",
+          "tool_query": "非洲之心、海洋之泪 对比",
+          "understanding_entities": [
+            "非洲之心",
+            "海洋之泪"
+          ],
+          "tool_results": [
+            {
+              "tool_name": "df_multi_item_compare",
+              "tool_query": "非洲之心、海洋之泪 对比",
+              "output": "多物品价格对比（共2个）\n1. 非洲之心｜现价 13,412,037｜区间 12,439,045~13,458,000｜区间位置 95.5%｜上行空间 45,963｜下行风险 972,992\n2. 海洋之泪｜现价 31,721,258｜区间 22,004,899~36,829,220｜区间位置 65.5%｜上行空间 5,107,962｜下行风险 9,716,359\n结论：当前性价比相对更优的是 非洲之心（区间位置 95.5%）。",
+              "ok": true,
+              "error_code": "",
+              "error_type": "",
+              "retryable": false,
+              "stage": "execution",
+              "diagnostics": {
+                "output_len": 216,
+                "has_http_error": false
+              }
+            }
+          ],
+          "tool_result_count": 1,
+          "tool_result_fail_count": 0,
+          "memory_gate_score": 4,
+          "memory_gate_triggered": true,
+          "memory_persistent_used": true,
+          "memory_recall_hits": 0,
+          "memory_recall_effective": false,
+          "memory_compression": {
+            "triggered": false,
+            "reason": "",
+            "pending_turns": 0,
+            "pending_tokens": 0
+          },
+          "memory_stats_after": {
+            "user_id": "full-user-multi",
+            "session_id": "full-multi-20260301_030710-002",
+            "recent_raw_turns": 6,
+            "pending_turns": 0,
+            "pending_tokens": 0,
+            "rolling_summary_chars": 0,
+            "merge_count": 0,
+            "updated_at_utc": "2026-03-01T03:09:54.611369+00:00"
+          },
+          "final_answer": "结论  \n非洲之心现价更低、区间位置更高，短线兑现价值优于海洋之泪；海洋之泪绝对价格高、波动大，潜在收益更高但风险也更大。\n\n关键依据  \n1. 价格与区间  \n   • 非洲之心：13,412,037（区间 12,439,045~13,458,000，位置 95.5%）  \n   • 海洋之泪：31,721,258（区间 22,004,899~36,829,220，位置 65.5%）\n\n2. 风险收益  \n   • 非洲之心剩余上行空间 45,963，下行风险 972,992  \n   • 海洋之泪剩余上行空间 5,107,962，下行风险 9,716,359\n\n3. 手续费假设  \n   卖出统一按 13% 手续费估算净收益。\n\n不确定性  \n若市场波动剧烈，区间可能快速重估，导致上述空间与风险数值失效。",
+          "final_answer_failed": false,
+          "quality_gate_passed": true,
+          "quality_score": 1.0,
+          "validation_result": {
+            "passed": true,
+            "reason": "all_tools_success",
+            "retry_requested": false,
+            "target_stage": "",
+            "failure_count": 0,
+            "success_count": 1
+          },
+          "review_result": {
+            "passed": true,
+            "score": 1.0,
+            "reason": "ok",
+            "retry_requested": false,
+            "target_stage": "",
+            "hints": []
+          },
+          "retry_count_total": 0,
+          "retry_count_by_stage": {},
+          "retry_budget_exhausted": false,
+          "retry_trace": [],
+          "validator_reject": false,
+          "reviewer_reject": false,
+          "block_persistent_write": false,
+          "execution_attempt": 0,
+          "summary_attempt": 1,
+          "debug_steps": [
+            "main_orchestrator: start",
+            "persistent_memory_recall: gate=4, used=True, hits=0",
+            "intent_recognition: 对比两个物品/complex/skill=market_multi_item_compare/tool=df_multi_item_compare/entities=2/compare_n=2",
+            "task_planning: fallback_task_planning",
+            "execution: tool=df_multi_item_compare",
+            "execution: done",
+            "tool_output_validator: pass(all_tools_success)",
+            "specialist_analysis: done",
+            "summary: done",
+            "answer_reviewer: pass",
+            "memory_compression: triggered=False,facts=0",
+            "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+          ]
+        },
+        "tool_ok": true,
+        "skill_ok": true,
+        "tool_query_ok": true,
+        "answer_keyword_coverage": 0.5,
+        "final_answer_failed": false
+      }
+    ]
+  },
+  "integration_suite": {
+    "main_session_id": "full-main-20260301_030710",
+    "main_turns": [
+      {
+        "timestamp_utc": "2026-03-01T03:10:29.124711+00:00",
+        "query": "介绍一下非洲之心",
+        "attempts": 1,
+        "elapsed_sec": 34.51,
+        "intent": "介绍非洲之心",
+        "flow_type": "simple",
+        "selected_tool": "rag_knowledge_search",
+        "selected_skill": "knowledge_profile",
+        "tool_query": "介绍一下非洲之心",
+        "understanding_entities": [
+          "非洲之心"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "rag_knowledge_search",
+            "tool_query": "介绍一下非洲之心",
+            "output": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级工艺藏品”级别的可交易钻石类收藏品，也是目前资料库中等级最高的工艺藏品。\n\n关键信息  \n1. 基本属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（最高档）  \n   • 描述：世界上最大的钻石，璀璨夺目，象征永恒的爱。  \n   • 重量：0.62  \n   • 尺寸：1×1 单位格  \n   • 可交易：是  \n   • 数量：1（唯一）\n\n2. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分支  \n   • 在工艺藏品中独占六级，暂无同级并列物品  \n   • 与非洲木雕、非洲鼓等其他工艺藏品共享同一 CollectibleType 节点，但等级显著更高",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 357,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 2,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:10:29.124704+00:00"
+        },
+        "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚“六级工艺藏品”级别的可交易钻石类收藏品，也是目前资料库中等级最高的工艺藏品。\n\n关键信息  \n1. 基本属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（最高档）  \n   • 描述：世界上最大的钻石，璀璨夺目，象征永恒的爱。  \n   • 重量：0.62  \n   • 尺寸：1×1 单位格  \n   • 可交易：是  \n   • 数量：1（唯一）\n\n2. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分支  \n   • 在工艺藏品中独占六级，暂无同级并列物品  \n   • 与非洲木雕、非洲鼓等其他工艺藏品共享同一 CollectibleType 节点，但等级显著更高",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 介绍非洲之心/simple/skill=knowledge_profile/tool=rag_knowledge_search/entities=1/compare_n=2",
+          "execution: tool=rag_knowledge_search",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ]
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:10:34.497820+00:00",
+        "query": "它现在什么价格",
+        "attempts": 1,
+        "elapsed_sec": 5.37,
+        "intent": "查询当前价格",
+        "flow_type": "simple",
+        "selected_tool": "df_market_latest_price",
+        "selected_skill": "market_latest_price",
+        "tool_query": "objectName=非洲之心",
+        "understanding_entities": [
+          "非洲之心"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_market_latest_price",
+            "tool_query": "objectName=非洲之心",
+            "output": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:10:34。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 47,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 2,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 4,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:10:34.497813+00:00"
+        },
+        "final_answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:10:34。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=2, used=True, hits=0",
+          "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+          "execution: tool=df_market_latest_price",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ]
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:10:37.513391+00:00",
+        "query": "它的历史价格",
+        "attempts": 1,
+        "elapsed_sec": 3.02,
+        "intent": "查询历史价格",
+        "flow_type": "simple",
+        "selected_tool": "df_market_history_price",
+        "selected_skill": "market_history_price",
+        "tool_query": "objectName=非洲之心",
+        "understanding_entities": [
+          "非洲之心"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_market_history_price",
+            "tool_query": "objectName=非洲之心",
+            "output": "非洲之心 历史价格查询成功，共 4924 条记录。最新样本价：13412037.0（2026-03-01 11:00:00），最早样本价：12972936.0（2025-11-01 11:30:00），区间最低：12439045.0，区间最高：13458000.0。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 133,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 5,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 6,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:10:37.513386+00:00"
+        },
+        "final_answer": "非洲之心 历史价格查询成功，共 4924 条记录。最新样本价：13412037.0（2026-03-01 11:00:00），最早样本价：12972936.0（2025-11-01 11:30:00），区间最低：12439045.0，区间最高：13458000.0。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=5, used=True, hits=0",
+          "intent_recognition: 查询历史价格/simple/skill=market_history_price/tool=df_market_history_price/entities=1/compare_n=2",
+          "execution: tool=df_market_history_price",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ]
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:10:48.234801+00:00",
+        "query": "它现在建议买吗",
+        "attempts": 1,
+        "elapsed_sec": 10.72,
+        "intent": "询问当前是否建议购买",
+        "flow_type": "complex",
+        "selected_tool": "df_market_price_advice",
+        "selected_skill": "market_price_advice",
+        "tool_query": "objectName=非洲之心",
+        "understanding_entities": [
+          "非洲之心"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_market_price_advice",
+            "tool_query": "objectName=非洲之心",
+            "output": "非洲之心 价格策略分析：\n- 当前价格：13,412,037（更新时间：2026-03-01 03:10:41）\n- 历史区间：12,439,045 ~ 13,458,000（样本 4924 条，均价 12,759,847.52）\n- 当前区间位置：95.5%（高位）\n- 买入建议：当前处于历史偏高区，谨慎追高，建议等待回调再买。\n- 卖出建议：若你已持有，当前更适合分批止盈或减仓。\n- 区间测算：若回到区间最高，每件理论上行 45,963；若回落到区间最低，每件理论回撤 972,992。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 247,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 4,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 8,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:10:48.234796+00:00"
+        },
+        "final_answer": "结论  \n不建议现在买入，应等待回调。\n\n关键依据  \n1. 当前价 13,412,037 已处历史区间 95.5% 高位，距区间最高仅 45,963 上行空间，而回撤至区间最低需承担 972,992 风险。  \n2. 工具明确提示“当前处于历史偏高区，谨慎追高，建议等待回调再买”。  \n3. 卖出手续费按 13% 估算，进一步压缩短线盈利空间。\n\n不确定性  \n无。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=4, used=True, hits=0",
+          "intent_recognition: 询问当前是否建议购买/complex/skill=market_price_advice/tool=df_market_price_advice/entities=1/compare_n=2",
+          "execution: tool=df_market_price_advice",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "specialist_analysis: done",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ]
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:11:08.336498+00:00",
+        "query": "再介绍一下海洋之泪并告诉我现在价格",
+        "attempts": 1,
+        "elapsed_sec": 20.1,
+        "intent": "介绍并查询当前价格",
+        "flow_type": "complex",
+        "selected_tool": "df_answer_composer",
+        "selected_skill": "answer_composer",
+        "tool_query": "再介绍一下海洋之泪并告诉我现在价格",
+        "understanding_entities": [
+          "海洋之泪"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_answer_composer",
+            "tool_query": "再介绍一下海洋之泪并告诉我现在价格",
+            "output": "【资料介绍】\n结论：海洋之泪是一件六级工艺藏品类可交易收藏品。\n关键依据与资料介绍\n1. 基本属性\n• 名称：海洋之泪\n• 类型：Collectible（工艺藏品）\n• 等级：六级\n• 重量：0.05\n• 尺寸：1×1（长×宽）\n• 数量：1\n2. 外观描述\n浑然天成、珠圆玉润的巨大天然珍珠，通体散发镭射光泽，令人目眩神迷。\n\n【实时价格】\n海洋之泪 的最新价格为 31721258。 更新时间：2026-03-01 03:11:00。\n\n【买卖建议】\n海洋之泪 价格策略分析：\n- 当前价格：31,721,258（更新时间：2026-03-01 03:11:00）\n- 历史区间：22,004,899 ~ 36,829,220（样本 4934 条，均价 26,647,451.76）\n- 当前区间位置：65.5%（中位）\n- 买入建议：当前处于历史中位区，建议小仓位分批，不要重仓追买。\n- 卖出建议：当前不属于明显高位，是否卖出取决于你的持仓成本和周期。\n- 区间测算：若回到区间最高，每件理论上行 5,107,962；若回落到区间最低，每件理论回撤 9,716,359。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 489,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 0,
+          "pending_tokens": 0
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 10,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:11:08.336491+00:00"
+        },
+        "final_answer": "结论  \n海洋之泪是六级工艺藏品级可交易收藏品，当前价 31,721,258。\n\n关键依据  \n1. 基本属性：六级 Collectible，重量 0.05，尺寸 1×1，唯一数量 1。  \n2. 外观：天然珍珠，通体镭射光泽。  \n3. 实时价格：31,721,258（2026-03-01 03:11:00）。\n\n不确定性  \n无。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 介绍并查询当前价格/complex/skill=answer_composer/tool=df_answer_composer/entities=1/compare_n=2",
+          "execution: tool=df_answer_composer",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "specialist_analysis: done",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ]
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:11:23.481535+00:00",
+        "query": "对比一下这两个物品",
+        "attempts": 1,
+        "elapsed_sec": 15.14,
+        "intent": "多物品对比",
+        "flow_type": "complex",
+        "selected_tool": "df_multi_item_compare",
+        "selected_skill": "market_multi_item_compare",
+        "tool_query": "非洲之心、海洋之泪 对比",
+        "understanding_entities": [
+          "非洲之心",
+          "海洋之泪"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_multi_item_compare",
+            "tool_query": "非洲之心、海洋之泪 对比",
+            "output": "多物品价格对比（共1个）\n1. 非洲之心｜现价 13,412,037｜区间 12,439,045~13,458,000｜区间位置 95.5%｜上行空间 45,963｜下行风险 972,992\n结论：当前性价比相对更优的是 非洲之心（区间位置 95.5%）。\n未成功对比：海洋之泪: HTTP 400",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 149,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 1,
+        "memory_gate_score": 4,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 1,
+          "pending_tokens": 4
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 10,
+          "pending_turns": 1,
+          "pending_tokens": 4,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:11:23.481528+00:00"
+        },
+        "final_answer": "结论  \n当前仅非洲之心有完整区间数据，其现价 13,412,037 已处 95.5% 高位，短线性价比不佳；海洋之泪因工具返回 400 错误，暂无区间信息，无法直接对比。\n\n关键依据  \n1. 非洲之心：区间 12,439,045–13,458,000，现价距区间顶仅 45,963 上行，回撤风险 972,992。  \n2. 工具提示“当前性价比相对更优的是非洲之心”，但区间位置 95.5% 仍属高位。  \n3. 卖出统一按 13% 手续费估算，进一步压缩短线盈利空间。\n\n不可用部分  \n海洋之泪：HTTP 400，无区间数据。",
+        "final_answer_failed": true,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=4, used=True, hits=0",
+          "intent_recognition: 对比两个物品/complex/skill=market_multi_item_compare/tool=df_multi_item_compare/entities=2/compare_n=2",
+          "task_planning: fallback_task_planning",
+          "execution: tool=df_multi_item_compare",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "specialist_analysis: done",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ]
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:11:39.559539+00:00",
+        "query": "分析碳纤维散射箭矢利润稳定性",
+        "attempts": 1,
+        "elapsed_sec": 16.08,
+        "intent": "分析碳纤维散射箭矢的利润稳定性",
+        "flow_type": "complex",
+        "selected_tool": "df_profit_stability",
+        "selected_skill": "profit_stability",
+        "tool_query": "objectName=碳纤维散射箭矢",
+        "understanding_entities": [
+          "碳纤维散射箭矢"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_profit_stability",
+            "tool_query": "objectName=碳纤维散射箭矢",
+            "output": "碳纤维散射箭矢 利润稳定性分析（工作台）\n- 样本数：167\n- 最新利润：60,393（2026-03-01 11:00:00）\n- 最早利润：-125,219（2026-02-23 23:00:00）\n- 平均利润：-5,193.32，利润标准差：76,510.52，波动系数CV：14.73\n- 正利润占比：44.3%，最大回撤：259.6%，趋势变化：+148.2%\n- 稳定性评级：低\n- 建议：利润波动较大或负利润占比偏高，建议谨慎生产。",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 225,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 2,
+        "memory_gate_triggered": true,
+        "memory_persistent_used": true,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 3,
+          "pending_tokens": 185
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 10,
+          "pending_turns": 3,
+          "pending_tokens": 185,
+          "rolling_summary_chars": 0,
+          "merge_count": 0,
+          "updated_at_utc": "2026-03-01T03:11:39.559532+00:00"
+        },
+        "final_answer": "结论  \n碳纤维散射箭矢利润稳定性低，不建议批量生产。\n\n关键依据  \n1. 167 条样本中，正利润仅占 44.3%，平均利润 -5,193，波动系数 14.73。  \n2. 最大回撤 259.6%，风险极高；最新利润 60,393 但趋势变化 +148.2%，短线波动剧烈。  \n3. 工具建议“利润波动较大或负利润占比偏高，建议谨慎生产”，并假设卖出手续费 13%。\n\n不确定性  \n无。",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=2, used=True, hits=0",
+          "intent_recognition: 分析碳纤维散射箭矢的利润稳定性/complex/skill=profit_stability/tool=df_profit_stability/entities=1/compare_n=2",
+          "execution: tool=df_profit_stability",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "specialist_analysis: done",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ]
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:12:04.676198+00:00",
+        "query": "特勤处制造什么子弹利润最高",
+        "attempts": 1,
+        "elapsed_sec": 25.12,
+        "intent": "查询特勤处制造子弹的利润排名",
+        "flow_type": "simple",
+        "selected_tool": "df_place_profit_rank",
+        "selected_skill": "place_profit_rank",
+        "tool_query": "特勤处制造什么子弹利润最高",
+        "understanding_entities": [
+          "特勤处"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_place_profit_rank",
+            "tool_query": "特勤处制造什么子弹利润最高",
+            "output": "特勤处制造净利润榜（指定分组，Top1，排序维度: totalprofit）\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 374,241｜小时利润 46,780.13｜采样时间 2026-03-01 11:00:00",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 112,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": true,
+          "reason": "turn_or_token_threshold",
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "fact_count": 6,
+          "rebase": false
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 10,
+          "pending_turns": 0,
+          "pending_tokens": 0,
+          "rolling_summary_chars": 163,
+          "merge_count": 1,
+          "updated_at_utc": "2026-03-01T03:12:04.676193+00:00"
+        },
+        "final_answer": "特勤处制造净利润榜（指定分组，Top1，排序维度: totalprofit）\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 374,241｜小时利润 46,780.13｜采样时间 2026-03-01 11:00:00",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 查询特勤处制造子弹的利润排名/simple/skill=place_profit_rank/tool=df_place_profit_rank/entities=1/compare_n=2",
+          "execution: tool=df_place_profit_rank",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=True,facts=6",
+          "persistent_memory_write: turns_saved=1,facts_saved=6,summary_saved=True"
+        ]
+      },
+      {
+        "timestamp_utc": "2026-03-01T03:12:11.132363+00:00",
+        "query": "特勤处四大分组利润top3",
+        "attempts": 1,
+        "elapsed_sec": 6.46,
+        "intent": "查询特勤处四大分组利润最高的前3名",
+        "flow_type": "simple",
+        "selected_tool": "df_place_profit_rank",
+        "selected_skill": "place_profit_rank",
+        "tool_query": "特勤处四大分组利润top3",
+        "understanding_entities": [
+          "特勤处四大分组"
+        ],
+        "tool_results": [
+          {
+            "tool_name": "df_place_profit_rank",
+            "tool_query": "特勤处四大分组利润top3",
+            "output": "特勤处制造净利润榜（全部分组，Top3，排序维度: totalprofit）\n\n技术中心（枪械/配件）\n1. M14射手步枪｜净利润 99,736｜小时利润 3,324.53｜采样时间 2026-03-01 11:00:00\n2. SR-3M紧凑突击步枪｜净利润 49,975｜小时利润 1,041.15｜采样时间 2026-03-01 11:00:00\n3. AUG突击步枪｜净利润 47,416｜小时利润 1,975.67｜采样时间 2026-03-01 11:00:00\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 374,241｜小时利润 46,780.13｜采样时间 2026-03-01 11:00:00\n2. 4.6x30mm AP SX｜净利润 347,438｜小时利润 43,429.75｜采样时间 2026-03-01 11:00:00\n3. 7.62*39mm AP SUB｜净利润 344,497｜小时利润 43,062.13｜采样时间 2026-03-01 11:00:00\n\n制药台（药品/针剂/维修工具包）\n1. 精密护甲维修包｜净利润 61,376｜小时利润 7,672｜采样时间 2026-03-01 11:00:00\n2. 战地医疗箱｜净利润 47,987｜小时利润 5,998.38｜采样时间 2026-03-01 11:00:00\n3. 体能强化剂｜净利润 41,927｜小时利润 5,240.88｜采样时间 2026-03-01 11:00:00\n\n防具台（头盔/护甲/胸挂/背包）\n1. 重型突击背心｜净利润 250,887｜小时利润 31,360.88｜采样时间 2026-03-01 11:00:00\n2. 精英防弹背心｜净利润 235,105｜小时利润 29,388.13｜采样时间 2026-03-01 11:00:00\n3. FS复合防弹衣｜净利润 203,191｜小时利润 25,398.88｜采样时间 2026-03-01 11:00:00",
+            "ok": true,
+            "error_code": "",
+            "error_type": "",
+            "retryable": false,
+            "stage": "execution",
+            "diagnostics": {
+              "output_len": 853,
+              "has_http_error": false
+            }
+          }
+        ],
+        "tool_result_count": 1,
+        "tool_result_fail_count": 0,
+        "memory_gate_score": 0,
+        "memory_gate_triggered": false,
+        "memory_persistent_used": false,
+        "memory_recall_hits": 0,
+        "memory_recall_effective": false,
+        "memory_compression": {
+          "triggered": false,
+          "reason": "",
+          "pending_turns": 2,
+          "pending_tokens": 69
+        },
+        "memory_stats_after": {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "recent_raw_turns": 10,
+          "pending_turns": 2,
+          "pending_tokens": 69,
+          "rolling_summary_chars": 163,
+          "merge_count": 1,
+          "updated_at_utc": "2026-03-01T03:12:11.132357+00:00"
+        },
+        "final_answer": "特勤处制造净利润榜（全部分组，Top3，排序维度: totalprofit）\n\n技术中心（枪械/配件）\n1. M14射手步枪｜净利润 99,736｜小时利润 3,324.53｜采样时间 2026-03-01 11:00:00\n2. SR-3M紧凑突击步枪｜净利润 49,975｜小时利润 1,041.15｜采样时间 2026-03-01 11:00:00\n3. AUG突击步枪｜净利润 47,416｜小时利润 1,975.67｜采样时间 2026-03-01 11:00:00\n\n工作台（子弹）\n1. 9x39mm BP｜净利润 374,241｜小时利润 46,780.13｜采样时间 2026-03-01 11:00:00\n2. 4.6x30mm AP SX｜净利润 347,438｜小时利润 43,429.75｜采样时间 2026-03-01 11:00:00\n3. 7.62*39mm AP SUB｜净利润 344,497｜小时利润 43,062.13｜采样时间 2026-03-01 11:00:00\n\n制药台（药品/针剂/维修工具包）\n1. 精密护甲维修包｜净利润 61,376｜小时利润 7,672｜采样时间 2026-03-01 11:00:00\n2. 战地医疗箱｜净利润 47,987｜小时利润 5,998.38｜采样时间 2026-03-01 11:00:00\n3. 体能强化剂｜净利润 41,927｜小时利润 5,240.88｜采样时间 2026-03-01 11:00:00\n\n防具台（头盔/护甲/胸挂/背包）\n1. 重型突击背心｜净利润 250,887｜小时利润 31,360.88｜采样时间 2026-03-01 11:00:00\n2. 精英防弹背心｜净利润 235,105｜小时利润 29,388.13｜采样时间 2026-03-01 11:00:00\n3. FS复合防弹衣｜净利润 203,191｜小时利润 25,398.88｜采样时间 2026-03-01 11:00:00",
+        "final_answer_failed": false,
+        "quality_gate_passed": true,
+        "quality_score": 1.0,
+        "validation_result": {
+          "passed": true,
+          "reason": "all_tools_success",
+          "retry_requested": false,
+          "target_stage": "",
+          "failure_count": 0,
+          "success_count": 1
+        },
+        "review_result": {
+          "passed": true,
+          "score": 1.0,
+          "reason": "ok",
+          "retry_requested": false,
+          "target_stage": "",
+          "hints": []
+        },
+        "retry_count_total": 0,
+        "retry_count_by_stage": {},
+        "retry_budget_exhausted": false,
+        "retry_trace": [],
+        "validator_reject": false,
+        "reviewer_reject": false,
+        "block_persistent_write": false,
+        "execution_attempt": 0,
+        "summary_attempt": 1,
+        "debug_steps": [
+          "main_orchestrator: start",
+          "persistent_memory_recall: gate=0, used=False, hits=0",
+          "intent_recognition: 查询特勤处四大分组利润最高的前3名/simple/skill=place_profit_rank/tool=df_place_profit_rank/entities=1/compare_n=2",
+          "execution: tool=df_place_profit_rank",
+          "execution: done",
+          "tool_output_validator: pass(all_tools_success)",
+          "summary: done",
+          "answer_reviewer: pass",
+          "memory_compression: triggered=False,facts=0",
+          "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+        ]
+      }
+    ],
+    "finalize": {
+      "pre": {
+        "user_id": "full-user-main",
+        "session_id": "full-main-20260301_030710",
+        "recent_raw_turns": 10,
+        "pending_turns": 2,
+        "pending_tokens": 69,
+        "rolling_summary_chars": 163,
+        "merge_count": 1,
+        "updated_at_utc": "2026-03-01T03:12:11.132357+00:00"
+      },
+      "post": {
+        "user_id": "full-user-main",
+        "session_id": "full-main-20260301_030710",
+        "recent_raw_turns": 0,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 331,
+        "merge_count": 2,
+        "updated_at_utc": "2026-03-01T03:12:17.596130+00:00"
+      }
+    },
+    "reentry_turn": {
+      "timestamp_utc": "2026-03-01T03:12:38.981136+00:00",
+      "query": "刚才两个物品里，哪个更适合买入，简短回答",
+      "attempts": 1,
+      "elapsed_sec": 21.17,
+      "intent": "多物品对比",
+      "flow_type": "complex",
+      "selected_tool": "df_multi_item_compare",
+      "selected_skill": "market_multi_item_compare",
+      "tool_query": "非洲之心、海洋之泪 对比",
+      "understanding_entities": [
+        "非洲之心",
+        "海洋之泪"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "df_multi_item_compare",
+          "tool_query": "非洲之心、海洋之泪 对比",
+          "output": "多物品价格对比（共2个）\n1. 非洲之心｜现价 13,412,037｜区间 12,439,045~13,458,000｜区间位置 95.5%｜上行空间 45,963｜下行风险 972,992\n2. 海洋之泪｜现价 31,721,258｜区间 22,004,899~36,829,220｜区间位置 65.5%｜上行空间 5,107,962｜下行风险 9,716,359\n结论：当前性价比相对更优的是 非洲之心（区间位置 95.5%）。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 216,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 2,
+      "memory_gate_triggered": true,
+      "memory_persistent_used": true,
+      "memory_recall_hits": 6,
+      "memory_recall_effective": true,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "full-user-main",
+        "session_id": "full-main-20260301_030710",
+        "recent_raw_turns": 2,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:12:38.981129+00:00"
+      },
+      "final_answer": "结论：非洲之心更适合买入。  \n关键依据：  \n1. 区间位置95.5%，已接近顶部，但下行风险仅972,992，远小于海洋之泪的9,716,359。  \n2. 工具结论明确“当前性价比相对更优的是非洲之心”。  \n3. 海洋之泪现价31,721,258，区间位置65.5%，下行空间更大。  \n\n不确定性：非洲之心需等待回调至12.5M附近再分批建仓，当前不建议追高。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=2, used=True, hits=6",
+        "intent_recognition: 对比两个物品并给出买入建议/complex/skill=market_multi_item_compare/tool=df_multi_item_compare/entities=2/compare_n=2",
+        "task_planning: fallback_task_planning",
+        "execution: tool=df_multi_item_compare",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "specialist_analysis: done",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ]
+    }
+  },
+  "fault_injection_suite": {
+    "timestamp_utc": "2026-03-01T03:13:45.692352+00:00",
+    "query": "非洲之心现在什么价格",
+    "attempts": 1,
+    "elapsed_sec": 8.99,
+    "intent": "查询当前价格",
+    "flow_type": "simple",
+    "selected_tool": "df_market_latest_price",
+    "selected_skill": "market_latest_price",
+    "tool_query": "objectName=非洲之心",
+    "understanding_entities": [
+      "非洲之心"
+    ],
+    "tool_results": [
+      {
+        "tool_name": "df_market_latest_price",
+        "tool_query": "objectName=非洲之心",
+        "output": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:13:45。",
+        "ok": true,
+        "error_code": "",
+        "error_type": "",
+        "retryable": false,
+        "stage": "execution",
+        "diagnostics": {
+          "output_len": 47,
+          "has_http_error": false
+        }
+      }
+    ],
+    "tool_result_count": 1,
+    "tool_result_fail_count": 0,
+    "memory_gate_score": 0,
+    "memory_gate_triggered": false,
+    "memory_persistent_used": false,
+    "memory_recall_hits": 0,
+    "memory_recall_effective": false,
+    "memory_compression": {
+      "triggered": false,
+      "reason": "",
+      "pending_turns": 0,
+      "pending_tokens": 0
+    },
+    "memory_stats_after": {
+      "user_id": "fault-user-0001",
+      "session_id": "fault-injection-20260301_031336",
+      "recent_raw_turns": 2,
+      "pending_turns": 0,
+      "pending_tokens": 0,
+      "rolling_summary_chars": 0,
+      "merge_count": 0,
+      "updated_at_utc": "2026-03-01T03:13:45.692342+00:00"
+    },
+    "final_answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:13:45。",
+    "final_answer_failed": false,
+    "quality_gate_passed": true,
+    "quality_score": 1.0,
+    "validation_result": {
+      "passed": true,
+      "reason": "all_tools_success",
+      "retry_requested": false,
+      "target_stage": "",
+      "failure_count": 0,
+      "success_count": 1
+    },
+    "review_result": {
+      "passed": true,
+      "score": 1.0,
+      "reason": "ok",
+      "retry_requested": false,
+      "target_stage": "",
+      "hints": []
+    },
+    "retry_count_total": 1,
+    "retry_count_by_stage": {
+      "execution": 1
+    },
+    "retry_budget_exhausted": false,
+    "retry_trace": [
+      {
+        "stage": "tool_output_validator",
+        "reason": "transient_tool_failure",
+        "retry_requested": true,
+        "target_stage": "execution",
+        "failure_count": 1,
+        "success_count": 0
+      },
+      {
+        "stage": "retry_router",
+        "target_stage": "execution",
+        "accepted": true,
+        "reason": "transient_tool_failure",
+        "at_utc": "2026-03-01T03:13:44.207945+00:00",
+        "retry_count_total": 1
+      }
+    ],
+    "validator_reject": true,
+    "reviewer_reject": false,
+    "block_persistent_write": false,
+    "execution_attempt": 1,
+    "summary_attempt": 1,
+    "debug_steps": [
+      "main_orchestrator: start",
+      "persistent_memory_recall: gate=0, used=False, hits=0",
+      "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+      "execution: tool=df_market_latest_price",
+      "execution: done",
+      "tool_output_validator: fail(reason=transient_tool_failure,retry=True,target=execution,failures=1)",
+      "retry_router: accepted(target=execution,total=1,stage=1)",
+      "execution: tool=df_market_latest_price",
+      "execution: done",
+      "tool_output_validator: pass(all_tools_success)",
+      "summary: done",
+      "answer_reviewer: pass",
+      "memory_compression: triggered=False,facts=0",
+      "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+    ],
+    "fault_injection_meta": {
+      "injected_failures": 1,
+      "retry_stages": [
+        "tool_output_validator",
+        "retry_router"
+      ],
+      "retry_count_total": 1,
+      "validator_reject": true,
+      "final_answer_failed": false
+    }
+  },
+  "user_isolation_suite": {
+    "session_id": "full-iso-20260301_030710",
+    "user_a_warmup": {
+      "timestamp_utc": "2026-03-01T03:12:54.234479+00:00",
+      "query": "介绍一下非洲之心",
+      "attempts": 1,
+      "elapsed_sec": 15.25,
+      "intent": "介绍非洲之心",
+      "flow_type": "simple",
+      "selected_tool": "rag_knowledge_search",
+      "selected_skill": "knowledge_profile",
+      "tool_query": "介绍一下非洲之心",
+      "understanding_entities": [
+        "非洲之心"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "rag_knowledge_search",
+          "tool_query": "介绍一下非洲之心",
+          "output": "结论  \n非洲之心是《三角洲行动》中唯一一枚六级“工艺藏品”类可交易收藏品，也是目前资料库中等级最高、象征意义最突出的钻石藏品。\n\n关键信息  \n1. 基本属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（当前最高）  \n   • 重量：0.62  \n   • 尺寸：1×1（最小占地）  \n   • 数量：1（唯一）  \n   • 可交易：是  \n\n2. 描述与象征  \n   “世界上最大的钻石，璀璨夺目，象征永恒的爱。”——官方描述直接点明其稀有度和情感价值。\n\n3. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分支；  \n   • 该分支下还包含非洲木雕、非洲鼓等二级藏品，但非洲之心是唯一六级成员，等级独占鳌头；  \n   • 作为高阶藏品，可被玩家上架交易，具备流通价值。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 391,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 0,
+      "memory_gate_triggered": false,
+      "memory_persistent_used": false,
+      "memory_recall_hits": 0,
+      "memory_recall_effective": false,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "user-A",
+        "session_id": "full-iso-20260301_030710",
+        "recent_raw_turns": 2,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:12:54.234474+00:00"
+      },
+      "final_answer": "结论  \n非洲之心是《三角洲行动》中唯一一枚六级“工艺藏品”类可交易收藏品，也是目前资料库中等级最高、象征意义最突出的钻石藏品。\n\n关键信息  \n1. 基本属性  \n   • 名称：非洲之心  \n   • 类型：Collectible（工艺藏品）  \n   • 等级：六级（当前最高）  \n   • 重量：0.62  \n   • 尺寸：1×1（最小占地）  \n   • 数量：1（唯一）  \n   • 可交易：是  \n\n2. 描述与象征  \n   “世界上最大的钻石，璀璨夺目，象征永恒的爱。”——官方描述直接点明其稀有度和情感价值。\n\n3. 关联关系  \n   • 属于“工艺藏品”CollectibleType 分支；  \n   • 该分支下还包含非洲木雕、非洲鼓等二级藏品，但非洲之心是唯一六级成员，等级独占鳌头；  \n   • 作为高阶藏品，可被玩家上架交易，具备流通价值。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=0, used=False, hits=0",
+        "intent_recognition: 介绍非洲之心/simple/skill=knowledge_profile/tool=rag_knowledge_search/entities=1/compare_n=2",
+        "execution: tool=rag_knowledge_search",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ]
+    },
+    "user_b_warmup": {
+      "timestamp_utc": "2026-03-01T03:13:17.143600+00:00",
+      "query": "介绍一下QBZ95-1突击步枪",
+      "attempts": 1,
+      "elapsed_sec": 22.91,
+      "intent": "介绍QBZ95-1突击步枪",
+      "flow_type": "simple",
+      "selected_tool": "rag_knowledge_search",
+      "selected_skill": "knowledge_profile",
+      "tool_query": "介绍一下QBZ95-1突击步枪",
+      "understanding_entities": [
+        "QBZ95-1突击步枪"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "rag_knowledge_search",
+          "tool_query": "介绍一下QBZ95-1突击步枪",
+          "output": "结论  \nQBZ95-1 是一款使用 5.8×42 mm 弹药的全自动无托式突击步枪，在射速、操控与空仓挂机功能方面表现突出，属于“步枪”这一枪械类型。\n\n关键依据与性能要点  \n1. 基本属性  \n   • 弹药：5.8×42 mm  \n   • 射击模式：单发 / 全自动  \n   • 弹匣容量：30 发  \n   • 射速：679 RPM  \n   • 初速：575 m/s  \n   • 有效射程：≈55 m（游戏内标定）  \n\n2. 操控与稳定性  \n   • 后坐力：52（中等偏低，易于压枪）  \n   • 控制：55  \n   • 稳定性：58  \n   • 腰射精度：54  \n\n3. 伤害与穿透  \n   • 对无甲目标伤害：28  \n   • 对护甲伤害：42  \n\n4. 特色功能  \n   • 改进后具备空仓挂机，换弹更直观。  \n   • 无托结构带来较短全枪长度（游戏内长度值 5），便于近战机动。  \n\n关联关系  \nQBZ95-1 与 M4A1、AKM、AKS-74U、ASh-12 等武器同属“步枪”类别（OF_FIRE_TYPE 关系指向 FirearmType: 步枪）。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 507,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 0,
+      "memory_gate_triggered": false,
+      "memory_persistent_used": false,
+      "memory_recall_hits": 0,
+      "memory_recall_effective": false,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "user-B",
+        "session_id": "full-iso-20260301_030710",
+        "recent_raw_turns": 2,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:13:17.143593+00:00"
+      },
+      "final_answer": "结论  \nQBZ95-1 是一款使用 5.8×42 mm 弹药的全自动无托式突击步枪，在射速、操控与空仓挂机功能方面表现突出，属于“步枪”这一枪械类型。\n\n关键依据与性能要点  \n1. 基本属性  \n   • 弹药：5.8×42 mm  \n   • 射击模式：单发 / 全自动  \n   • 弹匣容量：30 发  \n   • 射速：679 RPM  \n   • 初速：575 m/s  \n   • 有效射程：≈55 m（游戏内标定）  \n\n2. 操控与稳定性  \n   • 后坐力：52（中等偏低，易于压枪）  \n   • 控制：55  \n   • 稳定性：58  \n   • 腰射精度：54  \n\n3. 伤害与穿透  \n   • 对无甲目标伤害：28  \n   • 对护甲伤害：42  \n\n4. 特色功能  \n   • 改进后具备空仓挂机，换弹更直观。  \n   • 无托结构带来较短全枪长度（游戏内长度值 5），便于近战机动。  \n\n关联关系  \nQBZ95-1 与 M4A1、AKM、AKS-74U、ASh-12 等武器同属“步枪”类别（OF_FIRE_TYPE 关系指向 FirearmType: 步枪）。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=0, used=False, hits=0",
+        "intent_recognition: 介绍QBZ95-1突击步枪/simple/skill=knowledge_profile/tool=rag_knowledge_search/entities=1/compare_n=2",
+        "execution: tool=rag_knowledge_search",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ]
+    },
+    "user_a_reentry": {
+      "timestamp_utc": "2026-03-01T03:13:23.249607+00:00",
+      "query": "它现在价格是多少",
+      "attempts": 1,
+      "elapsed_sec": 6.11,
+      "intent": "查询当前价格",
+      "flow_type": "simple",
+      "selected_tool": "df_market_latest_price",
+      "selected_skill": "market_latest_price",
+      "tool_query": "objectName=非洲之心",
+      "understanding_entities": [
+        "非洲之心"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "df_market_latest_price",
+          "tool_query": "objectName=非洲之心",
+          "output": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:13:23。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 47,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 2,
+      "memory_gate_triggered": true,
+      "memory_persistent_used": true,
+      "memory_recall_hits": 0,
+      "memory_recall_effective": false,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "user-A",
+        "session_id": "full-iso-20260301_030710",
+        "recent_raw_turns": 2,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:13:23.249602+00:00"
+      },
+      "final_answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:13:23。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=2, used=True, hits=0",
+        "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+        "execution: tool=df_market_latest_price",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ]
+    },
+    "user_b_reentry": {
+      "timestamp_utc": "2026-03-01T03:13:36.703517+00:00",
+      "query": "它现在价格是多少",
+      "attempts": 1,
+      "elapsed_sec": 13.45,
+      "intent": "查询当前价格",
+      "flow_type": "simple",
+      "selected_tool": "df_market_latest_price",
+      "selected_skill": "market_latest_price",
+      "tool_query": "objectName=QBZ95-1突击步枪",
+      "understanding_entities": [
+        "QBZ95-1突击步枪"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "df_market_latest_price",
+          "tool_query": "objectName=QBZ95-1突击步枪",
+          "output": "QBZ95-1突击步枪 的最新价格为 38102。 更新时间：2026-03-01 03:13:36。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 51,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 2,
+      "memory_gate_triggered": true,
+      "memory_persistent_used": true,
+      "memory_recall_hits": 0,
+      "memory_recall_effective": false,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "user-B",
+        "session_id": "full-iso-20260301_030710",
+        "recent_raw_turns": 2,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:13:36.703510+00:00"
+      },
+      "final_answer": "QBZ95-1突击步枪 的最新价格为 38102。 更新时间：2026-03-01 03:13:36。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=2, used=True, hits=0",
+        "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+        "execution: tool=df_market_latest_price",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ]
+    },
+    "isolation_ok": true
+  },
+  "ltm_rag_cases": [
+    {
+      "source": "multi:mt_01_pronoun_price",
+      "timestamp_utc": "2026-03-01T03:09:13.974696+00:00",
+      "query": "它现在什么价格",
+      "attempts": 1,
+      "elapsed_sec": 3.66,
+      "intent": "查询当前价格",
+      "flow_type": "simple",
+      "selected_tool": "df_market_latest_price",
+      "selected_skill": "market_latest_price",
+      "tool_query": "objectName=非洲之心",
+      "understanding_entities": [
+        "非洲之心"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "df_market_latest_price",
+          "tool_query": "objectName=非洲之心",
+          "output": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:09:13。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 47,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 2,
+      "memory_gate_triggered": true,
+      "memory_persistent_used": true,
+      "memory_recall_hits": 0,
+      "memory_recall_effective": false,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "full-user-multi",
+        "session_id": "full-multi-20260301_030710-001",
+        "recent_raw_turns": 4,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:09:13.974689+00:00"
+      },
+      "final_answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:09:13。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=2, used=True, hits=0",
+        "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+        "execution: tool=df_market_latest_price",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ],
+      "entity_resolved": true
+    },
+    {
+      "source": "multi:mt_02_pronoun_compare",
+      "timestamp_utc": "2026-03-01T03:09:54.611376+00:00",
+      "query": "对比一下这两个物品",
+      "attempts": 1,
+      "elapsed_sec": 18.4,
+      "intent": "多物品对比",
+      "flow_type": "complex",
+      "selected_tool": "df_multi_item_compare",
+      "selected_skill": "market_multi_item_compare",
+      "tool_query": "非洲之心、海洋之泪 对比",
+      "understanding_entities": [
+        "非洲之心",
+        "海洋之泪"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "df_multi_item_compare",
+          "tool_query": "非洲之心、海洋之泪 对比",
+          "output": "多物品价格对比（共2个）\n1. 非洲之心｜现价 13,412,037｜区间 12,439,045~13,458,000｜区间位置 95.5%｜上行空间 45,963｜下行风险 972,992\n2. 海洋之泪｜现价 31,721,258｜区间 22,004,899~36,829,220｜区间位置 65.5%｜上行空间 5,107,962｜下行风险 9,716,359\n结论：当前性价比相对更优的是 非洲之心（区间位置 95.5%）。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 216,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 4,
+      "memory_gate_triggered": true,
+      "memory_persistent_used": true,
+      "memory_recall_hits": 0,
+      "memory_recall_effective": false,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "full-user-multi",
+        "session_id": "full-multi-20260301_030710-002",
+        "recent_raw_turns": 6,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:09:54.611369+00:00"
+      },
+      "final_answer": "结论  \n非洲之心现价更低、区间位置更高，短线兑现价值优于海洋之泪；海洋之泪绝对价格高、波动大，潜在收益更高但风险也更大。\n\n关键依据  \n1. 价格与区间  \n   • 非洲之心：13,412,037（区间 12,439,045~13,458,000，位置 95.5%）  \n   • 海洋之泪：31,721,258（区间 22,004,899~36,829,220，位置 65.5%）\n\n2. 风险收益  \n   • 非洲之心剩余上行空间 45,963，下行风险 972,992  \n   • 海洋之泪剩余上行空间 5,107,962，下行风险 9,716,359\n\n3. 手续费假设  \n   卖出统一按 13% 手续费估算净收益。\n\n不确定性  \n若市场波动剧烈，区间可能快速重估，导致上述空间与风险数值失效。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=4, used=True, hits=0",
+        "intent_recognition: 对比两个物品/complex/skill=market_multi_item_compare/tool=df_multi_item_compare/entities=2/compare_n=2",
+        "task_planning: fallback_task_planning",
+        "execution: tool=df_multi_item_compare",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "specialist_analysis: done",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ],
+      "entity_resolved": true
+    },
+    {
+      "source": "integration:reentry_compare",
+      "timestamp_utc": "2026-03-01T03:12:38.981136+00:00",
+      "query": "刚才两个物品里，哪个更适合买入，简短回答",
+      "attempts": 1,
+      "elapsed_sec": 21.17,
+      "intent": "多物品对比",
+      "flow_type": "complex",
+      "selected_tool": "df_multi_item_compare",
+      "selected_skill": "market_multi_item_compare",
+      "tool_query": "非洲之心、海洋之泪 对比",
+      "understanding_entities": [
+        "非洲之心",
+        "海洋之泪"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "df_multi_item_compare",
+          "tool_query": "非洲之心、海洋之泪 对比",
+          "output": "多物品价格对比（共2个）\n1. 非洲之心｜现价 13,412,037｜区间 12,439,045~13,458,000｜区间位置 95.5%｜上行空间 45,963｜下行风险 972,992\n2. 海洋之泪｜现价 31,721,258｜区间 22,004,899~36,829,220｜区间位置 65.5%｜上行空间 5,107,962｜下行风险 9,716,359\n结论：当前性价比相对更优的是 非洲之心（区间位置 95.5%）。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 216,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 2,
+      "memory_gate_triggered": true,
+      "memory_persistent_used": true,
+      "memory_recall_hits": 6,
+      "memory_recall_effective": true,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "full-user-main",
+        "session_id": "full-main-20260301_030710",
+        "recent_raw_turns": 2,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:12:38.981129+00:00"
+      },
+      "final_answer": "结论：非洲之心更适合买入。  \n关键依据：  \n1. 区间位置95.5%，已接近顶部，但下行风险仅972,992，远小于海洋之泪的9,716,359。  \n2. 工具结论明确“当前性价比相对更优的是非洲之心”。  \n3. 海洋之泪现价31,721,258，区间位置65.5%，下行空间更大。  \n\n不确定性：非洲之心需等待回调至12.5M附近再分批建仓，当前不建议追高。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=2, used=True, hits=6",
+        "intent_recognition: 对比两个物品并给出买入建议/complex/skill=market_multi_item_compare/tool=df_multi_item_compare/entities=2/compare_n=2",
+        "task_planning: fallback_task_planning",
+        "execution: tool=df_multi_item_compare",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "specialist_analysis: done",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ],
+      "entity_resolved": true
+    },
+    {
+      "source": "isolation:user_a_reentry",
+      "timestamp_utc": "2026-03-01T03:13:23.249607+00:00",
+      "query": "它现在价格是多少",
+      "attempts": 1,
+      "elapsed_sec": 6.11,
+      "intent": "查询当前价格",
+      "flow_type": "simple",
+      "selected_tool": "df_market_latest_price",
+      "selected_skill": "market_latest_price",
+      "tool_query": "objectName=非洲之心",
+      "understanding_entities": [
+        "非洲之心"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "df_market_latest_price",
+          "tool_query": "objectName=非洲之心",
+          "output": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:13:23。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 47,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 2,
+      "memory_gate_triggered": true,
+      "memory_persistent_used": true,
+      "memory_recall_hits": 0,
+      "memory_recall_effective": false,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "user-A",
+        "session_id": "full-iso-20260301_030710",
+        "recent_raw_turns": 2,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:13:23.249602+00:00"
+      },
+      "final_answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:13:23。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=2, used=True, hits=0",
+        "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+        "execution: tool=df_market_latest_price",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ],
+      "entity_resolved": true
+    },
+    {
+      "source": "isolation:user_b_reentry",
+      "timestamp_utc": "2026-03-01T03:13:36.703517+00:00",
+      "query": "它现在价格是多少",
+      "attempts": 1,
+      "elapsed_sec": 13.45,
+      "intent": "查询当前价格",
+      "flow_type": "simple",
+      "selected_tool": "df_market_latest_price",
+      "selected_skill": "market_latest_price",
+      "tool_query": "objectName=QBZ95-1突击步枪",
+      "understanding_entities": [
+        "QBZ95-1突击步枪"
+      ],
+      "tool_results": [
+        {
+          "tool_name": "df_market_latest_price",
+          "tool_query": "objectName=QBZ95-1突击步枪",
+          "output": "QBZ95-1突击步枪 的最新价格为 38102。 更新时间：2026-03-01 03:13:36。",
+          "ok": true,
+          "error_code": "",
+          "error_type": "",
+          "retryable": false,
+          "stage": "execution",
+          "diagnostics": {
+            "output_len": 51,
+            "has_http_error": false
+          }
+        }
+      ],
+      "tool_result_count": 1,
+      "tool_result_fail_count": 0,
+      "memory_gate_score": 2,
+      "memory_gate_triggered": true,
+      "memory_persistent_used": true,
+      "memory_recall_hits": 0,
+      "memory_recall_effective": false,
+      "memory_compression": {
+        "triggered": false,
+        "reason": "",
+        "pending_turns": 0,
+        "pending_tokens": 0
+      },
+      "memory_stats_after": {
+        "user_id": "user-B",
+        "session_id": "full-iso-20260301_030710",
+        "recent_raw_turns": 2,
+        "pending_turns": 0,
+        "pending_tokens": 0,
+        "rolling_summary_chars": 0,
+        "merge_count": 0,
+        "updated_at_utc": "2026-03-01T03:13:36.703510+00:00"
+      },
+      "final_answer": "QBZ95-1突击步枪 的最新价格为 38102。 更新时间：2026-03-01 03:13:36。",
+      "final_answer_failed": false,
+      "quality_gate_passed": true,
+      "quality_score": 1.0,
+      "validation_result": {
+        "passed": true,
+        "reason": "all_tools_success",
+        "retry_requested": false,
+        "target_stage": "",
+        "failure_count": 0,
+        "success_count": 1
+      },
+      "review_result": {
+        "passed": true,
+        "score": 1.0,
+        "reason": "ok",
+        "retry_requested": false,
+        "target_stage": "",
+        "hints": []
+      },
+      "retry_count_total": 0,
+      "retry_count_by_stage": {},
+      "retry_budget_exhausted": false,
+      "retry_trace": [],
+      "validator_reject": false,
+      "reviewer_reject": false,
+      "block_persistent_write": false,
+      "execution_attempt": 0,
+      "summary_attempt": 1,
+      "debug_steps": [
+        "main_orchestrator: start",
+        "persistent_memory_recall: gate=2, used=True, hits=0",
+        "intent_recognition: 查询当前价格/simple/skill=market_latest_price/tool=df_market_latest_price/entities=1/compare_n=2",
+        "execution: tool=df_market_latest_price",
+        "execution: done",
+        "tool_output_validator: pass(all_tools_success)",
+        "summary: done",
+        "answer_reviewer: pass",
+        "memory_compression: triggered=False,facts=0",
+        "persistent_memory_write: turns_saved=1,facts_saved=0,summary_saved=False"
+      ],
+      "entity_resolved": true
+    }
+  ],
+  "postgres_counts": [
+    {
+      "user_id": "full-user-main",
+      "session_id": "full-main-20260301_030710",
+      "chat_turns": 30,
+      "memory_summaries": 2,
+      "memory_facts": 10
+    },
+    {
+      "user_id": "user-A",
+      "session_id": "full-iso-20260301_030710",
+      "chat_turns": 6,
+      "memory_summaries": 0,
+      "memory_facts": 0
+    },
+    {
+      "user_id": "user-B",
+      "session_id": "full-iso-20260301_030710",
+      "chat_turns": 6,
+      "memory_summaries": 0,
+      "memory_facts": 0
+    }
+  ],
+  "metrics": {
+    "core": {
+      "intent_accuracy": 1.0,
+      "tool_accuracy": 1.0,
+      "skill_accuracy": 1.0,
+      "entity_resolution_accuracy": 1.0,
+      "answer_keyword_coverage": 0.9667,
+      "single_turn_success_rate": 1.0,
+      "multi_turn_success_rate": 1.0,
+      "multi_turn_keyword_coverage": 0.75,
+      "user_isolation_success": true,
+      "overall_score": 0.8467
+    },
+    "kb_rag": {
+      "kb_rag_case_count": 2,
+      "kb_rag_route_accuracy": 1.0,
+      "kb_rag_entity_recall_proxy": 1.0,
+      "kb_rag_answer_keyword_coverage": 1.0,
+      "kb_rag_success_rate": 1.0,
+      "kb_rag_avg_latency_sec": 15.19
+    },
+    "ltm_rag": {
+      "ltm_case_count": 5,
+      "ltm_gate_trigger_rate": 1.0,
+      "ltm_recall_hit_rate": 0.2,
+      "ltm_recall_hit_rate_when_triggered": 0.2,
+      "ltm_entity_resolution_accuracy": 1.0,
+      "ltm_success_rate": 1.0,
+      "ltm_avg_recall_hits": 1.2
+    },
+    "engineering": {
+      "turn_count": 30,
+      "avg_latency_sec": 12.91,
+      "p50_latency_sec": 11.67,
+      "p95_latency_sec": 22.91,
+      "avg_attempts": 1.0,
+      "validator_reject_rate": 0.0333,
+      "reviewer_reject_rate": 0.0,
+      "retry_invocation_rate": 0.0333,
+      "retry_budget_exhausted_rate": 0.0,
+      "quality_gate_pass_rate": 1.0,
+      "persistent_write_block_rate": 0.0,
+      "tool_stage_success_rate": 0.9667,
+      "tool_stage_fail_rate": 0.0333,
+      "compression_trigger_rate": 0.0333
+    }
+  },
+  "assertions": [
+    {
+      "name": "tool_coverage_complete",
+      "passed": true,
+      "detail": {
+        "selected_tools": [
+          "df_answer_composer",
+          "df_market_history_price",
+          "df_market_latest_price",
+          "df_market_price_advice",
+          "df_multi_item_compare",
+          "df_place_profit_rank",
+          "df_profit_stability",
+          "rag_knowledge_search"
+        ],
+        "expected_tools": [
+          "df_answer_composer",
+          "df_market_history_price",
+          "df_market_latest_price",
+          "df_market_price_advice",
+          "df_multi_item_compare",
+          "df_place_profit_rank",
+          "df_profit_stability",
+          "rag_knowledge_search"
+        ]
+      }
+    },
+    {
+      "name": "single_turn_core_quality",
+      "passed": true,
+      "detail": {
+        "intent_accuracy": 1.0,
+        "tool_accuracy": 1.0,
+        "skill_accuracy": 1.0,
+        "entity_resolution_accuracy": 1.0,
+        "answer_keyword_coverage": 0.9667,
+        "single_turn_success_rate": 1.0,
+        "multi_turn_success_rate": 1.0,
+        "multi_turn_keyword_coverage": 0.75,
+        "user_isolation_success": true,
+        "overall_score": 0.8467
+      }
+    },
+    {
+      "name": "kb_rag_quality",
+      "passed": true,
+      "detail": {
+        "kb_rag_case_count": 2,
+        "kb_rag_route_accuracy": 1.0,
+        "kb_rag_entity_recall_proxy": 1.0,
+        "kb_rag_answer_keyword_coverage": 1.0,
+        "kb_rag_success_rate": 1.0,
+        "kb_rag_avg_latency_sec": 15.19
+      }
+    },
+    {
+      "name": "ltm_rag_resolution",
+      "passed": true,
+      "detail": {
+        "ltm_case_count": 5,
+        "ltm_gate_trigger_rate": 1.0,
+        "ltm_recall_hit_rate": 0.2,
+        "ltm_recall_hit_rate_when_triggered": 0.2,
+        "ltm_entity_resolution_accuracy": 1.0,
+        "ltm_success_rate": 1.0,
+        "ltm_avg_recall_hits": 1.2
+      }
+    },
+    {
+      "name": "review_retry_budget_safe",
+      "passed": true,
+      "detail": {
+        "retry_budget_exhausted_rate": 0.0,
+        "validator_reject_rate": 0.0333,
+        "reviewer_reject_rate": 0.0
+      }
+    },
+    {
+      "name": "multi_turn_reentry_no_compare_failure",
+      "passed": true,
+      "detail": {
+        "reentry_query": "刚才两个物品里，哪个更适合买入，简短回答",
+        "reentry_tool": "df_multi_item_compare",
+        "reentry_tool_query": "非洲之心、海洋之泪 对比",
+        "reentry_answer": "结论：非洲之心更适合买入。  \n关键依据：  \n1. 区间位置95.5%，已接近顶部，但下行风险仅972,992，远小于海洋之泪的9,716,359。  \n2. 工具结论明确“当前性价比相对更优的是非洲之心”。  \n3. 海洋之泪现价31,721,258，区间位置65.5%，下行空间更大。  \n\n不确定性：非洲之心需等待回调至12.5M附近再分批建仓，当前不建议追高。"
+      }
+    },
+    {
+      "name": "user_isolation_effective",
+      "passed": true,
+      "detail": {
+        "user_a_tool_query": "objectName=非洲之心",
+        "user_b_tool_query": "objectName=QBZ95-1突击步枪"
+      }
+    },
+    {
+      "name": "persistent_memory_written",
+      "passed": true,
+      "detail": [
+        {
+          "user_id": "full-user-main",
+          "session_id": "full-main-20260301_030710",
+          "chat_turns": 30,
+          "memory_summaries": 2,
+          "memory_facts": 10
+        },
+        {
+          "user_id": "user-A",
+          "session_id": "full-iso-20260301_030710",
+          "chat_turns": 6,
+          "memory_summaries": 0,
+          "memory_facts": 0
+        },
+        {
+          "user_id": "user-B",
+          "session_id": "full-iso-20260301_030710",
+          "chat_turns": 6,
+          "memory_summaries": 0,
+          "memory_facts": 0
+        }
+      ]
+    },
+    {
+      "name": "fault_injection_retry_chain",
+      "passed": true,
+      "detail": {
+        "query": "非洲之心现在什么价格",
+        "selected_tool": "df_market_latest_price",
+        "tool_query": "objectName=非洲之心",
+        "retry_count_total": 1,
+        "validator_reject": true,
+        "retry_trace": [
+          {
+            "stage": "tool_output_validator",
+            "reason": "transient_tool_failure",
+            "retry_requested": true,
+            "target_stage": "execution",
+            "failure_count": 1,
+            "success_count": 0
+          },
+          {
+            "stage": "retry_router",
+            "target_stage": "execution",
+            "accepted": true,
+            "reason": "transient_tool_failure",
+            "at_utc": "2026-03-01T03:13:44.207945+00:00",
+            "retry_count_total": 1
+          }
+        ],
+        "fault_injection_meta": {
+          "injected_failures": 1,
+          "retry_stages": [
+            "tool_output_validator",
+            "retry_router"
+          ],
+          "retry_count_total": 1,
+          "validator_reject": true,
+          "final_answer_failed": false
+        },
+        "answer": "非洲之心 的最新价格为 13412037。 更新时间：2026-03-01 03:13:45。"
+      }
+    },
+    {
+      "name": "retry_mechanism_observed",
+      "passed": true,
+      "detail": {
+        "saw_retry": true
+      },
+      "severity": "warning"
+    }
+  ]
+}

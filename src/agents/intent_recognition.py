@@ -603,6 +603,7 @@ class IntentRecognitionAgent:
             "skill_matched_by": list(skill_selection.matched_by),
             "skill_locked_plan": bool(skill_plan.locked_plan),
             "skill_tool_chain": task_plan,
+            "force_reintent": False,
             "agent_messages": state.get("agent_messages", []) + [message],
             "debug_steps": state.get("debug_steps", []) + [
                 f"intent_recognition: {intent}/{flow_type}/skill={skill_selection.skill_id or 'none'}/tool={selected_tool}/entities={entity_count}/compare_n={compare_target_count}"

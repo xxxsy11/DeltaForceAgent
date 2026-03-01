@@ -12,6 +12,12 @@ class AgentToolResult(TypedDict):
     tool_name: str
     tool_query: str
     output: str
+    ok: bool
+    error_code: str
+    error_type: str
+    retryable: bool
+    stage: str
+    diagnostics: Dict[str, Any]
 
 
 class AgentMessage(TypedDict):
@@ -58,6 +64,29 @@ class AgentState(TypedDict):
     skill_matched_by: List[str]
     skill_locked_plan: bool
     skill_tool_chain: List[AgentToolCall]
+
+    # 审查与重试状态
+    retry_count_total: int
+    retry_count_by_stage: Dict[str, int]
+    retry_budget_exhausted: bool
+    retry_trace: List[Dict[str, Any]]
+    retry_target_stage: str
+    retry_reason: str
+    force_replan: bool
+    force_reintent: bool
+    execution_attempt: int
+    summary_attempt: int
+    validation_result: Dict[str, Any]
+    review_result: Dict[str, Any]
+    quality_score: float
+    quality_gate_passed: bool
+    block_persistent_write: bool
+    last_failed_stage: str
+    last_error_type: str
+    last_error_code: str
+    attempt_id: str
+    intermediate_artifacts: Dict[str, Any]
+
     understanding_entities: List[str]
     understanding_entity_count: int
     understanding_confidence: float

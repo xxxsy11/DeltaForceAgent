@@ -37,6 +37,58 @@ class ExecutionAgent:
                 break
         return lines
 
+    @staticmethod
+    def _classify_error(output: str) -> Dict[str, str | bool]:
+        text = str(output or "")
+        if not text.strip():
+            return {"error_code": "empty_output", "error_type": "empty", "retryable": True}
+        if "HTTP 429" in text:
+            return {"error_code": "http_429", "error_type": "upstream_rate_limit", "retryable": True}
+        if "HTTP 5" in text or "HTTP 502" in text or "HTTP 503" in text:
+            return {"error_code": "http_5xx", "error_type": "upstream_unavailable", "retryable": True}
+        if "超时" in text:
+            return {"error_code": "timeout", "error_type": "timeout", "retryable": True}
+        if "请至少提供两个物品名称" in text:
+            return {"error_code": "missing_compare_entities", "error_type": "missing_entities", "retryable": True}
+        if "未能根据 objectName 匹配到交易物品ID" in text:
+            return {"error_code": "object_not_matched", "error_type": "entity_not_found", "retryable": True}
+        if "未找到工具" in text:
+            return {"error_code": "tool_not_found", "error_type": "tool_config", "retryable": False}
+        return {"error_code": "tool_failed", "error_type": "tool_failed", "retryable": False}
+
+    def _build_tool_result(self, tool_name: str, query: str, output: str) -> AgentToolResult:
+        failed = self._is_failure(output)
+        if failed:
+            error_meta = self._classify_error(output)
+            return {
+                "tool_name": tool_name,
+                "tool_query": query,
+                "output": output,
+                "ok": False,
+                "error_code": str(error_meta.get("error_code", "tool_failed") or "tool_failed"),
+                "error_type": str(error_meta.get("error_type", "tool_failed") or "tool_failed"),
+                "retryable": bool(error_meta.get("retryable", False)),
+                "stage": "execution",
+                "diagnostics": {
+                    "output_len": len(str(output or "")),
+                    "has_http_error": "HTTP" in str(output or ""),
+                },
+            }
+        return {
+            "tool_name": tool_name,
+            "tool_query": query,
+            "output": output,
+            "ok": True,
+            "error_code": "",
+            "error_type": "",
+            "retryable": False,
+            "stage": "execution",
+            "diagnostics": {
+                "output_len": len(str(output or "")),
+                "has_http_error": False,
+            },
+        }
+
     def _build_analysis_report(self, state: AgentState, tool_results: List[AgentToolResult]) -> Dict:
         facts: List[str] = []
         recommendations: List[str] = []
@@ -47,8 +99,16 @@ class ExecutionAgent:
         for item in tool_results:
             output = str(item.get("output", "")).strip()
             tool_name = item.get("tool_name", "")
-            if self._is_failure(output):
-                failures.append({"tool": tool_name, "error": output[:500]})
+            if not bool(item.get("ok", False)):
+                failures.append(
+                    {
+                        "tool": tool_name,
+                        "error": output[:500],
+                        "error_type": item.get("error_type", ""),
+                        "error_code": item.get("error_code", ""),
+                        "retryable": bool(item.get("retryable", False)),
+                    }
+                )
                 continue
             successes.append({"tool": tool_name})
             facts.extend(self._extract_key_lines(output, keywords=["价格", "净利润", "区间", "样本数", "评级"], limit=5))
@@ -127,16 +187,10 @@ class ExecutionAgent:
 
         tool_results: List[AgentToolResult] = []
         for call in tool_calls:
-            tool_name = call.get("tool_name", "")
-            query = call.get("tool_query", "")
+            tool_name = str(call.get("tool_name", "") or "").strip()
+            query = str(call.get("tool_query", "") or "").strip()
             output = self.registry.invoke(tool_name, query)
-            tool_results.append(
-                {
-                    "tool_name": tool_name,
-                    "tool_query": query,
-                    "output": output,
-                }
-            )
+            tool_results.append(self._build_tool_result(tool_name=tool_name, query=query, output=output))
             debug_steps = debug_steps + [f"execution: tool={tool_name}"]
 
         merged_output = "\n\n".join([f"[{r['tool_name']}]\n{r['output']}" for r in tool_results]).strip()

@@ -32,16 +32,32 @@ class SummaryAgent:
             return str(success[0].get("output", "")).strip()
         return self.planner.compose_answer(user_query=user_query, tool_results=tool_results).strip()
 
+    @staticmethod
+    def _review_hint(state: AgentState) -> str:
+        review = state.get("review_result", {}) or {}
+        hints = review.get("hints", []) if isinstance(review, dict) else []
+        if isinstance(hints, list) and hints:
+            return "；".join([str(x).strip() for x in hints if str(x).strip()])
+        return ""
+
     def run(self, state: AgentState) -> Dict:
         report = self._pick_report(state)
         flow_type = str(state.get("flow_type", "simple")).strip().lower()
         tool_results = state.get("tool_results", [])
         user_query = state.get("user_query", "")
         memory_context = str(state.get("memory_context", "") or "").strip()
-        composed_query = user_query if not memory_context else f"{user_query}\n\n[会话上下文]\n{memory_context}"
+        retry_target = str(state.get("retry_target_stage", "") or "").strip()
+        review_hint = self._review_hint(state)
+
+        query_parts = [user_query]
+        if memory_context:
+            query_parts.append(f"[会话上下文]\n{memory_context}")
+        if retry_target == "summary" and review_hint:
+            query_parts.append(f"[审查修正要求]\n{review_hint}")
+        composed_query = "\n\n".join([x for x in query_parts if str(x).strip()])
 
         if flow_type == "simple":
-            answer = self._compose_simple(tool_results=tool_results, user_query=user_query)
+            answer = self._compose_simple(tool_results=tool_results, user_query=composed_query)
         else:
             answer = self.planner.compose_from_analysis(
                 user_query=composed_query,
@@ -53,5 +69,6 @@ class SummaryAgent:
             answer = "未获得可用结果。"
         return {
             "final_answer": answer,
+            "summary_attempt": int(state.get("summary_attempt", 0) or 0) + 1,
             "debug_steps": state.get("debug_steps", []) + ["summary: done"],
         }

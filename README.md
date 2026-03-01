@@ -53,10 +53,11 @@
 - 用户会话管理：支持多用户与多会话隔离，可切换用户、新建会话、查看记忆状态和清空当前会话记忆。
 - Agent Skills：按问题类型自动选择更合适的处理方式，支持单工具和多工具链式调用，降低误选工具概率。
 - 离线数据工程能力：Neo4j/Milvus 建库、重建、CSV/Cypher 导出、数据管道脚本。
-- 工程验证能力：提供集成测试、Skills专项测试和A/B基准测试，覆盖工具调用、记忆召回、跨会话重入、用户隔离和结果质量对比。
+- 质量审查与自动纠错：支持工具结果校验、回答审查、分阶段重试与重试预算控制，降低异常结果直接输出的概率。
+- 工程验证能力：提供统一全量测试脚本，覆盖功能可用性、工具调用、双RAG召回、记忆门控、用户隔离与重试链路。
 
 功能调用方式和示例请查看：`docs/USAGE_GUIDE.md`  
-测试与评测请查看：`docs/INTEGRATION_TEST_REPORT.md`、`docs/INTEGRATION_TEST_SKILLS_REPORT.md`、`docs/SYSTEM_AB_BENCHMARK_REPORT.md`
+测试与评测请查看：`docs/SYSTEM_FULL_METRICS_REPORT.md`
 
 ## 关于实时数据
 
@@ -69,6 +70,39 @@
 # 当前版本
 
 <details open>
+<summary><b> V0.6.0 - 质量审查与自动纠错机制 </b></summary>
+
+## 升级内容
+
+- 新增工具结果校验：工具执行后先做结构化检查，识别失败文本、主体缺失、格式异常等问题。
+- 新增回答审查：最终回答输出前进行质量审核，拦截“工具已成功但回答仍失败”这类冲突结果。
+- 新增分阶段重试：失败后按问题类型回退到对应阶段（重识别、重规划、重执行或重总结），避免无效全链路重跑。
+- 新增重试预算控制：为不同阶段设置重试上限，超限后给出可解释降级结果，防止死循环。
+- 可观测性增强：记录审查结论、重试路径和关键中间状态，便于排查与复盘。
+
+## 关键模块
+
+- 工具结果校验：`src/agents/tool_output_validator.py`
+- 回答质量审查：`src/agents/answer_reviewer.py`
+- 重试路由控制：`src/agents/retry_router.py`
+- 主流程编排：`src/agents/graph.py`
+
+## 运行与验证
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+python main.py
+
+# 全量系统测试（功能 + 指标 + 重试链路）
+python data/scripts/system_full_metrics_suite.py
+```
+
+</details>
+
+---
+
+<details>
 <summary><b> V0.5.0 - Skills能力与系统评测 </b></summary>
 
 ## 升级内容
