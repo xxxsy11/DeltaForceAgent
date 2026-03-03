@@ -16,7 +16,7 @@ except Exception as exc:  # pragma: no cover
 
 
 DEFAULT_DSN = "postgresql://delta_agent:delta_agent@127.0.0.1:5432/delta_agent"
-DEFAULT_OUT_BASE = Path("/data/delta_agent/data/memory/exports")
+DEFAULT_OUT_BASE = Path("data/memory/exports")
 
 
 def _parse_args() -> argparse.Namespace:

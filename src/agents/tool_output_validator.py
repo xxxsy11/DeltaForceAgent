@@ -15,6 +15,8 @@ class ToolOutputValidatorAgent:
     def __init__(self, config):
         self.max_execution_retry = int(getattr(config, "execution_retry_max", 1) or 1)
         self.max_replan_retry = int(getattr(config, "replan_retry_max", 1) or 1)
+        self.max_reintent_retry = int(getattr(config, "retry_max_intent_recognition", 1) or 1)
+        self.max_tool_selection_review_retry = int(getattr(config, "retry_max_tool_selection_review", 1) or 1)
 
     @staticmethod
     def _is_failed_result(item: Dict[str, Any]) -> bool:
@@ -97,6 +99,7 @@ class ToolOutputValidatorAgent:
         retry_count_by_stage = dict(state.get("retry_count_by_stage", {}) or {})
         execution_retry_used = int(retry_count_by_stage.get("execution", 0) or 0)
         planning_retry_used = int(retry_count_by_stage.get("task_planning", 0) or 0)
+        tool_selection_review_used = int(retry_count_by_stage.get("tool_selection_review", 0) or 0)
 
         needs_replan = any(self._needs_replan(item) for item in failed)
         retryable = any(self._is_retryable(item) for item in failed)
@@ -105,10 +108,23 @@ class ToolOutputValidatorAgent:
         reason = "tool_failure"
         retry_requested = False
 
-        if needs_replan and planning_retry_used < self.max_replan_retry:
-            retry_requested = True
-            target_stage = "task_planning"
-            reason = "tool_query_invalid_or_entity_missing"
+        if needs_replan:
+            # 复杂链路才走 task_planning 重排；简单问题优先回到 intent_recognition 做主体重解。
+            is_complex_flow = bool(state.get("flow_type") == "complex") and bool(state.get("requires_task_planning", False))
+            if (not is_complex_flow) and tool_selection_review_used < self.max_tool_selection_review_retry:
+                retry_requested = True
+                target_stage = "tool_selection_review"
+                reason = "tool_selection_audit_retry"
+            elif is_complex_flow and planning_retry_used < self.max_replan_retry:
+                retry_requested = True
+                target_stage = "task_planning"
+                reason = "tool_query_invalid_or_entity_missing"
+            else:
+                reintent_used = int(retry_count_by_stage.get("intent_recognition", 0) or 0)
+                if reintent_used < self.max_reintent_retry:
+                    retry_requested = True
+                    target_stage = "intent_recognition"
+                    reason = "entity_resolution_retry"
         elif retryable and execution_retry_used < self.max_execution_retry:
             retry_requested = True
             target_stage = "execution"

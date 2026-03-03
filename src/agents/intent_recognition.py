@@ -6,17 +6,30 @@ import json
 import logging
 import os
 import re
+import time
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field, ValidationError
 
 from agents.intent_analyzer import IntentAnalyzer
+from agents.local_qwen_runtime import LocalQwenChatModel
 from agents.state import AgentState
 from config import DEFAULT_CONFIG, GraphRAGConfig
 from rag_modules.llm_utils import extract_text_content
 from skills import SkillRegistry, SkillPlan, SkillSelection
 
 logger = logging.getLogger(__name__)
+
+
+class IntentLLMResponse(BaseModel):
+    intent: str = ""
+    tool_name: str = ""
+    reason: str = ""
+    entities: list[str] = Field(default_factory=list)
+    confidence: float = 0.0
 
 
 class IntentRecognitionAgent:
@@ -80,6 +93,34 @@ class IntentRecognitionAgent:
         "对比",
         "比较",
     )
+    PROMPT_TEMPLATE_PATH = Path(__file__).resolve().parents[1] / "prompts" / "intent_recognition_prompt.txt"
+    DEFAULT_PROMPT_TEMPLATE = """
+你是 query understanding 子代理。
+任务：同时识别主体和选择工具。
+
+可用工具：
+{available_tools_json}
+
+用户问题：{query}
+会话可用主体候选：{memory_entities_json}
+
+输出 JSON（不要额外文本）：
+{{
+  "intent": "...",
+  "tool_name": "...",
+  "reason": "...",
+  "entities": ["实体1", "实体2"],
+  "confidence": 0.0
+}}
+
+规则：
+1) 价格类问题使用 df_market_latest_price / df_market_history_price / df_market_price_advice。
+2) 对比问题使用 df_multi_item_compare。
+3) 介绍+价格组合问题使用 df_answer_composer。
+4) 代词问题（他/她/它/这两个）必须优先从“会话可用主体候选”中补全主体。
+5) entities 仅保留 1~3 个“主体名词”（如 非洲之心/海洋之泪），不要输出描述句或规格（如“1x1格”）。
+6) 对“这两个/这三个”这类问题，entities 必须返回对应数量的主体。
+""".strip()
 
     def __init__(
         self,
@@ -92,12 +133,32 @@ class IntentRecognitionAgent:
         self.llm = self._build_llm()
         self.skills_enabled = os.getenv("AGENT_SKILLS_ENABLED", "1").strip().lower() not in {"0", "false", "off", "no"}
         self.skill_registry = SkillRegistry(definitions_dir=None, available_tools=self.available_tools) if self.skills_enabled else None
+        self._prompt_template: Optional[str] = None
 
     def _build_llm(self):
+        model_name = str(self.config.agent_intent_model or self.config.llm_model).strip()
+        if bool(getattr(self.config, "agent_local_enabled", True)) and os.path.exists(model_name):
+            adapter_path = str(getattr(self.config, "agent_intent_adapter_path", "") or "").strip()
+            device = str(getattr(self.config, "agent_local_device", "cpu") or "cpu").strip()
+            max_new_tokens = int(getattr(self.config, "agent_local_max_new_tokens", 384) or 384)
+            force_no_think = bool(getattr(self.config, "agent_local_no_think", True))
+            logger.info(
+                "intent_recognition: use local qwen model=%s adapter=%s device=%s",
+                model_name,
+                adapter_path or "<none>",
+                device,
+            )
+            return LocalQwenChatModel(
+                base_model_path=model_name,
+                adapter_path=adapter_path,
+                device=device,
+                max_new_tokens=max_new_tokens,
+                force_no_think=force_no_think,
+            )
+
         api_key = os.getenv("MOONSHOT_API_KEY", "").strip()
         if not api_key:
             return None
-        model_name = str(self.config.agent_intent_model or self.config.llm_model).strip()
         return ChatOpenAI(
             model=model_name,
             temperature=0,
@@ -120,6 +181,8 @@ class IntentRecognitionAgent:
     @staticmethod
     def _extract_json(text: str) -> Dict[str, Any]:
         raw = str(text or "").strip()
+        if len(raw) > 12000:
+            raw = raw[:12000]
         if not raw:
             return {}
         try:
@@ -136,6 +199,34 @@ class IntentRecognitionAgent:
         except Exception as exc:
             logger.debug("intent_recognition: regex json parse failed: %s", exc)
             return {}
+
+    def _load_prompt_template(self) -> str:
+        if self._prompt_template:
+            return self._prompt_template
+        try:
+            text = self.PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8").strip()
+            self._prompt_template = text or self.DEFAULT_PROMPT_TEMPLATE
+        except Exception:
+            self._prompt_template = self.DEFAULT_PROMPT_TEMPLATE
+        return self._prompt_template
+
+    def _build_prompt(self, query: str, memory_entities: List[str], available_tools: List[str]) -> str:
+        template = self._load_prompt_template()
+        return template.format(
+            available_tools_json=json.dumps(available_tools, ensure_ascii=False),
+            query=query,
+            memory_entities_json=json.dumps(memory_entities, ensure_ascii=False),
+        )
+
+    def _validate_llm_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(payload, dict):
+            return {}
+        try:
+            validated = IntentLLMResponse.model_validate(payload)
+        except ValidationError as exc:
+            logger.debug("intent_recognition: llm payload validation failed: %s", exc)
+            return {}
+        return validated.model_dump()
 
     @staticmethod
     def _normalize_entity(text: str) -> str:
@@ -388,38 +479,12 @@ class IntentRecognitionAgent:
             "df_answer_composer",
         ]
 
-        prompt = f"""
-你是 query understanding 子代理。
-任务：同时识别主体和选择工具。
-
-可用工具：
-{json.dumps(available_tools, ensure_ascii=False)}
-
-用户问题：{query}
-会话可用主体候选：{json.dumps(memory_entities, ensure_ascii=False)}
-
-输出 JSON（不要额外文本）：
-{{
-  "intent": "...",
-  "tool_name": "...",
-  "reason": "...",
-  "entities": ["实体1", "实体2"],
-  "confidence": 0.0
-}}
-
-规则：
-1) 价格类问题使用 df_market_latest_price / df_market_history_price / df_market_price_advice。
-2) 对比问题使用 df_multi_item_compare。
-3) 介绍+价格组合问题使用 df_answer_composer。
-4) 代词问题（他/她/它/这两个）必须优先从“会话可用主体候选”中补全主体。
-5) entities 仅保留 1~3 个“主体名词”（如 非洲之心/海洋之泪），不要输出描述句或规格（如“1x1格”）。
-6) 对“这两个/这三个”这类问题，entities 必须返回对应数量的主体。
-"""
+        prompt = self._build_prompt(query=query, memory_entities=memory_entities, available_tools=available_tools)
         try:
             response = self.llm.invoke(prompt)
             text = extract_text_content(getattr(response, "content", response)).strip()
             payload = self._extract_json(text)
-            return payload if isinstance(payload, dict) else {}
+            return self._validate_llm_payload(payload)
         except Exception as exc:
             logger.warning("intent_recognition: llm_understand failed, fallback to rule: %s", exc)
             return {}
@@ -489,6 +554,7 @@ class IntentRecognitionAgent:
         }
 
     def run(self, state: AgentState) -> Dict:
+        node_started_perf = time.perf_counter()
         query = str(state.get("user_query", "") or "").strip()
         resolved = self._resolve_decision(state=state, query=query)
 
@@ -582,6 +648,30 @@ class IntentRecognitionAgent:
             },
         }
 
+        node_finished_perf = time.perf_counter()
+        tool_selected_at_utc = datetime.now(timezone.utc).isoformat()
+        orchestration_meta = dict(state.get("orchestration_meta", {}) or {})
+        input_perf = float(orchestration_meta.get("input_received_perf", 0.0) or 0.0)
+        latest_latency_ms = None
+        if input_perf > 0:
+            latest_latency_ms = round((node_finished_perf - input_perf) * 1000, 2)
+        orchestration_meta.update(
+            {
+                "intent_node_latency_ms": round((node_finished_perf - node_started_perf) * 1000, 2),
+                "latest_tool_selected_at_utc": tool_selected_at_utc,
+                "latest_selected_tool": selected_tool,
+                "latest_selected_tool_query": selected_query,
+            }
+        )
+        if latest_latency_ms is not None:
+            orchestration_meta["latest_tool_selected_latency_ms"] = latest_latency_ms
+        if "first_tool_selected_at_utc" not in orchestration_meta:
+            orchestration_meta["first_tool_selected_at_utc"] = tool_selected_at_utc
+            orchestration_meta["first_selected_tool"] = selected_tool
+            orchestration_meta["first_selected_tool_query"] = selected_query
+            if latest_latency_ms is not None:
+                orchestration_meta["first_tool_selected_latency_ms"] = latest_latency_ms
+
         return {
             "intent": intent,
             "intent_reason": reason,
@@ -603,6 +693,7 @@ class IntentRecognitionAgent:
             "skill_matched_by": list(skill_selection.matched_by),
             "skill_locked_plan": bool(skill_plan.locked_plan),
             "skill_tool_chain": task_plan,
+            "orchestration_meta": orchestration_meta,
             "force_reintent": False,
             "agent_messages": state.get("agent_messages", []) + [message],
             "debug_steps": state.get("debug_steps", []) + [

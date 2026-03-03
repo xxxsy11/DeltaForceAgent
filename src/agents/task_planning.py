@@ -52,6 +52,7 @@ class TaskPlanningAgent:
         planning_query = str(state.get("tool_query", "") or "").strip() or query
         fallback_intent = state.get("intent", "")
         fallback_tool = state.get("selected_tool", "")
+        flow_type = str(state.get("flow_type", "") or "simple")
         understanding_entities = [
             str(x).strip()
             for x in (state.get("understanding_entities", []) or [])
@@ -69,6 +70,36 @@ class TaskPlanningAgent:
         if bool(state.get("skill_locked_plan", False)) and not force_replan:
             return {
                 "debug_steps": state.get("debug_steps", []) + ["task_planning: skipped(skill_locked_plan)"],
+            }
+
+        # 简单流在重试进入 task_planning 时，保持原工具不变，避免“单工具问题被误改道”。
+        if flow_type != "complex" and fallback_tool and fallback_tool != "none":
+            fallback_query = self._normalize_tool_query(
+                tool_name=fallback_tool,
+                tool_query=planning_query,
+                understanding_entities=understanding_entities,
+                compare_target_count=compare_target_count,
+            )
+            task_plan = [{"tool_name": fallback_tool, "tool_query": fallback_query}]
+            message = {
+                "from_agent": "task_planning",
+                "to_agent": "execution",
+                "message_type": "task_plan",
+                "payload": {
+                    "intent": fallback_intent or state.get("intent", ""),
+                    "reason": "simple_flow_locked_tool",
+                    "task_plan": task_plan,
+                },
+            }
+            return {
+                "intent": fallback_intent or state.get("intent", ""),
+                "intent_reason": "simple_flow_locked_tool",
+                "plan_source": "simple_flow_locked_tool",
+                "task_plan": task_plan,
+                "tool_calls": task_plan,
+                "agent_messages": state.get("agent_messages", []) + [message],
+                "force_replan": False,
+                "debug_steps": state.get("debug_steps", []) + ["task_planning: simple_flow_locked_tool"],
             }
 
         decision = self.planner.plan_with_hint(

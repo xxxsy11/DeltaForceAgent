@@ -13,6 +13,7 @@ from langchain_openai import ChatOpenAI
 
 from config import DEFAULT_CONFIG, GraphRAGConfig
 from agents.intent_analyzer import IntentAnalyzer
+from agents.local_qwen_runtime import LocalQwenChatModel
 from rag_modules.llm_utils import extract_text_content
 
 logger = logging.getLogger(__name__)
@@ -45,8 +46,28 @@ class LLMToolPlanner:
         self.model_name = (model_name or self.config.llm_model).strip()
         self.rule_fallback = IntentAnalyzer()
         self.llm = self._build_llm()
+        self.planning_llm = self._build_planning_llm()
 
     def _build_llm(self):
+        if bool(getattr(self.config, "agent_local_enabled", True)) and os.path.exists(self.model_name):
+            adapter_path = str(getattr(self.config, "agent_tool_selection_adapter_path", "") or "").strip()
+            device = str(getattr(self.config, "agent_local_device", "cpu") or "cpu").strip()
+            max_new_tokens = int(getattr(self.config, "agent_local_max_new_tokens", 384) or 384)
+            force_no_think = bool(getattr(self.config, "agent_local_no_think", True))
+            logger.info(
+                "tool_planner: use local selector model=%s adapter=%s device=%s",
+                self.model_name,
+                adapter_path or "<none>",
+                device,
+            )
+            return LocalQwenChatModel(
+                base_model_path=self.model_name,
+                adapter_path=adapter_path,
+                device=device,
+                max_new_tokens=max_new_tokens,
+                force_no_think=force_no_think,
+            )
+
         api_key = os.getenv("MOONSHOT_API_KEY", "").strip()
         if not api_key:
             logger.warning("MOONSHOT_API_KEY 未设置，工具规划将回退到规则路由。")
@@ -59,6 +80,33 @@ class LLMToolPlanner:
             api_key=api_key,
             base_url="https://api.moonshot.cn/v1",
             timeout=60,
+        )
+
+    def _build_planning_llm(self):
+        """二级任务规划模型：优先使用 planning LoRA，若不存在回落到 selector。"""
+        if not (bool(getattr(self.config, "agent_local_enabled", True)) and os.path.exists(self.model_name)):
+            return self.llm
+        adapter_path = str(getattr(self.config, "agent_planning_adapter_path", "") or "").strip()
+        if (
+            not adapter_path
+            or not os.path.isdir(adapter_path)
+            or not os.path.isfile(os.path.join(adapter_path, "adapter_config.json"))
+        ):
+            return self.llm
+        device = str(getattr(self.config, "agent_local_device", "cpu") or "cpu").strip()
+        max_new_tokens = int(getattr(self.config, "agent_local_max_new_tokens", 384) or 384)
+        force_no_think = bool(getattr(self.config, "agent_local_no_think", True))
+        logger.info(
+            "tool_planner: use local planning adapter=%s device=%s",
+            adapter_path,
+            device,
+        )
+        return LocalQwenChatModel(
+            base_model_path=self.model_name,
+            adapter_path=adapter_path,
+            device=device,
+            max_new_tokens=max_new_tokens,
+            force_no_think=force_no_think,
         )
 
     @staticmethod
@@ -118,8 +166,9 @@ class LLMToolPlanner:
 
         return plans
 
-    def _llm_plan(self, query: str, available_tools: List[str]) -> Optional[PlannerDecision]:
-        if self.llm is None:
+    def _llm_plan(self, query: str, available_tools: List[str], for_task_planning: bool = False) -> Optional[PlannerDecision]:
+        llm_client = self.planning_llm if for_task_planning else self.llm
+        if llm_client is None:
             return None
 
         prompt = f"""
@@ -157,7 +206,7 @@ class LLMToolPlanner:
 用户问题：{query}
 """
         try:
-            response = self.llm.invoke(prompt)
+            response = llm_client.invoke(prompt)
             text = extract_text_content(getattr(response, "content", response)).strip()
             payload = self._extract_json_object(text)
             if not payload:
@@ -216,7 +265,7 @@ class LLMToolPlanner:
         ):
             return self._fallback_from_decision(rule_decision, reason_suffix="(fast-rule)")
 
-        llm_decision = self._llm_plan(query=query, available_tools=available_tools)
+        llm_decision = self._llm_plan(query=query, available_tools=available_tools, for_task_planning=False)
         if llm_decision:
             return llm_decision
         return self._fallback_from_decision(rule_decision, reason_suffix="(fallback)")
@@ -232,7 +281,7 @@ class LLMToolPlanner:
         if not force_llm:
             return self.plan(query=query, available_tools=available_tools)
 
-        llm_decision = self._llm_plan(query=query, available_tools=available_tools)
+        llm_decision = self._llm_plan(query=query, available_tools=available_tools, for_task_planning=True)
         if llm_decision:
             return llm_decision
 
@@ -241,6 +290,26 @@ class LLMToolPlanner:
                 intent=fallback_intent or "fallback_tool_plan",
                 tool_calls=[ToolCallPlan(tool_name=fallback_tool, tool_query=query)],
                 reason="强制LLM规划失败，使用意图识别回退",
+            )
+        return self._fallback_plan(query)
+
+    def plan_force_tool_selection(
+        self,
+        query: str,
+        available_tools: List[str],
+        fallback_intent: Optional[str] = None,
+        fallback_tool: Optional[str] = None,
+    ) -> PlannerDecision:
+        """强制使用工具选择模型重选（异常审核路径）。"""
+        llm_decision = self._llm_plan(query=query, available_tools=available_tools, for_task_planning=False)
+        if llm_decision:
+            return llm_decision
+
+        if fallback_tool and fallback_tool in set(available_tools):
+            return PlannerDecision(
+                intent=fallback_intent or "tool_selection_review_fallback",
+                tool_calls=[ToolCallPlan(tool_name=fallback_tool, tool_query=query)],
+                reason="工具选择审核失败，回退到原工具",
             )
         return self._fallback_plan(query)
 

@@ -14,12 +14,12 @@ from retrieval import rank_ids_by_score, weighted_reciprocal_rank_fusion
 
 try:
     import psycopg
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     psycopg = None
 
 try:
     from sentence_transformers import SentenceTransformer
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     SentenceTransformer = None
 
 logger = logging.getLogger(__name__)
@@ -63,12 +63,15 @@ class PersistentMemoryStore:
         self.enabled = bool(getattr(config, "memory_persistent_enabled", False))
         self.dsn = str(getattr(config, "memory_persistent_dsn", "") or "").strip()
         self.vector_dim = int(getattr(config, "memory_persistent_vector_dim", 512) or 512)
+        if self.vector_dim < 32 or self.vector_dim > 4096:
+            raise ValueError("memory_persistent_vector_dim 必须在 [32, 4096] 范围")
         self.recall_top_k = int(getattr(config, "memory_persistent_recall_top_k", 6) or 6)
         self.vector_top_k = int(getattr(config, "memory_persistent_vector_top_k", 20) or 20)
         self.bm25_top_k = int(getattr(config, "memory_persistent_bm25_top_k", 20) or 20)
         self.bm25_candidate_limit = int(getattr(config, "memory_persistent_bm25_candidate_limit", 200) or 200)
         self.rrf_k = int(getattr(config, "memory_persistent_rrf_k", 60) or 60)
         self.market_ttl_hours = int(getattr(config, "memory_persistent_market_ttl_hours", 24) or 24)
+        self.connect_timeout_seconds = int(getattr(config, "memory_persistent_connect_timeout_seconds", 10) or 10)
         self.embedding_model_name = str(getattr(config, "embedding_model", "") or "").strip()
 
         self._embedder = None
@@ -86,7 +89,7 @@ class PersistentMemoryStore:
         if not self.enabled or not self.dsn or psycopg is None:
             return None
         try:
-            conn = psycopg.connect(self.dsn, autocommit=True)
+            conn = psycopg.connect(self.dsn, autocommit=True, connect_timeout=self.connect_timeout_seconds)
             self._connect_error_logged = False
             return conn
         except Exception:

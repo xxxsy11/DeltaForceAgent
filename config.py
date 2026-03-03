@@ -7,6 +7,17 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 
+def _auto_local_device() -> str:
+    try:
+        import torch  # lazy import
+
+        if torch.cuda.is_available():
+            return "cuda:0"
+    except Exception:
+        pass
+    return "cpu"
+
+
 @dataclass
 class GraphRAGConfig:
     """系统配置（非敏感项在此，密钥放 .env）。"""
@@ -29,11 +40,20 @@ class GraphRAGConfig:
     # 模型
     embedding_model: str = "BAAI/bge-small-zh-v1.5"
     llm_model: str = "kimi-k2-0711-preview"
-    agent_intent_model: str = "kimi-k2-0711-preview"
-    agent_planner_model: str = "kimi-k2-0711-preview"
+    agent_intent_model: str = os.getenv("AGENT_INTENT_MODEL", "models/Qwen3-8B")
+    agent_planner_model: str = os.getenv("AGENT_PLANNER_MODEL", "models/Qwen3-8B")
     agent_specialist_model: str = "kimi-k2-0711-preview"
     agent_summary_model: str = "kimi-k2-0711-preview"
     agent_memory_model: str = "kimi-k2-0711-preview"
+    # 本地模型推理（LoRA-SFT 三模块）
+    agent_local_enabled: bool = os.getenv("AGENT_LOCAL_ENABLED", "1").strip().lower() not in {"0", "false", "off", "no"}
+    agent_local_device: str = os.getenv("AGENT_LOCAL_DEVICE", _auto_local_device()).strip()
+    agent_local_max_new_tokens: int = int(os.getenv("AGENT_LOCAL_MAX_NEW_TOKENS", "384"))
+    agent_local_no_think: bool = os.getenv("AGENT_LOCAL_NO_THINK", "1").strip().lower() not in {"0", "false", "off", "no"}
+    agent_stage_trace_enabled: bool = os.getenv("AGENT_STAGE_TRACE_ENABLED", "1").strip().lower() not in {"0", "false", "off", "no"}
+    agent_intent_adapter_path: str = os.getenv("AGENT_INTENT_ADAPTER_PATH", "outputs/intent_sft/qwen3_8b_lora")
+    agent_tool_selection_adapter_path: str = os.getenv("AGENT_TOOL_SELECTION_ADAPTER_PATH", "outputs/tool_selection_sft/qwen3_8b_lora")
+    agent_planning_adapter_path: str = os.getenv("AGENT_PLANNING_ADAPTER_PATH", "outputs/planning_sft/qwen3_8b_lora")
 
     # 检索
     top_k: int = 5
@@ -76,10 +96,23 @@ class GraphRAGConfig:
     memory_persistent_rrf_k: int = 60
     memory_persistent_trigger_threshold: int = 2
     memory_persistent_market_ttl_hours: int = 24
+    memory_persistent_connect_timeout_seconds: int = 10
 
     # 本地可视化记忆镜像
     memory_local_observer_enabled: bool = True
-    memory_local_observer_dir: str = "/data/DeltaForce_Agent/data/memory/readable"
+    memory_local_observer_dir: str = "data/memory/readable"
+
+    # 质量审查与重试预算
+    retry_max_total: int = int(os.getenv("RETRY_MAX_TOTAL", "3"))
+    retry_max_intent_recognition: int = int(os.getenv("RETRY_MAX_INTENT_RECOGNITION", "1"))
+    retry_max_tool_selection_review: int = int(os.getenv("RETRY_MAX_TOOL_SELECTION_REVIEW", "1"))
+    retry_max_task_planning: int = int(os.getenv("RETRY_MAX_TASK_PLANNING", "1"))
+    retry_max_execution: int = int(os.getenv("RETRY_MAX_EXECUTION", "1"))
+    retry_max_specialist_analysis: int = int(os.getenv("RETRY_MAX_SPECIALIST_ANALYSIS", "1"))
+    retry_max_summary: int = int(os.getenv("RETRY_MAX_SUMMARY", "1"))
+    execution_retry_max: int = int(os.getenv("EXECUTION_RETRY_MAX", "1"))
+    replan_retry_max: int = int(os.getenv("REPLAN_RETRY_MAX", "1"))
+    sell_fee_rate: float = float(os.getenv("SELL_FEE_RATE", "0.13"))
 
     # 市场数据后端（开源仓库仅保留抽象）
     df_market_backend_module: str = os.getenv("DF_MARKET_BACKEND_MODULE", "")
@@ -117,6 +150,14 @@ class GraphRAGConfig:
             raise ValueError("memory_persistent_recall_top_k 必须 >= 1")
         if self.memory_persistent_rrf_k < 1:
             raise ValueError("memory_persistent_rrf_k 必须 >= 1")
+        if self.memory_persistent_connect_timeout_seconds < 1:
+            raise ValueError("memory_persistent_connect_timeout_seconds 必须 >= 1")
+        if self.agent_local_max_new_tokens < 32:
+            raise ValueError("agent_local_max_new_tokens 必须 >= 32")
+        if self.retry_max_total < 0:
+            raise ValueError("retry_max_total 必须 >= 0")
+        if not (0.0 <= float(self.sell_fee_rate) < 1.0):
+            raise ValueError("sell_fee_rate 必须在 [0, 1) 区间")
         if not self.neo4j_password:
             raise ValueError("缺少 NEO4J_PASSWORD，请在 .env 中配置")
         if self.memory_persistent_enabled and not self.memory_persistent_dsn:
@@ -144,6 +185,14 @@ class GraphRAGConfig:
             "agent_specialist_model": self.agent_specialist_model,
             "agent_summary_model": self.agent_summary_model,
             "agent_memory_model": self.agent_memory_model,
+            "agent_local_enabled": self.agent_local_enabled,
+            "agent_local_device": self.agent_local_device,
+            "agent_local_max_new_tokens": self.agent_local_max_new_tokens,
+            "agent_local_no_think": self.agent_local_no_think,
+            "agent_stage_trace_enabled": self.agent_stage_trace_enabled,
+            "agent_intent_adapter_path": self.agent_intent_adapter_path,
+            "agent_tool_selection_adapter_path": self.agent_tool_selection_adapter_path,
+            "agent_planning_adapter_path": self.agent_planning_adapter_path,
             "top_k": self.top_k,
             "hybrid_dual_weight": self.hybrid_dual_weight,
             "hybrid_vector_weight": self.hybrid_vector_weight,
@@ -174,8 +223,19 @@ class GraphRAGConfig:
             "memory_persistent_rrf_k": self.memory_persistent_rrf_k,
             "memory_persistent_trigger_threshold": self.memory_persistent_trigger_threshold,
             "memory_persistent_market_ttl_hours": self.memory_persistent_market_ttl_hours,
+            "memory_persistent_connect_timeout_seconds": self.memory_persistent_connect_timeout_seconds,
             "memory_local_observer_enabled": self.memory_local_observer_enabled,
             "memory_local_observer_dir": self.memory_local_observer_dir,
+            "retry_max_total": self.retry_max_total,
+            "retry_max_intent_recognition": self.retry_max_intent_recognition,
+            "retry_max_tool_selection_review": self.retry_max_tool_selection_review,
+            "retry_max_task_planning": self.retry_max_task_planning,
+            "retry_max_execution": self.retry_max_execution,
+            "retry_max_specialist_analysis": self.retry_max_specialist_analysis,
+            "retry_max_summary": self.retry_max_summary,
+            "execution_retry_max": self.execution_retry_max,
+            "replan_retry_max": self.replan_retry_max,
+            "sell_fee_rate": self.sell_fee_rate,
             "df_market_backend_module": self.df_market_backend_module,
             "df_market_backend_class": self.df_market_backend_class,
             "df_market_latest_price_operation": self.df_market_latest_price_operation,

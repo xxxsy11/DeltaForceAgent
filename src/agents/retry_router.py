@@ -13,6 +13,7 @@ class RetryRouterAgent:
 
     STAGE_DEFAULT_BUDGET = {
         "intent_recognition": 1,
+        "tool_selection_review": 1,
         "task_planning": 1,
         "execution": 1,
         "specialist_analysis": 1,
@@ -82,6 +83,17 @@ class RetryRouterAgent:
         if target_stage == "task_planning":
             return {
                 "force_replan": True,
+                "task_plan": [],
+                "tool_calls": [],
+                "tool_results": [],
+                "analysis_report": {},
+                "tool_output": "",
+                "final_answer": "",
+            }
+        if target_stage == "tool_selection_review":
+            return {
+                "force_reintent": False,
+                "force_replan": False,
                 "task_plan": [],
                 "tool_calls": [],
                 "tool_results": [],
