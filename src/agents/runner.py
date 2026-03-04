@@ -4,7 +4,10 @@ Multi-Agent 运行入口
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import time
 from typing import Any, Dict, Optional
 
 from agents.graph import build_multi_agent_graph
@@ -25,8 +28,8 @@ class QueryRuntime:
     persistent_store: PersistentMemoryStore
     graph: Any
 
-    def close(self) -> None:
-        self.registry.close()
+    async def close_async(self) -> None:
+        await self.registry.close_async()
 
 
 def _build_runtime(config: GraphRAGConfig) -> QueryRuntime:
@@ -58,6 +61,8 @@ def _build_initial_state(
     user_id: str = "default_user",
     memory_patch: Optional[Dict[str, Any]] = None,
 ):
+    input_received_at_utc = datetime.now(timezone.utc).isoformat()
+    input_received_perf = time.perf_counter()
     base = {
         "user_id": user_id,
         "session_id": session_id,
@@ -75,7 +80,10 @@ def _build_initial_state(
         "tool_results": [],
         "analysis_report": {},
         "agent_messages": [],
-        "orchestration_meta": {},
+        "orchestration_meta": {
+            "input_received_at_utc": input_received_at_utc,
+            "input_received_perf": input_received_perf,
+        },
         "memory_context": "",
         "memory_pending_digest": "",
         "memory_recent_raw": [],
@@ -128,7 +136,7 @@ def _build_initial_state(
     return base
 
 
-def _finalize_session_memory(
+async def _finalize_session_memory(
     user_id: str,
     session_id: str,
     config: GraphRAGConfig,
@@ -160,11 +168,11 @@ def _finalize_session_memory(
         "agent_messages": [],
         "debug_steps": [],
     }
-    compressed = compression.run(flush_input)
+    compressed = await compression.run(flush_input)
     memory_manager.save_from_state(user_id=user_id, session_id=session_id, state=compressed)
 
     writer = PersistentMemoryWriteNode(store=persistent_store, config=config)
-    writer.run(
+    await writer.run(
         {
             "user_id": user_id,
             "session_id": session_id,
@@ -180,7 +188,7 @@ def _finalize_session_memory(
     )
 
 
-def run_agent_query(
+async def run_agent_query(
     query: str,
     config: Optional[GraphRAGConfig] = None,
     session_id: str = "default",
@@ -196,14 +204,14 @@ def run_agent_query(
         session_id=session_id,
         include_pending_in_prompt=cfg.memory_include_pending_in_prompt,
     )
-    result = runtime.graph.invoke(
+    result = await runtime.graph.ainvoke(
         _build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=memory_patch)
     )
     manager.save_from_state(user_id=user_id, session_id=session_id, state=result)
     return result.get("final_answer", "")
 
 
-def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
+async def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
     cfg = config or DEFAULT_CONFIG
     runtime = _build_runtime(cfg)
     memory_manager = SessionMemoryManager()
@@ -217,13 +225,13 @@ def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
     print("输入 'quit' 退出，'new session' 新会话，'switch user <id>' 切换用户，'clear memory' 清空当前会话记忆，'memory stats' 查看记忆状态。")
     try:
         while True:
-            query = input("\nAgent问题: ").strip()
+            query = (await asyncio.to_thread(input, "\nAgent问题: ")).strip()
             if not query:
                 continue
 
             lower = query.lower()
             if lower == "quit":
-                _finalize_session_memory(
+                await _finalize_session_memory(
                     user_id=user_id,
                     session_id=session_id,
                     config=cfg,
@@ -233,7 +241,7 @@ def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
                 break
 
             if lower == "new session":
-                _finalize_session_memory(
+                await _finalize_session_memory(
                     user_id=user_id,
                     session_id=session_id,
                     config=cfg,
@@ -250,7 +258,7 @@ def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
                     print("用法: switch user <id>")
                     continue
                 new_user_id = parts[2].strip()
-                _finalize_session_memory(
+                await _finalize_session_memory(
                     user_id=user_id,
                     session_id=session_id,
                     config=cfg,
@@ -264,7 +272,7 @@ def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
                 continue
 
             if lower == "clear memory":
-                _finalize_session_memory(
+                await _finalize_session_memory(
                     user_id=user_id,
                     session_id=session_id,
                     config=cfg,
@@ -285,13 +293,26 @@ def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
                 session_id=session_id,
                 include_pending_in_prompt=cfg.memory_include_pending_in_prompt,
             )
-            result = runtime.graph.invoke(
+            result = await runtime.graph.ainvoke(
                 _build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=memory_patch)
             )
             memory_manager.save_from_state(user_id=user_id, session_id=session_id, state=result)
+            orchestration_meta = result.get("orchestration_meta", {}) or {}
+            input_to_tool_ms = orchestration_meta.get("first_tool_selected_latency_ms")
+            selected_tool = str(orchestration_meta.get("latest_selected_tool", "") or result.get("selected_tool", ""))
+            if input_to_tool_ms is not None:
+                try:
+                    input_to_tool_ms = float(input_to_tool_ms)
+                    if input_to_tool_ms >= 1000:
+                        cost = f"{input_to_tool_ms / 1000:.2f} 秒"
+                    else:
+                        cost = f"{input_to_tool_ms:.1f} 毫秒"
+                    print(f"\n[路由] 工具选择完成：{selected_tool or 'none'}（输入到选工具耗时 {cost}）")
+                except Exception:
+                    pass
             print(f"\n回答:\n{result.get('final_answer', '')}")
     except KeyboardInterrupt:
-        _finalize_session_memory(
+        await _finalize_session_memory(
             user_id=user_id,
             session_id=session_id,
             config=cfg,
@@ -300,4 +321,4 @@ def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
         )
         print("\n已中断，当前会话记忆已归档。")
     finally:
-        runtime.close()
+        await runtime.close_async()

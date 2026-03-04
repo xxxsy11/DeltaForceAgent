@@ -42,10 +42,11 @@
 - 双 RAG 问答能力：同时支持知识库 GraphRAG 与长期记忆召回，支持地图、干员、收藏品、装备、枪械、配件、弹药等知识检索与生成（1379 个实体，1837 条关系）。
 - 市场分析工具链（工具实现已开源）：支持最新价格、历史价格、买卖建议、特勤处制造利润榜（Top1/Top3）、多物品对比、利润稳定性分析与综合回答编排。
 - LoRA-SFT 三模块接入：已将 Intent、Tool Selection、Planning 三个本地微调模块接入主流程，支持 Qwen3-8B 基座 + Adapter 切换。
-- 工具稳健性增强：新增参数校验与异常工具复核机制（tool selection review），在工具失败场景下优先重选工具，减少无效全链路回退。
 - 记忆系统升级：短期记忆支持滚动压缩，长期记忆支持 PostgreSQL + pgvector 持久化召回，支持多轮连续对话与跨会话信息延续。
 - 用户会话管理：支持多用户与多会话隔离，可切换用户、新建会话、查看记忆状态、清空当前会话记忆。
 - Agent Skills 策略层：按问题类型选择更合适的处理路径，支持单工具与多工具链式调用，降低误路由概率。
+- 异步链路优化：核心编排节点与模型调用链路完成异步化改造，减少阶段阻塞，提升并发与可维护性。
+- 工具稳健性增强：新增参数校验与异常工具复核机制（tool selection review），在工具失败场景下优先重选工具，减少无效全链路回退。
 - 质量审查与自动纠错：工具结果审查 + 回答审查 + 分阶段重试 + 重试预算控制，降低异常结果直接输出风险。
 - 工程验证能力：提供统一测试与评测脚本，覆盖功能可用性、工具调用、双 RAG 召回、记忆门控、用户隔离、审查重试链路与 SFT 模块效果对比。
 
@@ -63,6 +64,38 @@ SFT 模块评测请查看：`docs/SFT_EVAL_REPORT.md`
 # 当前版本
 
 <details open>
+<summary><b> V0.7.1 - 异步链路与可观测优化 </b></summary>
+
+## 升级内容
+
+- 异步化增强：将意图识别、工具选择、任务规划、总结生成、专业分析、记忆压缩等关键链路改造为异步调用路径，降低阻塞与阶段串行开销。
+- 本地模型调用统一：本地 Qwen 运行时补充异步调用接口，主流程通过统一异步入口调度 Base 模型与 LoRA Adapter。
+- 制造利润路由优化：对制造台相关问法（制造台、特勤处制造、技术中心、工作台、制药台、防具台）增强规则优先级，减少误选 `df_multi_item_compare` 的情况。
+- 控制台可观测优化：阶段日志中文化输出，统一展示“正在执行什么 + 执行耗时 + 关键结果”；压低底层无关 INFO 日志噪声，便于在线排障。
+- 文档与配置同步：更新技术文档中的流程说明与关键路径，保持实现与文档一致。
+
+## 关键模块
+
+- 编排与阶段追踪：`src/agents/graph.py`
+- 交互入口与耗时输出：`src/agents/runner.py`
+- 意图识别：`src/agents/intent_recognition.py`
+- 规则分析器：`src/agents/intent_analyzer.py`
+- 工具规划与总结：`src/agents/tool_planner.py`、`src/agents/summary_agent.py`
+- 记忆压缩与持久化：`src/memory/memory_compression_agent.py`、`src/memory/persistent/`
+
+## 运行与验证
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+python main.py
+```
+
+</details>
+
+---
+
+<details>
 <summary><b> V0.7.0 - LoRA-SFT 三模块接入（本地推理） </b></summary>
 
 ## 升级内容

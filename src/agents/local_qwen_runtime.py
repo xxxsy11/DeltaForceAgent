@@ -8,6 +8,7 @@ import os
 import re
 import threading
 import atexit
+import asyncio
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Dict, Optional, Tuple
@@ -41,9 +42,10 @@ class _RuntimeKey:
 class _LocalQwenRuntime:
     """单例运行时：同一 base model 只加载一次，适配器按需切换。"""
 
+    DEFAULT_MAX_INSTANCES = 4
     _instances: Dict[Tuple[str, str, int, bool], "_LocalQwenRuntime"] = {}
     _instances_lock = threading.Lock()
-    _max_instances = 4
+    _max_instances = DEFAULT_MAX_INSTANCES
 
     def __init__(self, key: _RuntimeKey):
         self.key = key
@@ -240,12 +242,14 @@ class _LocalQwenRuntime:
 class LocalQwenChatModel:
     """提供与 `ChatOpenAI.invoke` 兼容的最小接口。"""
 
+    DEFAULT_MAX_NEW_TOKENS = 384
+
     def __init__(
         self,
         base_model_path: str,
         adapter_path: str = "",
         device: str = "cpu",
-        max_new_tokens: int = 384,
+        max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
         force_no_think: bool = True,
     ):
         self.base_model_path = str(base_model_path or "").strip()
@@ -267,6 +271,9 @@ class LocalQwenChatModel:
             max_new_tokens=self.max_new_tokens,
         )
         return SimpleNamespace(content=text)
+
+    async def ainvoke(self, prompt: str):
+        return await asyncio.to_thread(self.invoke, prompt)
 
 
 atexit.register(_LocalQwenRuntime.clear_all)

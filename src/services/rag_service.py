@@ -2,6 +2,7 @@
 RAG 业务服务：将现有 RAG 系统封装成可复用能力。
 """
 
+import asyncio
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
@@ -48,6 +49,15 @@ class RAGService:
             explain_routing=explain_routing,
         )
         return {"answer": answer, "analysis": analysis}
+
+    async def startup_async(self):
+        await asyncio.to_thread(self.startup)
+
+    async def query_async(self, question: str, explain_routing: bool = False) -> Dict[str, Any]:
+        return await asyncio.to_thread(self.query, question, explain_routing)
+
+    async def close_async(self):
+        await asyncio.to_thread(self.close)
 
     def close(self):
         if self.system:

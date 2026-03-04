@@ -35,6 +35,14 @@ class PlannerDecision:
 class LLMToolPlanner:
     """用 LLM 做工具路由与多工具编排。"""
 
+    LOCAL_MAX_NEW_TOKENS_DEFAULT = 384
+    REMOTE_MAX_TOKENS = 512
+    REMOTE_TIMEOUT_SECONDS = 60
+    FAST_RULE_QUERY_MAX_CHARS = 36
+    COMPOSE_FACT_MAX_LINES = 6
+    COMPOSE_RECOMMEND_MAX_LINES = 4
+    COMPOSE_RISK_MAX_LINES = 4
+
     def __init__(
         self,
         config: Optional[GraphRAGConfig] = None,
@@ -52,7 +60,10 @@ class LLMToolPlanner:
         if bool(getattr(self.config, "agent_local_enabled", True)) and os.path.exists(self.model_name):
             adapter_path = str(getattr(self.config, "agent_tool_selection_adapter_path", "") or "").strip()
             device = str(getattr(self.config, "agent_local_device", "cpu") or "cpu").strip()
-            max_new_tokens = int(getattr(self.config, "agent_local_max_new_tokens", 384) or 384)
+            max_new_tokens = int(
+                getattr(self.config, "agent_local_max_new_tokens", self.LOCAL_MAX_NEW_TOKENS_DEFAULT)
+                or self.LOCAL_MAX_NEW_TOKENS_DEFAULT
+            )
             force_no_think = bool(getattr(self.config, "agent_local_no_think", True))
             logger.info(
                 "tool_planner: use local selector model=%s adapter=%s device=%s",
@@ -76,10 +87,10 @@ class LLMToolPlanner:
         return ChatOpenAI(
             model=self.model_name,
             temperature=0,
-            max_tokens=512,
+            max_tokens=self.REMOTE_MAX_TOKENS,
             api_key=api_key,
             base_url="https://api.moonshot.cn/v1",
-            timeout=60,
+            timeout=self.REMOTE_TIMEOUT_SECONDS,
         )
 
     def _build_planning_llm(self):
@@ -94,7 +105,10 @@ class LLMToolPlanner:
         ):
             return self.llm
         device = str(getattr(self.config, "agent_local_device", "cpu") or "cpu").strip()
-        max_new_tokens = int(getattr(self.config, "agent_local_max_new_tokens", 384) or 384)
+        max_new_tokens = int(
+            getattr(self.config, "agent_local_max_new_tokens", self.LOCAL_MAX_NEW_TOKENS_DEFAULT)
+            or self.LOCAL_MAX_NEW_TOKENS_DEFAULT
+        )
         force_no_think = bool(getattr(self.config, "agent_local_no_think", True))
         logger.info(
             "tool_planner: use local planning adapter=%s device=%s",
@@ -226,6 +240,74 @@ class LLMToolPlanner:
             logger.warning(f"LLM 工具规划失败，回退规则路由: {exc}")
             return None
 
+    async def _invoke_llm_async(self, llm_client, prompt: str):
+        return await llm_client.ainvoke(prompt)
+
+    async def _llm_plan_async(
+        self,
+        query: str,
+        available_tools: List[str],
+        for_task_planning: bool = False,
+    ) -> Optional[PlannerDecision]:
+        llm_client = self.planning_llm if for_task_planning else self.llm
+        if llm_client is None:
+            return None
+
+        prompt = f"""
+你是多工具调度器。根据用户问题决定要调用哪些工具，并按顺序输出。
+
+可用工具：
+{json.dumps(available_tools, ensure_ascii=False)}
+
+规则：
+1) 只能从可用工具中选择。
+2) 可选择 0~3 个工具。
+3) 如果问题是多物品对比（对比/比较/哪个好），优先调用 df_multi_item_compare。
+4) 如果问题是利润稳定性（稳不稳/波动/回撤/风险），优先调用 df_profit_stability。
+5) 如果问题同时要求“介绍 + 价格或建议”，优先调用 df_answer_composer。
+6) 如果问题包含“贵了还是便宜了 / 能不能卖 / 建不建议买 / 赚或亏多少”，优先调用 df_market_price_advice。
+7) 如果问题包含“特勤处制造 / 利润最高 / 利润前三 / 枪械配件利润 / 子弹利润 / 药品针剂利润 / 防具利润”，优先调用 df_place_profit_rank。
+8) 如果问题同时包含“资料介绍 + 实时价格”，应同时调用：
+   - rag_knowledge_search（负责介绍、背景、属性）
+   - df_market_latest_price（负责最新价格）
+9) 如果问题同时包含“资料介绍 + 买卖建议/贵便宜判断”，应同时调用：
+   - rag_knowledge_search
+   - df_market_price_advice
+10) 如果是历史价格，调用 df_market_history_price。
+11) 输出必须是 JSON，不要 Markdown，不要额外解释。
+
+输出 JSON 格式：
+{{
+  "intent": "简短意图",
+  "reason": "简短原因",
+  "tool_calls": [
+    {{"tool_name":"工具名","tool_query":"传给工具的查询"}}
+  ]
+}}
+
+用户问题：{query}
+"""
+        try:
+            response = await self._invoke_llm_async(llm_client, prompt)
+            text = extract_text_content(getattr(response, "content", response)).strip()
+            payload = self._extract_json_object(text)
+            if not payload:
+                return None
+
+            calls = payload.get("tool_calls", [])
+            plans = self._sanitize_tool_calls(calls if isinstance(calls, list) else [], available_tools, query)
+            if not plans:
+                return None
+
+            return PlannerDecision(
+                intent=str(payload.get("intent", "llm_tool_plan")).strip() or "llm_tool_plan",
+                tool_calls=plans,
+                reason=str(payload.get("reason", "LLM 规划")).strip() or "LLM 规划",
+            )
+        except Exception as exc:
+            logger.warning("LLM 工具规划失败，回退规则路由: %s", exc)
+            return None
+
     def _fallback_plan(self, query: str) -> PlannerDecision:
         decision = self.rule_fallback.analyze(query)
         return self._fallback_from_decision(decision, reason_suffix="(fallback)")
@@ -260,12 +342,36 @@ class LLMToolPlanner:
         }
         if (
             rule_decision.tool_name in simple_tools
-            and len(str(query or "").strip()) <= 36
+            and len(str(query or "").strip()) <= self.FAST_RULE_QUERY_MAX_CHARS
             and not self._has_complex_markers(query)
         ):
             return self._fallback_from_decision(rule_decision, reason_suffix="(fast-rule)")
 
         llm_decision = self._llm_plan(query=query, available_tools=available_tools, for_task_planning=False)
+        if llm_decision:
+            return llm_decision
+        return self._fallback_from_decision(rule_decision, reason_suffix="(fallback)")
+
+    async def plan_async(self, query: str, available_tools: List[str]) -> PlannerDecision:
+        rule_decision = self.rule_fallback.analyze(query)
+        simple_tools = {
+            "df_market_latest_price",
+            "df_market_history_price",
+            "df_place_profit_rank",
+            "rag_knowledge_search",
+        }
+        if (
+            rule_decision.tool_name in simple_tools
+            and len(str(query or "").strip()) <= self.FAST_RULE_QUERY_MAX_CHARS
+            and not self._has_complex_markers(query)
+        ):
+            return self._fallback_from_decision(rule_decision, reason_suffix="(fast-rule)")
+
+        llm_decision = await self._llm_plan_async(
+            query=query,
+            available_tools=available_tools,
+            for_task_planning=False,
+        )
         if llm_decision:
             return llm_decision
         return self._fallback_from_decision(rule_decision, reason_suffix="(fallback)")
@@ -293,6 +399,33 @@ class LLMToolPlanner:
             )
         return self._fallback_plan(query)
 
+    async def plan_with_hint_async(
+        self,
+        query: str,
+        available_tools: List[str],
+        fallback_intent: Optional[str] = None,
+        fallback_tool: Optional[str] = None,
+        force_llm: bool = False,
+    ) -> PlannerDecision:
+        if not force_llm:
+            return await self.plan_async(query=query, available_tools=available_tools)
+
+        llm_decision = await self._llm_plan_async(
+            query=query,
+            available_tools=available_tools,
+            for_task_planning=True,
+        )
+        if llm_decision:
+            return llm_decision
+
+        if fallback_tool and fallback_tool in set(available_tools):
+            return PlannerDecision(
+                intent=fallback_intent or "fallback_tool_plan",
+                tool_calls=[ToolCallPlan(tool_name=fallback_tool, tool_query=query)],
+                reason="强制LLM规划失败，使用意图识别回退",
+            )
+        return self._fallback_plan(query)
+
     def plan_force_tool_selection(
         self,
         query: str,
@@ -302,6 +435,29 @@ class LLMToolPlanner:
     ) -> PlannerDecision:
         """强制使用工具选择模型重选（异常审核路径）。"""
         llm_decision = self._llm_plan(query=query, available_tools=available_tools, for_task_planning=False)
+        if llm_decision:
+            return llm_decision
+
+        if fallback_tool and fallback_tool in set(available_tools):
+            return PlannerDecision(
+                intent=fallback_intent or "tool_selection_review_fallback",
+                tool_calls=[ToolCallPlan(tool_name=fallback_tool, tool_query=query)],
+                reason="工具选择审核失败，回退到原工具",
+            )
+        return self._fallback_plan(query)
+
+    async def plan_force_tool_selection_async(
+        self,
+        query: str,
+        available_tools: List[str],
+        fallback_intent: Optional[str] = None,
+        fallback_tool: Optional[str] = None,
+    ) -> PlannerDecision:
+        llm_decision = await self._llm_plan_async(
+            query=query,
+            available_tools=available_tools,
+            for_task_planning=False,
+        )
         if llm_decision:
             return llm_decision
 
@@ -373,6 +529,56 @@ class LLMToolPlanner:
             logger.warning("tool_planner: compose_answer llm failed, fallback to raw tool outputs: %s", exc)
             return fallback
 
+    async def compose_answer_async(self, user_query: str, tool_results: List[Dict[str, str]]) -> str:
+        if not tool_results:
+            return "未获得可用结果。"
+        if len(tool_results) == 1:
+            return str(tool_results[0].get("output", "")).strip()
+
+        fallback = "\n\n".join(
+            [
+                f"[{item.get('tool_name', 'tool')}]\n{item.get('output', '')}"
+                for item in tool_results
+            ]
+        ).strip()
+
+        success_items = [item for item in tool_results if not self._is_failure(str(item.get("output", "")))]
+        failed_items = [item for item in tool_results if self._is_failure(str(item.get("output", "")))]
+        if failed_items:
+            parts = []
+            if success_items:
+                parts.append("已获取到以下结果：")
+                for item in success_items:
+                    parts.append(str(item.get("output", "")).strip())
+            if failed_items:
+                parts.append("以下部分暂时不可用：")
+                for item in failed_items:
+                    parts.append(f"- {item.get('tool_name', 'tool')}: {item.get('output', '').strip()}")
+            return "\n".join(parts).strip() or fallback
+
+        if self.llm is None:
+            return fallback
+
+        prompt = f"""
+你是最终回答整合器。请根据用户问题和工具结果给出最终回答。
+要求：
+1) 先给结论，再给最多3条依据。
+2) 严格引用工具结果，不得补充工具中没有的数值、区间或结论。
+3) 若同一信息来源冲突：价格/历史/建议以市场工具输出为准，资料描述以知识检索为准。
+4) 若某部分工具失败，明确写“该部分数据不可用”，不要猜测。
+5) 回答控制在 6~12 行，避免冗长模板化。
+
+用户问题：{user_query}
+工具结果：{json.dumps(tool_results, ensure_ascii=False)}
+"""
+        try:
+            response = await self._invoke_llm_async(self.llm, prompt)
+            text = extract_text_content(getattr(response, "content", response)).strip()
+            return text or fallback
+        except Exception as exc:
+            logger.warning("tool_planner: compose_answer llm failed, fallback to raw tool outputs: %s", exc)
+            return fallback
+
     def compose_from_analysis(self, user_query: str, analysis_report: Dict, tool_results: List[Dict[str, str]]) -> str:
         report = analysis_report or {}
         if not report and tool_results:
@@ -389,13 +595,13 @@ class LLMToolPlanner:
             lines = ["分析结论："]
             if facts:
                 lines.append("关键事实：")
-                lines.extend([f"- {item}" for item in facts[:6]])
+                lines.extend([f"- {item}" for item in facts[: self.COMPOSE_FACT_MAX_LINES]])
             if recs:
                 lines.append("建议：")
-                lines.extend([f"- {item}" for item in recs[:4]])
+                lines.extend([f"- {item}" for item in recs[: self.COMPOSE_RECOMMEND_MAX_LINES]])
             if risks:
                 lines.append("风险：")
-                lines.extend([f"- {item}" for item in risks[:4]])
+                lines.extend([f"- {item}" for item in risks[: self.COMPOSE_RISK_MAX_LINES]])
             if assumptions:
                 fee = assumptions.get("sell_fee_rate")
                 if fee is not None:
@@ -428,3 +634,64 @@ class LLMToolPlanner:
             logger.warning("tool_planner: compose_from_analysis llm failed, fallback to compose_answer: %s", exc)
 
         return self.compose_answer(user_query=user_query, tool_results=tool_results)
+
+    async def compose_from_analysis_async(
+        self,
+        user_query: str,
+        analysis_report: Dict,
+        tool_results: List[Dict[str, str]],
+    ) -> str:
+        report = analysis_report or {}
+        if not report and tool_results:
+            return await self.compose_answer_async(user_query=user_query, tool_results=tool_results)
+
+        facts = report.get("facts", []) if isinstance(report.get("facts", []), list) else []
+        recs = report.get("recommendations", []) if isinstance(report.get("recommendations", []), list) else []
+        risks = report.get("risks", []) if isinstance(report.get("risks", []), list) else []
+        used_tools = report.get("used_tools", []) if isinstance(report.get("used_tools", []), list) else []
+        failed_tools = report.get("failed_tools", []) if isinstance(report.get("failed_tools", []), list) else []
+        assumptions = report.get("assumptions", {}) if isinstance(report.get("assumptions", {}), dict) else {}
+
+        if self.llm is None:
+            lines = ["分析结论："]
+            if facts:
+                lines.append("关键事实：")
+                lines.extend([f"- {item}" for item in facts[: self.COMPOSE_FACT_MAX_LINES]])
+            if recs:
+                lines.append("建议：")
+                lines.extend([f"- {item}" for item in recs[: self.COMPOSE_RECOMMEND_MAX_LINES]])
+            if risks:
+                lines.append("风险：")
+                lines.extend([f"- {item}" for item in risks[: self.COMPOSE_RISK_MAX_LINES]])
+            if assumptions:
+                fee = assumptions.get("sell_fee_rate")
+                if fee is not None:
+                    lines.append(f"说明：卖出手续费按 {float(fee) * 100:.0f}% 估算。")
+            if used_tools:
+                lines.append("已调用工具：" + ", ".join([str(x) for x in used_tools]))
+            if failed_tools:
+                lines.append("失败工具：" + ", ".join([str(item.get("tool")) for item in failed_tools if isinstance(item, dict)]))
+            return "\n".join(lines).strip()
+
+        prompt = f"""
+你是回答 Agent。请根据用户问题和“数据分析 Agent”的结构化报告输出最终回答。
+要求：
+1) 结构固定：结论 -> 关键依据(最多3条) -> 不确定性(如有)。
+2) 所有价格、区间、样本数、利润等数值必须来自工具原始结果，不得自造或改写数量级。
+3) 若存在失败工具，必须单独列出“不可用部分”，且不要用猜测补齐。
+4) 若报告含手续费假设，必须原样说明。
+5) 文本简洁，避免大段背景描述。
+
+用户问题：{user_query}
+分析报告：{json.dumps(report, ensure_ascii=False)}
+工具原始结果：{json.dumps(tool_results, ensure_ascii=False)}
+"""
+        try:
+            response = await self._invoke_llm_async(self.llm, prompt)
+            text = extract_text_content(getattr(response, "content", response)).strip()
+            if text:
+                return text
+        except Exception as exc:
+            logger.warning("tool_planner: compose_from_analysis llm failed, fallback to compose_answer: %s", exc)
+
+        return await self.compose_answer_async(user_query=user_query, tool_results=tool_results)

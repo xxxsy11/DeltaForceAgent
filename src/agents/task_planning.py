@@ -47,7 +47,7 @@ class TaskPlanningAgent:
         )
         return fallback or query
 
-    def run(self, state: AgentState) -> Dict:
+    async def run(self, state: AgentState) -> Dict:
         query = state.get("user_query", "")
         planning_query = str(state.get("tool_query", "") or "").strip() or query
         fallback_intent = state.get("intent", "")
@@ -102,7 +102,7 @@ class TaskPlanningAgent:
                 "debug_steps": state.get("debug_steps", []) + ["task_planning: simple_flow_locked_tool"],
             }
 
-        decision = self.planner.plan_with_hint(
+        decision = await self.planner.plan_with_hint_async(
             query=planning_query,
             available_tools=self.registry.list_tools(),
             fallback_intent=fallback_intent,

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 初始化本地 PostgreSQL 持久化记忆库（delta_agent）
+# 初始化本地 PostgreSQL 持久化记忆库（DeltaForce_Agent）
 # 依赖：postgresql 服务已安装并启动、pgvector 扩展已安装
 
-DB_USER="${1:-delta_agent}"
-DB_PASSWORD="${2:-delta_agent}"
-DB_NAME="${3:-delta_agent}"
+DB_USER="${1:-deltaforce_agent}"
+DB_PASSWORD="${2:-deltaforce_agent}"
+DB_NAME="${3:-deltaforce_agent}"
 
 echo "[1/3] 创建用户（若不存在）: ${DB_USER}"
 runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "DO \$\$

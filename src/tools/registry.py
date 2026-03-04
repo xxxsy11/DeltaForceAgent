@@ -1,7 +1,6 @@
 """
 工具注册中心
 """
-
 from typing import Dict, Optional
 
 from services import RAGService
@@ -48,13 +47,14 @@ class ToolRegistry:
     def list_tools(self):
         return list(self.tools.keys())
 
-    def invoke(self, tool_name: str, query: str) -> str:
+    async def invoke_async(self, tool_name: str, query: str) -> str:
         if not self.has_tool(tool_name):
             return f"未找到工具: {tool_name}"
+        tool = self.tools[tool_name]
         try:
-            return self.tools[tool_name].invoke({"query": query})
+            return await tool.ainvoke({"query": query})
         except Exception as exc:
             return f"工具调用失败({tool_name}): {exc}"
 
-    def close(self):
-        self.rag_service.close()
+    async def close_async(self):
+        await self.rag_service.close_async()

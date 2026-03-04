@@ -26,11 +26,11 @@ class SummaryAgent:
                     return payload
         return {}
 
-    def _compose_simple(self, tool_results: List[Dict], user_query: str) -> str:
+    async def _compose_simple(self, tool_results: List[Dict], user_query: str) -> str:
         success = [item for item in tool_results if not self.planner._is_failure(str(item.get("output", "")))]
         if len(success) == 1:
             return str(success[0].get("output", "")).strip()
-        return self.planner.compose_answer(user_query=user_query, tool_results=tool_results).strip()
+        return (await self.planner.compose_answer_async(user_query=user_query, tool_results=tool_results)).strip()
 
     @staticmethod
     def _review_hint(state: AgentState) -> str:
@@ -40,7 +40,7 @@ class SummaryAgent:
             return "；".join([str(x).strip() for x in hints if str(x).strip()])
         return ""
 
-    def run(self, state: AgentState) -> Dict:
+    async def run(self, state: AgentState) -> Dict:
         report = self._pick_report(state)
         flow_type = str(state.get("flow_type", "simple")).strip().lower()
         tool_results = state.get("tool_results", [])
@@ -57,13 +57,14 @@ class SummaryAgent:
         composed_query = "\n\n".join([x for x in query_parts if str(x).strip()])
 
         if flow_type == "simple":
-            answer = self._compose_simple(tool_results=tool_results, user_query=composed_query)
+            answer = await self._compose_simple(tool_results=tool_results, user_query=composed_query)
         else:
-            answer = self.planner.compose_from_analysis(
+            answer = await self.planner.compose_from_analysis_async(
                 user_query=composed_query,
                 analysis_report=report,
                 tool_results=tool_results,
-            ).strip()
+            )
+            answer = str(answer or "").strip()
 
         if not answer:
             answer = "未获得可用结果。"

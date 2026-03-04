@@ -40,6 +40,14 @@ class IntentAnalyzer:
     place_profit_category_keywords = {
         "枪械配件", "枪械", "配件", "子弹", "弹药", "药品", "针剂", "维修工具包", "头盔", "护甲", "胸挂", "背包",
     }
+    place_profit_strong_markers = {
+        "制造台",
+        "特勤处制造",
+        "技术中心",
+        "工作台",
+        "制药台",
+        "防具台",
+    }
     compare_keywords = {
         "对比", "比较", "哪个好", "哪一个好", "谁更好", "谁更值得买", "横向比较",
     }
@@ -83,6 +91,8 @@ class IntentAnalyzer:
 
     def _is_place_profit_query(self, text: str) -> bool:
         lowered = text.lower()
+        if any(keyword in text or keyword in lowered for keyword in self.place_profit_strong_markers):
+            return True
         hit_base = any(keyword in text or keyword in lowered for keyword in self.place_profit_keywords)
         hit_category = any(keyword in text or keyword in lowered for keyword in self.place_profit_category_keywords)
         return hit_base and hit_category or ("制造" in text and "利润" in text)

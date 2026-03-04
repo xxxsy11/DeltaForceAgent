@@ -35,6 +35,16 @@ class IntentLLMResponse(BaseModel):
 class IntentRecognitionAgent:
     """统一的 query understanding：识别意图、主体数量、工具与标准化 tool_query。"""
 
+    LOCAL_MAX_NEW_TOKENS_DEFAULT = 384
+    REMOTE_MAX_TOKENS = 512
+    REMOTE_TIMEOUT_SECONDS = 60
+    MAX_LLM_OUTPUT_CHARS = 12000
+    MAX_ENTITY_CHARS = 24
+    SHORT_ALNUM_ENTITY_MAX_CHARS = 4
+    RECENT_MEMORY_ENTITY_MAX_ITEMS = 4
+    MAX_COMPARE_ENTITY_COUNT = 6
+    LATENCY_MS_MULTIPLIER = 1000
+
     SPECIALIST_INTENTS: Set[str] = {
         "market_compare_query",
         "profit_stability_query",
@@ -140,7 +150,10 @@ class IntentRecognitionAgent:
         if bool(getattr(self.config, "agent_local_enabled", True)) and os.path.exists(model_name):
             adapter_path = str(getattr(self.config, "agent_intent_adapter_path", "") or "").strip()
             device = str(getattr(self.config, "agent_local_device", "cpu") or "cpu").strip()
-            max_new_tokens = int(getattr(self.config, "agent_local_max_new_tokens", 384) or 384)
+            max_new_tokens = int(
+                getattr(self.config, "agent_local_max_new_tokens", self.LOCAL_MAX_NEW_TOKENS_DEFAULT)
+                or self.LOCAL_MAX_NEW_TOKENS_DEFAULT
+            )
             force_no_think = bool(getattr(self.config, "agent_local_no_think", True))
             logger.info(
                 "intent_recognition: use local qwen model=%s adapter=%s device=%s",
@@ -162,10 +175,10 @@ class IntentRecognitionAgent:
         return ChatOpenAI(
             model=model_name,
             temperature=0,
-            max_tokens=512,
+            max_tokens=self.REMOTE_MAX_TOKENS,
             api_key=api_key,
             base_url="https://api.moonshot.cn/v1",
-            timeout=60,
+            timeout=self.REMOTE_TIMEOUT_SECONDS,
         )
 
     @staticmethod
@@ -181,8 +194,8 @@ class IntentRecognitionAgent:
     @staticmethod
     def _extract_json(text: str) -> Dict[str, Any]:
         raw = str(text or "").strip()
-        if len(raw) > 12000:
-            raw = raw[:12000]
+        if len(raw) > IntentRecognitionAgent.MAX_LLM_OUTPUT_CHARS:
+            raw = raw[: IntentRecognitionAgent.MAX_LLM_OUTPUT_CHARS]
         if not raw:
             return {}
         try:
@@ -240,13 +253,17 @@ class IntentRecognitionAgent:
         candidate = re.sub(r"^(介绍一下|介绍|查询一下|查询|查一下|查下|告诉我|说说|分析一下|分析|看看)\s*", "", candidate)
         candidate = re.sub(r"(现在|当前|目前)?(什么|多少)?(价格|价位|历史价格|历史|资料|信息)?$", "", candidate).strip()
         candidate = re.sub(r"\s+", " ", candidate).strip()
-        if not (1 < len(candidate) <= 24):
+        if not (1 < len(candidate) <= IntentRecognitionAgent.MAX_ENTITY_CHARS):
             return ""
         if not re.search(r"[\u4e00-\u9fffA-Za-z]", candidate):
             return ""
         if re.fullmatch(r"[\d\-_.+()（）]+", candidate):
             return ""
-        if len(candidate) <= 4 and re.search(r"\d", candidate) and not re.search(r"[\u4e00-\u9fff]", candidate):
+        if (
+            len(candidate) <= IntentRecognitionAgent.SHORT_ALNUM_ENTITY_MAX_CHARS
+            and re.search(r"\d", candidate)
+            and not re.search(r"[\u4e00-\u9fff]", candidate)
+        ):
             return ""
 
         invalid_tokens = (
@@ -331,7 +348,11 @@ class IntentRecognitionAgent:
                 dedup.append(item)
         return dedup[:3]
 
-    def _extract_recent_memory_entities(self, state: AgentState, max_items: int = 4) -> List[str]:
+    def _extract_recent_memory_entities(
+        self,
+        state: AgentState,
+        max_items: int = RECENT_MEMORY_ENTITY_MAX_ITEMS,
+    ) -> List[str]:
         found: List[str] = []
 
         def _append_entity(value: str):
@@ -418,7 +439,7 @@ class IntentRecognitionAgent:
             try:
                 value = int(match.group(1))
                 if value >= 2:
-                    return min(value, 6)
+                    return min(value, IntentRecognitionAgent.MAX_COMPARE_ENTITY_COUNT)
             except Exception as exc:
                 logger.debug("intent_recognition: compare_target_count parse failed: %s", exc)
         return 2
@@ -489,6 +510,31 @@ class IntentRecognitionAgent:
             logger.warning("intent_recognition: llm_understand failed, fallback to rule: %s", exc)
             return {}
 
+    async def _llm_understand_async(self, query: str, memory_entities: List[str]) -> Dict[str, Any]:
+        if self.llm is None:
+            return {}
+
+        available_tools = self.available_tools or [
+            "rag_knowledge_search",
+            "df_market_latest_price",
+            "df_market_history_price",
+            "df_market_price_advice",
+            "df_place_profit_rank",
+            "df_multi_item_compare",
+            "df_profit_stability",
+            "df_answer_composer",
+        ]
+
+        prompt = self._build_prompt(query=query, memory_entities=memory_entities, available_tools=available_tools)
+        try:
+            response = await self.llm.ainvoke(prompt)
+            text = extract_text_content(getattr(response, "content", response)).strip()
+            payload = self._extract_json(text)
+            return self._validate_llm_payload(payload)
+        except Exception as exc:
+            logger.warning("intent_recognition: llm_understand failed, fallback to rule: %s", exc)
+            return {}
+
     def _resolve_decision(self, state: AgentState, query: str) -> Dict[str, Any]:
         base = self.analyzer.analyze(query)
         memory_entities = self._extract_recent_memory_entities(state)
@@ -504,6 +550,12 @@ class IntentRecognitionAgent:
         tool_name = llm_tool or base.tool_name
         intent = str(llm_payload.get("intent", "")).strip() or base.intent
         reason = str(llm_payload.get("reason", "")).strip() or base.reason
+
+        # 规则优先：制造台/特勤处制造类问题由 IntentAnalyzer 锁定到制造利润工具。
+        if base.tool_name == "df_place_profit_rank":
+            tool_name = base.tool_name
+            intent = base.intent
+            reason = f"{base.reason}(rule_preferred)"
 
         entities = []
         for item in llm_payload.get("entities", []) if isinstance(llm_payload.get("entities", []), list) else []:
@@ -553,10 +605,80 @@ class IntentRecognitionAgent:
             "compare_target_count": compare_target_count,
         }
 
-    def run(self, state: AgentState) -> Dict:
+    async def _resolve_decision_async(self, state: AgentState, query: str) -> Dict[str, Any]:
+        base = self.analyzer.analyze(query)
+        memory_entities = self._extract_recent_memory_entities(state)
+        query_entities = self._extract_entities_from_query(query)
+        compare_target_count = self._infer_compare_target_count(query)
+
+        llm_payload = await self._llm_understand_async(query=query, memory_entities=memory_entities)
+        llm_tool = str(llm_payload.get("tool_name", "")).strip()
+
+        if llm_tool and self.available_tools and llm_tool not in set(self.available_tools):
+            llm_tool = ""
+
+        tool_name = llm_tool or base.tool_name
+        intent = str(llm_payload.get("intent", "")).strip() or base.intent
+        reason = str(llm_payload.get("reason", "")).strip() or base.reason
+
+        # 规则优先：制造台/特勤处制造类问题由 IntentAnalyzer 锁定到制造利润工具。
+        if base.tool_name == "df_place_profit_rank":
+            tool_name = base.tool_name
+            intent = base.intent
+            reason = f"{base.reason}(rule_preferred)"
+
+        entities = []
+        for item in llm_payload.get("entities", []) if isinstance(llm_payload.get("entities", []), list) else []:
+            norm = self._normalize_entity(str(item))
+            if norm and norm not in entities:
+                entities.append(norm)
+
+        if not entities:
+            entities = list(query_entities)
+
+        if self._has_pronoun(query) and not entities:
+            if tool_name == "df_multi_item_compare":
+                if len(memory_entities) >= compare_target_count:
+                    entities = memory_entities[:compare_target_count]
+                else:
+                    entities = list(memory_entities)
+            else:
+                entities = memory_entities[-1:] if memory_entities else []
+
+        if tool_name == "df_multi_item_compare":
+            if len(entities) < 2 and len(memory_entities) >= 2:
+                entities = memory_entities[:2]
+            elif len(entities) >= 2 and compare_target_count > 2:
+                merged = []
+                for item in list(entities) + list(memory_entities):
+                    if item and item not in merged:
+                        merged.append(item)
+                entities = merged[:compare_target_count]
+
+        confidence = llm_payload.get("confidence", 0.0)
+        try:
+            confidence = float(confidence)
+        except Exception as exc:
+            logger.debug("intent_recognition: invalid confidence value, fallback to 0.0: %s", exc)
+            confidence = 0.0
+        confidence = max(0.0, min(1.0, confidence))
+
+        tool_query = self._build_tool_query(tool_name=tool_name, query=query, entities=entities)
+        return {
+            "intent": intent,
+            "tool_name": tool_name,
+            "reason": reason,
+            "entities": entities[:3],
+            "entity_count": len(entities[:3]),
+            "confidence": confidence,
+            "tool_query": tool_query,
+            "compare_target_count": compare_target_count,
+        }
+
+    async def run(self, state: AgentState) -> Dict:
         node_started_perf = time.perf_counter()
         query = str(state.get("user_query", "") or "").strip()
-        resolved = self._resolve_decision(state=state, query=query)
+        resolved = await self._resolve_decision_async(state=state, query=query)
 
         intent = resolved["intent"]
         tool_name = resolved["tool_name"]
@@ -654,10 +776,16 @@ class IntentRecognitionAgent:
         input_perf = float(orchestration_meta.get("input_received_perf", 0.0) or 0.0)
         latest_latency_ms = None
         if input_perf > 0:
-            latest_latency_ms = round((node_finished_perf - input_perf) * 1000, 2)
+            latest_latency_ms = round(
+                (node_finished_perf - input_perf) * self.LATENCY_MS_MULTIPLIER,
+                2,
+            )
         orchestration_meta.update(
             {
-                "intent_node_latency_ms": round((node_finished_perf - node_started_perf) * 1000, 2),
+                "intent_node_latency_ms": round(
+                    (node_finished_perf - node_started_perf) * self.LATENCY_MS_MULTIPLIER,
+                    2,
+                ),
                 "latest_tool_selected_at_utc": tool_selected_at_utc,
                 "latest_selected_tool": selected_tool,
                 "latest_selected_tool_query": selected_query,

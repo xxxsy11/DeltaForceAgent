@@ -13,6 +13,40 @@ from agents.state import AgentState
 from rag_modules.llm_utils import extract_text_content
 
 
+DEFAULT_MARKET_TTL_HOURS = 24
+DEFAULT_RECENT_RAW_LIMIT = 5
+DEFAULT_PENDING_TURNS_TRIGGER = 2
+DEFAULT_PENDING_TOKENS_TRIGGER = 500
+DEFAULT_SUMMARY_MAX_TOKENS = 400
+DEFAULT_REBASE_MERGES = 5
+TOKEN_ESTIMATE_CHAR_DIVISOR = 2
+SUMMARY_KEYWORD_DEFAULT_LIMIT = 12
+SUMMARY_KEYWORD_MAX_CHARS = 32
+FORMAT_TURNS_MAX_ITEMS = 16
+HEURISTIC_SUMMARY_PENDING_TURNS = 8
+HEURISTIC_SUMMARY_LINE_MAX_CHARS = 120
+HEURISTIC_SUMMARY_TOTAL_MAX_CHARS = 1200
+PENDING_DIGEST_MAX_LINES = 4
+PENDING_DIGEST_LINE_MAX_CHARS = 100
+RECENT_LINES_DEFAULT_MAX_ITEMS = 5
+HEURISTIC_ENTITY_MIN_CHARS = 2
+HEURISTIC_ENTITY_MAX_CHARS = 24
+HEURISTIC_ENTITY_MAX_ITEMS = 8
+QUERY_KEYWORD_REGEX_MAX_ITEMS = 8
+FACT_VALUE_MAX_CHARS = 500
+FACTS_MAX_ITEMS = 6
+FACT_KEY_MAX_CHARS = 80
+FACT_TYPE_MAX_CHARS = 32
+FACT_KEYWORD_MAX_ITEMS = 10
+FACT_DEFAULT_CONFIDENCE = 0.7
+FACT_FOCUS_ENTITY_COUNT = 3
+FACT_FOCUS_CONFIDENCE = 0.85
+FACT_COMPARE_CONFIDENCE = 0.8
+FACT_SUMMARY_CONFIDENCE = 0.75
+FACT_MARKET_CONFIDENCE = 0.8
+LLM_TIMEOUT_SECONDS = 60
+
+
 class MemoryCompressionAgent:
     """Updates recent/pending buffers and compresses pending history when needed."""
 
@@ -22,13 +56,20 @@ class MemoryCompressionAgent:
         self.config = config
         self.enabled = bool(getattr(config, "memory_enabled", True))
         self.persistent_enabled = bool(getattr(config, "memory_persistent_enabled", False))
-        self.recent_raw_limit = int(getattr(config, "memory_recent_raw_limit", 5))
-        self.pending_turns_trigger = int(getattr(config, "memory_pending_turns_trigger", 2))
-        self.pending_tokens_trigger = int(getattr(config, "memory_pending_tokens_trigger", 500))
-        self.summary_max_tokens = int(getattr(config, "memory_summary_max_tokens", 400))
-        self.rebase_every_n_merges = int(getattr(config, "memory_rebase_every_n_merges", 5))
+        self.recent_raw_limit = int(getattr(config, "memory_recent_raw_limit", DEFAULT_RECENT_RAW_LIMIT))
+        self.pending_turns_trigger = int(
+            getattr(config, "memory_pending_turns_trigger", DEFAULT_PENDING_TURNS_TRIGGER)
+        )
+        self.pending_tokens_trigger = int(
+            getattr(config, "memory_pending_tokens_trigger", DEFAULT_PENDING_TOKENS_TRIGGER)
+        )
+        self.summary_max_tokens = int(getattr(config, "memory_summary_max_tokens", DEFAULT_SUMMARY_MAX_TOKENS))
+        self.rebase_every_n_merges = int(getattr(config, "memory_rebase_every_n_merges", DEFAULT_REBASE_MERGES))
         self.drop_failed_tool_messages = bool(getattr(config, "memory_drop_failed_tool_messages", True))
-        self.market_ttl_hours = int(getattr(config, "memory_persistent_market_ttl_hours", 24) or 24)
+        self.market_ttl_hours = int(
+            getattr(config, "memory_persistent_market_ttl_hours", DEFAULT_MARKET_TTL_HOURS)
+            or DEFAULT_MARKET_TTL_HOURS
+        )
         self.model_name = str(getattr(config, "agent_memory_model", getattr(config, "llm_model", ""))).strip()
         self.llm = self._build_llm()
 
@@ -42,12 +83,17 @@ class MemoryCompressionAgent:
             max_tokens=self.summary_max_tokens,
             api_key=api_key,
             base_url="https://api.moonshot.cn/v1",
-            timeout=60,
+            timeout=LLM_TIMEOUT_SECONDS,
         )
+
+    async def _invoke_llm_async(self, prompt: str):
+        if self.llm is None:
+            return None
+        return await self.llm.ainvoke(prompt)
 
     @staticmethod
     def _estimate_tokens(text: str) -> int:
-        return max(1, len(str(text or "")) // 2)
+        return max(1, len(str(text or "")) // TOKEN_ESTIMATE_CHAR_DIVISOR)
 
     @classmethod
     def _contains_failure_markers(cls, text: str) -> bool:
@@ -80,11 +126,11 @@ class MemoryCompressionAgent:
             return {}
 
     @staticmethod
-    def _normalize_keywords(items: List[Any], limit: int = 12) -> List[str]:
+    def _normalize_keywords(items: List[Any], limit: int = SUMMARY_KEYWORD_DEFAULT_LIMIT) -> List[str]:
         keywords: List[str] = []
         for item in items or []:
             text = str(item or "").strip()
-            if not text or len(text) > 32:
+            if not text or len(text) > SUMMARY_KEYWORD_MAX_CHARS:
                 continue
             if text in keywords:
                 continue
@@ -94,7 +140,7 @@ class MemoryCompressionAgent:
         return keywords
 
     @staticmethod
-    def _format_turns(turns: List[Dict[str, str]], max_items: int = 16) -> str:
+    def _format_turns(turns: List[Dict[str, str]], max_items: int = FORMAT_TURNS_MAX_ITEMS) -> str:
         lines: List[str] = []
         for item in turns[-max_items:]:
             role = "user" if item.get("role") == "user" else "assistant"
@@ -107,15 +153,15 @@ class MemoryCompressionAgent:
         lines = []
         if old:
             lines.append(old)
-        for item in pending[-8:]:
+        for item in pending[-HEURISTIC_SUMMARY_PENDING_TURNS:]:
             role = "用户" if item.get("role") == "user" else "助手"
             content = str(item.get("content", "")).strip().replace("\n", " ")
-            if len(content) > 120:
-                content = content[:120] + "..."
+            if len(content) > HEURISTIC_SUMMARY_LINE_MAX_CHARS:
+                content = content[:HEURISTIC_SUMMARY_LINE_MAX_CHARS] + "..."
             lines.append(f"{role}: {content}")
         merged = "\n".join(lines).strip()
-        if len(merged) > 1200:
-            return merged[-1200:]
+        if len(merged) > HEURISTIC_SUMMARY_TOTAL_MAX_CHARS:
+            return merged[-HEURISTIC_SUMMARY_TOTAL_MAX_CHARS:]
         return merged
 
     def _llm_merge_summary(self, old_summary: str, pending: List[Dict[str, str]]) -> str:
@@ -147,6 +193,35 @@ class MemoryCompressionAgent:
             pass
         return self._heuristic_summary(old_summary=old_summary, pending=pending)
 
+    async def _llm_merge_summary_async(self, old_summary: str, pending: List[Dict[str, str]]) -> str:
+        if self.llm is None:
+            return self._heuristic_summary(old_summary=old_summary, pending=pending)
+
+        prompt = f"""
+你是对话记忆压缩代理。请将旧摘要与新增对话压缩成新的记忆摘要。
+要求：
+1) 输出 JSON，字段：summary。
+2) summary 控制在 8~12 行，保留用户目标、关键事实、未完成任务。
+3) 标注不确定信息，不要把失败报错当成事实。
+4) 不要输出多余解释。
+
+旧摘要：
+{old_summary}
+
+新增对话：
+{self._format_turns(pending)}
+"""
+        try:
+            response = await self._invoke_llm_async(prompt)
+            text = extract_text_content(getattr(response, "content", response)).strip()
+            parsed = self._parse_json(text)
+            summary = str(parsed.get("summary", "")).strip()
+            if summary:
+                return summary
+        except Exception:
+            pass
+        return self._heuristic_summary(old_summary=old_summary, pending=pending)
+
     def _llm_rebase_summary(self, rolling_summary: str) -> str:
         if self.llm is None:
             return str(rolling_summary or "").strip()
@@ -168,21 +243,45 @@ class MemoryCompressionAgent:
             pass
         return str(rolling_summary or "").strip()
 
+    async def _llm_rebase_summary_async(self, rolling_summary: str) -> str:
+        if self.llm is None:
+            return str(rolling_summary or "").strip()
+        prompt = f"""
+请将下面对话摘要进行一次重整，去重并压缩，保持事实准确、结构清晰。
+输出 JSON: {{"summary": "..."}}
+
+摘要内容：
+{rolling_summary}
+"""
+        try:
+            response = await self._invoke_llm_async(prompt)
+            text = extract_text_content(getattr(response, "content", response)).strip()
+            parsed = self._parse_json(text)
+            summary = str(parsed.get("summary", "")).strip()
+            if summary:
+                return summary
+        except Exception:
+            pass
+        return str(rolling_summary or "").strip()
+
     @staticmethod
-    def _build_pending_digest(pending: List[Dict[str, str]], max_lines: int = 4) -> str:
+    def _build_pending_digest(pending: List[Dict[str, str]], max_lines: int = PENDING_DIGEST_MAX_LINES) -> str:
         if not pending:
             return ""
         lines = []
         for item in pending[-max_lines:]:
             role = "用户" if item.get("role") == "user" else "助手"
             content = str(item.get("content", "")).strip().replace("\n", " ")
-            if len(content) > 100:
-                content = content[:100] + "..."
+            if len(content) > PENDING_DIGEST_LINE_MAX_CHARS:
+                content = content[:PENDING_DIGEST_LINE_MAX_CHARS] + "..."
             lines.append(f"- {role}: {content}")
         return "\n".join(lines)
 
     @staticmethod
-    def _build_recent_lines(recent: List[Dict[str, str]], max_items: int = 5) -> str:
+    def _build_recent_lines(
+        recent: List[Dict[str, str]],
+        max_items: int = RECENT_LINES_DEFAULT_MAX_ITEMS,
+    ) -> str:
         lines = []
         for item in recent[-max_items:]:
             role = "用户" if item.get("role") == "user" else "助手"
@@ -207,7 +306,7 @@ class MemoryCompressionAgent:
 
             for token in re.split(r"[，,、/|；;：:\n\s]+", text):
                 item = str(token or "").strip()
-                if len(item) < 2 or len(item) > 24:
+                if len(item) < HEURISTIC_ENTITY_MIN_CHARS or len(item) > HEURISTIC_ENTITY_MAX_CHARS:
                     continue
                 if re.search(r"\d+\s*[xX×]\s*\d+|\d+\s*格", item):
                     continue
@@ -226,12 +325,15 @@ class MemoryCompressionAgent:
             for item in candidates:
                 if item not in dedup:
                     dedup.append(item)
-            return dedup[:8]
+            return dedup[:HEURISTIC_ENTITY_MAX_ITEMS]
 
         entities = [str(x).strip() for x in state.get("understanding_entities", []) if str(x).strip()]
         query = str(state.get("user_query", "") or "").strip()
         final_answer = str(state.get("final_answer", "") or "").strip()
-        pending_text = "\n".join(str(x.get("content", "") or "") for x in pending_turns[-12:])
+        pending_text = "\n".join(
+            str(x.get("content", "") or "")
+            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
+        )
 
 
         entity_pool: List[str] = []
@@ -239,18 +341,18 @@ class MemoryCompressionAgent:
             if item not in entity_pool:
                 entity_pool.append(item)
 
-        keyword_candidates = entity_pool + re.findall(r"[\u4e00-\u9fff]{2,8}", query)[:8]
-        keywords = self._normalize_keywords(keyword_candidates, limit=12)
+        keyword_candidates = entity_pool + re.findall(r"[\u4e00-\u9fff]{2,8}", query)[:QUERY_KEYWORD_REGEX_MAX_ITEMS]
+        keywords = self._normalize_keywords(keyword_candidates, limit=SUMMARY_KEYWORD_DEFAULT_LIMIT)
 
         facts: List[Dict[str, Any]] = []
         if entity_pool:
             facts.append(
                 {
                     "fact_key": "last_focus_items",
-                    "fact_value": "、".join(entity_pool[:3]),
+                    "fact_value": "、".join(entity_pool[:FACT_FOCUS_ENTITY_COUNT]),
                     "fact_type": "focus",
-                    "confidence": 0.85,
-                    "keywords": entity_pool[:3],
+                    "confidence": FACT_FOCUS_CONFIDENCE,
+                    "keywords": entity_pool[:FACT_FOCUS_ENTITY_COUNT],
                     "ttl_hours": None,
                 }
             )
@@ -258,10 +360,10 @@ class MemoryCompressionAgent:
             facts.append(
                 {
                     "fact_key": "compare_target_items",
-                    "fact_value": "、".join(entity_pool[:3]),
+                    "fact_value": "、".join(entity_pool[:FACT_FOCUS_ENTITY_COUNT]),
                     "fact_type": "compare_target",
-                    "confidence": 0.8,
-                    "keywords": entity_pool[:3],
+                    "confidence": FACT_COMPARE_CONFIDENCE,
+                    "keywords": entity_pool[:FACT_FOCUS_ENTITY_COUNT],
                     "ttl_hours": None,
                 }
             )
@@ -270,10 +372,10 @@ class MemoryCompressionAgent:
             facts.append(
                 {
                     "fact_key": "compressed_memory_summary",
-                    "fact_value": summary_text[:500],
+                    "fact_value": summary_text[:FACT_VALUE_MAX_CHARS],
                     "fact_type": "plan",
-                    "confidence": 0.75,
-                    "keywords": keywords[:8],
+                    "confidence": FACT_SUMMARY_CONFIDENCE,
+                    "keywords": keywords[:QUERY_KEYWORD_REGEX_MAX_ITEMS],
                     "ttl_hours": None,
                 }
             )
@@ -285,14 +387,14 @@ class MemoryCompressionAgent:
                 facts.append(
                     {
                         "fact_key": "latest_price_observation",
-                        "fact_value": market_text[:500],
+                        "fact_value": market_text[:FACT_VALUE_MAX_CHARS],
                         "fact_type": "market",
-                        "confidence": 0.8,
-                        "keywords": keywords[:8],
+                        "confidence": FACT_MARKET_CONFIDENCE,
+                        "keywords": keywords[:QUERY_KEYWORD_REGEX_MAX_ITEMS],
                         "ttl_hours": self.market_ttl_hours,
                     }
                 )
-        return {"keywords": keywords, "facts": facts[:6]}
+        return {"keywords": keywords, "facts": facts[:FACTS_MAX_ITEMS]}
 
     def _llm_extract_facts(
         self,
@@ -304,7 +406,10 @@ class MemoryCompressionAgent:
             return {}
         query = str(state.get("user_query", "") or "").strip()
         final_answer = str(state.get("final_answer", "") or "").strip()
-        pending_text = "\n".join(str(x.get("content", "") or "") for x in pending_turns[-12:])
+        pending_text = "\n".join(
+            str(x.get("content", "") or "")
+            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
+        )
         pending_text = self._format_turns(pending_turns)
 
         prompt = f"""
@@ -342,6 +447,57 @@ class MemoryCompressionAgent:
         except Exception:
             return {}
 
+    async def _llm_extract_facts_async(
+        self,
+        state: AgentState,
+        summary_text: str,
+        pending_turns: List[Dict[str, str]],
+    ) -> Dict[str, Any]:
+        if self.llm is None:
+            return {}
+        query = str(state.get("user_query", "") or "").strip()
+        final_answer = str(state.get("final_answer", "") or "").strip()
+        pending_text = "\n".join(
+            str(x.get("content", "") or "")
+            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
+        )
+        pending_text = self._format_turns(pending_turns)
+
+        prompt = f"""
+你是记忆压缩后的事实提取器。请从摘要与新增对话中提取可复用记忆。
+输出 JSON：
+{{
+  "keywords": ["..."],
+  "facts": [
+    {{
+      "fact_key": "snake_case_key",
+      "fact_value": "事实内容",
+      "fact_type": "focus|entity|market|preference|constraint|plan",
+      "confidence": 0.0,
+      "keywords": ["..."],
+      "ttl_hours": 24
+    }}
+  ]
+}}
+
+规则：
+1) 仅提取可复用事实，最多 6 条。
+2) 报错信息不要写入 facts。
+3) market 类型默认 ttl_hours={self.market_ttl_hours}。
+4) keywords 与 facts 分别返回，keywords 是检索词，facts 是结构化记忆。
+
+用户问题：{query}
+助手回答：{final_answer}
+压缩后摘要：{summary_text}
+压缩源对话：{pending_text}
+"""
+        try:
+            response = await self._invoke_llm_async(prompt)
+            text = extract_text_content(getattr(response, "content", response)).strip()
+            return self._parse_json(text)
+        except Exception:
+            return {}
+
     def _extract_facts_on_compression(
         self,
         state: AgentState,
@@ -352,7 +508,10 @@ class MemoryCompressionAgent:
             return {"keywords": [], "facts": []}
 
         final_answer = str(state.get("final_answer", "") or "").strip()
-        pending_text = "\n".join(str(x.get("content", "") or "") for x in pending_turns[-12:])
+        pending_text = "\n".join(
+            str(x.get("content", "") or "")
+            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
+        )
         allow_llm = bool(final_answer) and (not self._contains_failure_markers(final_answer))
 
         heuristic_payload = self._heuristic_extract_facts(
@@ -396,29 +555,108 @@ class MemoryCompressionAgent:
 
             fact_type = str(item.get("fact_type", "focus") or "focus").strip()
             try:
-                confidence = float(item.get("confidence", 0.7))
+                confidence = float(item.get("confidence", FACT_DEFAULT_CONFIDENCE))
             except Exception:
-                confidence = 0.7
+                confidence = FACT_DEFAULT_CONFIDENCE
             ttl_hours = item.get("ttl_hours", None)
             if fact_type == "market" and not ttl_hours:
                 ttl_hours = self.market_ttl_hours
 
             facts.append(
                 {
-                    "fact_key": fact_key[:80],
-                    "fact_value": fact_value[:500],
-                    "fact_type": fact_type[:32],
+                    "fact_key": fact_key[:FACT_KEY_MAX_CHARS],
+                    "fact_value": fact_value[:FACT_VALUE_MAX_CHARS],
+                    "fact_type": fact_type[:FACT_TYPE_MAX_CHARS],
                     "confidence": max(0.0, min(1.0, confidence)),
-                    "keywords": self._normalize_keywords(item.get("keywords", []), limit=10),
+                    "keywords": self._normalize_keywords(item.get("keywords", []), limit=FACT_KEYWORD_MAX_ITEMS),
                     "ttl_hours": int(ttl_hours) if isinstance(ttl_hours, int) or str(ttl_hours).isdigit() else None,
                 }
             )
-            if len(facts) >= 6:
+            if len(facts) >= FACTS_MAX_ITEMS:
                 break
 
         return {"keywords": merged_keywords, "facts": facts}
 
-    def run(self, state: AgentState) -> Dict[str, Any]:
+    async def _extract_facts_on_compression_async(
+        self,
+        state: AgentState,
+        summary_text: str,
+        pending_turns: List[Dict[str, str]],
+    ) -> Dict[str, Any]:
+        if not self.persistent_enabled:
+            return {"keywords": [], "facts": []}
+
+        final_answer = str(state.get("final_answer", "") or "").strip()
+        pending_text = "\n".join(
+            str(x.get("content", "") or "")
+            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
+        )
+        allow_llm = bool(final_answer) and (not self._contains_failure_markers(final_answer))
+
+        heuristic_payload = self._heuristic_extract_facts(
+            state=state,
+            summary_text=summary_text,
+            pending_turns=pending_turns,
+        )
+        llm_payload: Dict[str, Any] = {}
+        if allow_llm:
+            llm_payload = await self._llm_extract_facts_async(
+                state=state,
+                summary_text=summary_text,
+                pending_turns=pending_turns,
+            )
+
+        merged_keywords = self._normalize_keywords(
+            (llm_payload.get("keywords", []) if isinstance(llm_payload, dict) else [])
+            + (heuristic_payload.get("keywords", []) if isinstance(heuristic_payload, dict) else []),
+            limit=12,
+        )
+
+        raw_facts: List[Any] = []
+        if isinstance(llm_payload, dict) and isinstance(llm_payload.get("facts", []), list):
+            raw_facts.extend(llm_payload.get("facts", []))
+        if isinstance(heuristic_payload, dict) and isinstance(heuristic_payload.get("facts", []), list):
+            raw_facts.extend(heuristic_payload.get("facts", []))
+
+        facts: List[Dict[str, Any]] = []
+        seen = set()
+        for item in raw_facts:
+            if not isinstance(item, dict):
+                continue
+            fact_key = str(item.get("fact_key", "") or "").strip()
+            fact_value = str(item.get("fact_value", "") or "").strip()
+            if not fact_key or not fact_value:
+                continue
+            dedup_key = (fact_key, fact_value)
+            if dedup_key in seen:
+                continue
+            seen.add(dedup_key)
+
+            fact_type = str(item.get("fact_type", "focus") or "focus").strip()
+            try:
+                confidence = float(item.get("confidence", FACT_DEFAULT_CONFIDENCE))
+            except Exception:
+                confidence = FACT_DEFAULT_CONFIDENCE
+            ttl_hours = item.get("ttl_hours", None)
+            if fact_type == "market" and not ttl_hours:
+                ttl_hours = self.market_ttl_hours
+
+            facts.append(
+                {
+                    "fact_key": fact_key[:FACT_KEY_MAX_CHARS],
+                    "fact_value": fact_value[:FACT_VALUE_MAX_CHARS],
+                    "fact_type": fact_type[:FACT_TYPE_MAX_CHARS],
+                    "confidence": max(0.0, min(1.0, confidence)),
+                    "keywords": self._normalize_keywords(item.get("keywords", []), limit=FACT_KEYWORD_MAX_ITEMS),
+                    "ttl_hours": int(ttl_hours) if isinstance(ttl_hours, int) or str(ttl_hours).isdigit() else None,
+                }
+            )
+            if len(facts) >= FACTS_MAX_ITEMS:
+                break
+
+        return {"keywords": merged_keywords, "facts": facts}
+
+    async def run(self, state: AgentState) -> Dict[str, Any]:
         if not self.enabled:
             return {
                 "debug_steps": state.get("debug_steps", []) + ["memory_compression: disabled"],
@@ -460,8 +698,8 @@ class MemoryCompressionAgent:
 
         if should_compress and pending:
             pending_snapshot = [dict(x) for x in pending]
-            rolling_summary = self._llm_merge_summary(old_summary=rolling_summary, pending=pending_snapshot)
-            extraction_payload = self._extract_facts_on_compression(
+            rolling_summary = await self._llm_merge_summary_async(old_summary=rolling_summary, pending=pending_snapshot)
+            extraction_payload = await self._extract_facts_on_compression_async(
                 state=state,
                 summary_text=rolling_summary,
                 pending_turns=pending_snapshot,
@@ -479,7 +717,7 @@ class MemoryCompressionAgent:
             }
 
             if self.rebase_every_n_merges > 0 and merge_count % self.rebase_every_n_merges == 0:
-                rolling_summary = self._llm_rebase_summary(rolling_summary)
+                rolling_summary = await self._llm_rebase_summary_async(rolling_summary)
                 compression_info["rebase"] = True
             else:
                 compression_info["rebase"] = False
