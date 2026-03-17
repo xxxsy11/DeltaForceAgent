@@ -4,9 +4,11 @@ RAG 业务服务：将现有 RAG 系统封装成可复用能力。
 
 import asyncio
 import logging
+import threading
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from config import DEFAULT_CONFIG, GraphRAGConfig
+from observability.langsmith import langsmith_trace
 
 if TYPE_CHECKING:
     from rag_modules.rag_system import AdvancedGraphRAGSystem
@@ -25,30 +27,51 @@ class RAGService:
         self.config = config or DEFAULT_CONFIG
         self.system: Optional[Any] = None
         self.ready = False
+        self._startup_lock = threading.RLock()
 
     def startup(self):
         """按在线服务模式启动，不触发离线重建。"""
         if self.ready and self.system:
             return
 
-        from rag_modules.rag_system import AdvancedGraphRAGSystem
-        self.system = AdvancedGraphRAGSystem(config=self.config)
-        self.system.initialize_system(enable_qa_modules=True)
-        self.system.load_knowledge_base_for_serving()
-        self.ready = True
-        logger.info("RAG Service 启动完成")
+        with self._startup_lock:
+            if self.ready and self.system:
+                return
+
+            with langsmith_trace(
+                self.config,
+                name="rag_service_startup",
+                run_type="retriever",
+                inputs={"run_mode": self.config.run_mode},
+                tags=["rag", "startup"],
+                metadata={"embedding_model": self.config.embedding_model},
+            ):
+                from rag_modules.rag_system import AdvancedGraphRAGSystem
+                self.system = AdvancedGraphRAGSystem(config=self.config)
+                self.system.initialize_system(enable_qa_modules=True)
+                self.system.load_knowledge_base_for_serving()
+                self.ready = True
+                logger.info("RAG Service 启动完成")
 
     def query(self, question: str, explain_routing: bool = False) -> Dict[str, Any]:
         if not question or not question.strip():
             return {"answer": "问题为空，请输入有效问题。", "analysis": None}
 
-        self.startup()
-        answer, analysis = self.system.ask_question_with_routing(
-            question=question.strip(),
-            stream=False,
-            explain_routing=explain_routing,
-        )
-        return {"answer": answer, "analysis": analysis}
+        with langsmith_trace(
+            self.config,
+            name="rag_service_query",
+            run_type="retriever",
+            inputs={"question": question.strip(), "explain_routing": explain_routing},
+            tags=["rag", "query"],
+            metadata={"ready": self.ready},
+        ):
+            self.startup()
+            answer, analysis = self.system.ask_question_with_routing(
+                question=question.strip(),
+                stream=False,
+                explain_routing=explain_routing,
+            )
+            return {"answer": answer, "analysis": analysis}
 
     async def startup_async(self):
         await asyncio.to_thread(self.startup)
@@ -60,7 +83,9 @@ class RAGService:
         await asyncio.to_thread(self.close)
 
     def close(self):
-        if self.system:
-            self.system._cleanup()
-        self.ready = False
-        logger.info("RAG Service 已关闭")
+        with self._startup_lock:
+            if self.system:
+                self.system._cleanup()
+            self.system = None
+            self.ready = False
+            logger.info("RAG Service 已关闭")

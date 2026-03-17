@@ -13,7 +13,8 @@ from langchain_openai import ChatOpenAI
 
 from config import DEFAULT_CONFIG, GraphRAGConfig
 from agents.intent_analyzer import IntentAnalyzer
-from agents.local_qwen_runtime import LocalQwenChatModel
+from agents.output_quality import EMPTY_RESULT_TEXT, MISSING_COMPARE_ENTITIES_TEXT, is_failure_text
+from observability.langsmith import langsmith_trace
 from rag_modules.llm_utils import extract_text_content
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,8 @@ class LLMToolPlanner:
     COMPOSE_FACT_MAX_LINES = 6
     COMPOSE_RECOMMEND_MAX_LINES = 4
     COMPOSE_RISK_MAX_LINES = 4
+    TRACE_QUERY_PREVIEW_CHARS = 240
+    TRACE_ANSWER_PREVIEW_CHARS = 400
 
     def __init__(
         self,
@@ -58,6 +61,8 @@ class LLMToolPlanner:
 
     def _build_llm(self):
         if bool(getattr(self.config, "agent_local_enabled", True)) and os.path.exists(self.model_name):
+            from agents.local_qwen_runtime import LocalQwenChatModel
+
             adapter_path = str(getattr(self.config, "agent_tool_selection_adapter_path", "") or "").strip()
             device = str(getattr(self.config, "agent_local_device", "cpu") or "cpu").strip()
             max_new_tokens = int(
@@ -77,6 +82,7 @@ class LLMToolPlanner:
                 device=device,
                 max_new_tokens=max_new_tokens,
                 force_no_think=force_no_think,
+                config=self.config,
             )
 
         api_key = os.getenv("MOONSHOT_API_KEY", "").strip()
@@ -97,6 +103,8 @@ class LLMToolPlanner:
         """二级任务规划模型：优先使用 planning LoRA，若不存在回落到 selector。"""
         if not (bool(getattr(self.config, "agent_local_enabled", True)) and os.path.exists(self.model_name)):
             return self.llm
+        from agents.local_qwen_runtime import LocalQwenChatModel
+
         adapter_path = str(getattr(self.config, "agent_planning_adapter_path", "") or "").strip()
         if (
             not adapter_path
@@ -121,6 +129,7 @@ class LLMToolPlanner:
             device=device,
             max_new_tokens=max_new_tokens,
             force_no_think=force_no_think,
+            config=self.config,
         )
 
     @staticmethod
@@ -180,12 +189,15 @@ class LLMToolPlanner:
 
         return plans
 
-    def _llm_plan(self, query: str, available_tools: List[str], for_task_planning: bool = False) -> Optional[PlannerDecision]:
-        llm_client = self.planning_llm if for_task_planning else self.llm
-        if llm_client is None:
-            return None
+    @staticmethod
+    def _trace_preview(text: str, limit: int) -> str:
+        raw = str(text or "").strip()
+        if len(raw) <= limit:
+            return raw
+        return raw[:limit]
 
-        prompt = f"""
+    def _build_tool_plan_prompt(self, query: str, available_tools: List[str]) -> str:
+        return f"""
 你是多工具调度器。根据用户问题决定要调用哪些工具，并按顺序输出。
 
 可用工具：
@@ -219,6 +231,46 @@ class LLMToolPlanner:
 
 用户问题：{query}
 """
+
+    def _build_compose_answer_prompt(self, user_query: str, tool_results: List[Dict[str, str]]) -> str:
+        return f"""
+你是最终回答整合器。请根据用户问题和工具结果给出最终回答。
+要求：
+1) 先给结论，再给最多3条依据。
+2) 严格引用工具结果，不得补充工具中没有的数值、区间或结论。
+3) 若同一信息来源冲突：价格/历史/建议以市场工具输出为准，资料描述以知识检索为准。
+4) 若某部分工具失败，明确写“该部分数据不可用”，不要猜测。
+5) 回答控制在 6~12 行，避免冗长模板化。
+
+用户问题：{user_query}
+工具结果：{json.dumps(tool_results, ensure_ascii=False)}
+"""
+
+    def _build_compose_analysis_prompt(
+        self,
+        user_query: str,
+        report: Dict,
+        tool_results: List[Dict[str, str]],
+    ) -> str:
+        return f"""
+你是回答 Agent。请根据用户问题和“数据分析 Agent”的结构化报告输出最终回答。
+要求：
+1) 结构固定：结论 -> 关键依据(最多3条) -> 不确定性(如有)。
+2) 所有价格、区间、样本数、利润等数值必须来自工具原始结果，不得自造或改写数量级。
+3) 若存在失败工具，必须单独列出“不可用部分”，且不要用猜测补齐。
+4) 若报告含手续费假设，必须原样说明。
+5) 文本简洁，避免大段背景描述。
+
+用户问题：{user_query}
+分析报告：{json.dumps(report, ensure_ascii=False)}
+工具原始结果：{json.dumps(tool_results, ensure_ascii=False)}
+"""
+
+    def _llm_plan(self, query: str, available_tools: List[str], for_task_planning: bool = False) -> Optional[PlannerDecision]:
+        llm_client = self.planning_llm if for_task_planning else self.llm
+        if llm_client is None:
+            return None
+        prompt = self._build_tool_plan_prompt(query=query, available_tools=available_tools)
         try:
             response = llm_client.invoke(prompt)
             text = extract_text_content(getattr(response, "content", response)).strip()
@@ -252,52 +304,38 @@ class LLMToolPlanner:
         llm_client = self.planning_llm if for_task_planning else self.llm
         if llm_client is None:
             return None
-
-        prompt = f"""
-你是多工具调度器。根据用户问题决定要调用哪些工具，并按顺序输出。
-
-可用工具：
-{json.dumps(available_tools, ensure_ascii=False)}
-
-规则：
-1) 只能从可用工具中选择。
-2) 可选择 0~3 个工具。
-3) 如果问题是多物品对比（对比/比较/哪个好），优先调用 df_multi_item_compare。
-4) 如果问题是利润稳定性（稳不稳/波动/回撤/风险），优先调用 df_profit_stability。
-5) 如果问题同时要求“介绍 + 价格或建议”，优先调用 df_answer_composer。
-6) 如果问题包含“贵了还是便宜了 / 能不能卖 / 建不建议买 / 赚或亏多少”，优先调用 df_market_price_advice。
-7) 如果问题包含“特勤处制造 / 利润最高 / 利润前三 / 枪械配件利润 / 子弹利润 / 药品针剂利润 / 防具利润”，优先调用 df_place_profit_rank。
-8) 如果问题同时包含“资料介绍 + 实时价格”，应同时调用：
-   - rag_knowledge_search（负责介绍、背景、属性）
-   - df_market_latest_price（负责最新价格）
-9) 如果问题同时包含“资料介绍 + 买卖建议/贵便宜判断”，应同时调用：
-   - rag_knowledge_search
-   - df_market_price_advice
-10) 如果是历史价格，调用 df_market_history_price。
-11) 输出必须是 JSON，不要 Markdown，不要额外解释。
-
-输出 JSON 格式：
-{{
-  "intent": "简短意图",
-  "reason": "简短原因",
-  "tool_calls": [
-    {{"tool_name":"工具名","tool_query":"传给工具的查询"}}
-  ]
-}}
-
-用户问题：{query}
-"""
+        prompt = self._build_tool_plan_prompt(query=query, available_tools=available_tools)
         try:
-            response = await self._invoke_llm_async(llm_client, prompt)
-            text = extract_text_content(getattr(response, "content", response)).strip()
-            payload = self._extract_json_object(text)
-            if not payload:
-                return None
+            with langsmith_trace(
+                self.config,
+                name="planner:tool_plan_llm",
+                run_type="llm",
+                inputs={
+                    "query_preview": self._trace_preview(query, self.TRACE_QUERY_PREVIEW_CHARS),
+                    "available_tools": available_tools,
+                    "for_task_planning": bool(for_task_planning),
+                },
+                tags=["planner", "tool-plan", "llm"],
+                metadata={"model_name": self.model_name, "local_model": bool(hasattr(llm_client, "_model"))},
+            ) as span:
+                response = await self._invoke_llm_async(llm_client, prompt)
+                text = extract_text_content(getattr(response, "content", response)).strip()
+                payload = self._extract_json_object(text)
+                if not payload:
+                    return None
 
-            calls = payload.get("tool_calls", [])
-            plans = self._sanitize_tool_calls(calls if isinstance(calls, list) else [], available_tools, query)
-            if not plans:
-                return None
+                calls = payload.get("tool_calls", [])
+                plans = self._sanitize_tool_calls(calls if isinstance(calls, list) else [], available_tools, query)
+                if not plans:
+                    return None
+                if span is not None:
+                    span.end(
+                        outputs={
+                            "intent": str(payload.get("intent", "") or ""),
+                            "tool_names": [item.tool_name for item in plans],
+                            "tool_call_count": len(plans),
+                        }
+                    )
 
             return PlannerDecision(
                 intent=str(payload.get("intent", "llm_tool_plan")).strip() or "llm_tool_plan",
@@ -471,15 +509,11 @@ class LLMToolPlanner:
 
     @staticmethod
     def _is_failure(text: str) -> bool:
-        raw = (text or "").strip()
-        if not raw:
-            return True
-        markers = ("工具调用失败", "查询失败", "未找到工具", "系统错误", "未获得可用结果", "不可用", "请至少提供两个物品名称")
-        return any(token in raw for token in markers)
+        return is_failure_text(text, extra_markers=(MISSING_COMPARE_ENTITIES_TEXT,))
 
     def compose_answer(self, user_query: str, tool_results: List[Dict[str, str]]) -> str:
         if not tool_results:
-            return "未获得可用结果。"
+            return EMPTY_RESULT_TEXT
         if len(tool_results) == 1:
             return str(tool_results[0].get("output", "")).strip()
 
@@ -531,7 +565,7 @@ class LLMToolPlanner:
 
     async def compose_answer_async(self, user_query: str, tool_results: List[Dict[str, str]]) -> str:
         if not tool_results:
-            return "未获得可用结果。"
+            return EMPTY_RESULT_TEXT
         if len(tool_results) == 1:
             return str(tool_results[0].get("output", "")).strip()
 
@@ -558,22 +592,28 @@ class LLMToolPlanner:
 
         if self.llm is None:
             return fallback
-
-        prompt = f"""
-你是最终回答整合器。请根据用户问题和工具结果给出最终回答。
-要求：
-1) 先给结论，再给最多3条依据。
-2) 严格引用工具结果，不得补充工具中没有的数值、区间或结论。
-3) 若同一信息来源冲突：价格/历史/建议以市场工具输出为准，资料描述以知识检索为准。
-4) 若某部分工具失败，明确写“该部分数据不可用”，不要猜测。
-5) 回答控制在 6~12 行，避免冗长模板化。
-
-用户问题：{user_query}
-工具结果：{json.dumps(tool_results, ensure_ascii=False)}
-"""
+        prompt = self._build_compose_answer_prompt(user_query=user_query, tool_results=tool_results)
         try:
-            response = await self._invoke_llm_async(self.llm, prompt)
-            text = extract_text_content(getattr(response, "content", response)).strip()
+            with langsmith_trace(
+                self.config,
+                name="planner:compose_answer",
+                run_type="llm",
+                inputs={
+                    "query_preview": self._trace_preview(user_query, self.TRACE_QUERY_PREVIEW_CHARS),
+                    "tool_result_count": len(tool_results),
+                },
+                tags=["planner", "compose-answer", "llm"],
+                metadata={"model_name": self.model_name},
+            ) as span:
+                response = await self._invoke_llm_async(self.llm, prompt)
+                text = extract_text_content(getattr(response, "content", response)).strip()
+                if span is not None:
+                    span.end(
+                        outputs={
+                            "answer_preview": self._trace_preview(text, self.TRACE_ANSWER_PREVIEW_CHARS),
+                            "used_fallback": False,
+                        }
+                    )
             return text or fallback
         except Exception as exc:
             logger.warning("tool_planner: compose_answer llm failed, fallback to raw tool outputs: %s", exc)
@@ -673,24 +713,39 @@ class LLMToolPlanner:
                 lines.append("失败工具：" + ", ".join([str(item.get("tool")) for item in failed_tools if isinstance(item, dict)]))
             return "\n".join(lines).strip()
 
-        prompt = f"""
-你是回答 Agent。请根据用户问题和“数据分析 Agent”的结构化报告输出最终回答。
-要求：
-1) 结构固定：结论 -> 关键依据(最多3条) -> 不确定性(如有)。
-2) 所有价格、区间、样本数、利润等数值必须来自工具原始结果，不得自造或改写数量级。
-3) 若存在失败工具，必须单独列出“不可用部分”，且不要用猜测补齐。
-4) 若报告含手续费假设，必须原样说明。
-5) 文本简洁，避免大段背景描述。
-
-用户问题：{user_query}
-分析报告：{json.dumps(report, ensure_ascii=False)}
-工具原始结果：{json.dumps(tool_results, ensure_ascii=False)}
-"""
+        prompt = self._build_compose_analysis_prompt(
+            user_query=user_query,
+            report=report,
+            tool_results=tool_results,
+        )
         try:
-            response = await self._invoke_llm_async(self.llm, prompt)
-            text = extract_text_content(getattr(response, "content", response)).strip()
-            if text:
-                return text
+            with langsmith_trace(
+                self.config,
+                name="planner:compose_from_analysis",
+                run_type="llm",
+                inputs={
+                    "query_preview": self._trace_preview(user_query, self.TRACE_QUERY_PREVIEW_CHARS),
+                    "report_fact_count": len(facts),
+                    "tool_result_count": len(tool_results),
+                },
+                tags=["planner", "compose-analysis", "llm"],
+                metadata={"model_name": self.model_name},
+            ) as span:
+                response = await self._invoke_llm_async(self.llm, prompt)
+                if span is not None:
+                    text = extract_text_content(getattr(response, "content", response)).strip()
+                    if text:
+                        span.end(
+                            outputs={
+                                "answer_preview": self._trace_preview(text, self.TRACE_ANSWER_PREVIEW_CHARS),
+                                "used_fallback": False,
+                            }
+                        )
+                        return text
+                else:
+                    text = extract_text_content(getattr(response, "content", response)).strip()
+                    if text:
+                        return text
         except Exception as exc:
             logger.warning("tool_planner: compose_from_analysis llm failed, fallback to compose_answer: %s", exc)
 

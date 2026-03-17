@@ -8,6 +8,15 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 
+DEFAULT_USER_ID = "default_user"
+DEFAULT_SESSION_ID = "default"
+DEFAULT_SESSION_PREFIX = "session"
+TOKEN_ESTIMATE_CHAR_DIVISOR = 2
+PENDING_DIGEST_MAX_LINES = 4
+PENDING_DIGEST_MAX_CHARS = 100
+RECENT_CONTEXT_MAX_ITEMS = 10
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -16,7 +25,7 @@ def _estimate_tokens(text: str) -> int:
     raw = str(text or "")
     if not raw:
         return 0
-    return max(1, len(raw) // 2)
+    return max(1, len(raw) // TOKEN_ESTIMATE_CHAR_DIVISOR)
 
 
 def _estimate_turn_tokens(turns: List[Dict[str, str]]) -> int:
@@ -46,38 +55,41 @@ class SessionMemoryManager:
 
     @staticmethod
     def _build_key(user_id: str, session_id: str) -> str:
-        uid = str(user_id or "default_user").strip() or "default_user"
-        sid = str(session_id or "default").strip() or "default"
+        uid = str(user_id or DEFAULT_USER_ID).strip() or DEFAULT_USER_ID
+        sid = str(session_id or DEFAULT_SESSION_ID).strip() or DEFAULT_SESSION_ID
         return f"{uid}::{sid}"
 
     def get_or_create(self, user_id: str, session_id: str) -> SessionMemory:
-        uid = str(user_id or "default_user").strip() or "default_user"
-        sid = str(session_id or "default").strip() or "default"
+        uid = str(user_id or DEFAULT_USER_ID).strip() or DEFAULT_USER_ID
+        sid = str(session_id or DEFAULT_SESSION_ID).strip() or DEFAULT_SESSION_ID
         key = self._build_key(user_id=uid, session_id=sid)
         if key not in self._sessions:
             self._sessions[key] = SessionMemory(user_id=uid, session_id=sid)
         return self._sessions[key]
 
     def clear_session(self, user_id: str, session_id: str) -> None:
-        uid = str(user_id or "default_user").strip() or "default_user"
-        sid = str(session_id or "default").strip() or "default"
+        uid = str(user_id or DEFAULT_USER_ID).strip() or DEFAULT_USER_ID
+        sid = str(session_id or DEFAULT_SESSION_ID).strip() or DEFAULT_SESSION_ID
         key = self._build_key(user_id=uid, session_id=sid)
         self._sessions[key] = SessionMemory(user_id=uid, session_id=sid)
 
-    def next_session_id(self, prefix: str = "session") -> str:
+    def next_session_id(self, prefix: str = DEFAULT_SESSION_PREFIX) -> str:
         self._session_seq[prefix] += 1
         return f"{prefix}-{self._session_seq[prefix]:04d}"
 
     @staticmethod
-    def _build_pending_digest(pending_buffer: List[Dict[str, str]], max_lines: int = 4) -> str:
+    def _build_pending_digest(
+        pending_buffer: List[Dict[str, str]],
+        max_lines: int = PENDING_DIGEST_MAX_LINES,
+    ) -> str:
         if not pending_buffer:
             return ""
         lines = []
         for item in pending_buffer[-max_lines:]:
             role = "用户" if item.get("role") == "user" else "助手"
             content = str(item.get("content", "")).strip().replace("\n", " ")
-            if len(content) > 100:
-                content = content[:100] + "..."
+            if len(content) > PENDING_DIGEST_MAX_CHARS:
+                content = content[:PENDING_DIGEST_MAX_CHARS] + "..."
             lines.append(f"- {role}: {content}")
         return "\n".join(lines)
 
@@ -92,7 +104,7 @@ class SessionMemoryManager:
             context_blocks.append(f"[待压缩摘要]\n{pending_digest}")
         if memory.recent_raw:
             recent_lines = []
-            for item in memory.recent_raw[-10:]:
+            for item in memory.recent_raw[-RECENT_CONTEXT_MAX_ITEMS:]:
                 role = "用户" if item.get("role") == "user" else "助手"
                 content = str(item.get("content", "")).strip()
                 recent_lines.append(f"- {role}: {content}")

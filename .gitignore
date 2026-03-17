@@ -4,11 +4,16 @@ __pycache__/
 
 .env
 
-# Runtime data
+outputs/
+wandb/
+.cache/
+logs/
+.langgraph_api/
+
 data/memory/
 data/milvus/
-
-# Generated graph export artifacts
+data/postgres/
+data/self_improve/raw_trajectories/
 data/neo4j/csv/
 data/neo4j/cypher/
 

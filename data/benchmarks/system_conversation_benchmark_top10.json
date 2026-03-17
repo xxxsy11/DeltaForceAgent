@@ -1,0 +1,283 @@
+{
+  "meta": {
+    "source": "data/benchmarks/system_conversation_benchmark_100.json",
+    "description": "first 10 turns benchmark slice"
+  },
+  "cases": [
+    {
+      "case_id": "case_001_top10",
+      "user_id": "user_1",
+      "sessions": [
+        {
+          "session_id": "case_001_s1_top10",
+          "turns": [
+            {
+              "query": "介绍一下便携军用雷达",
+              "complexity": "simple",
+              "expected_intents": [
+                "knowledge_query",
+                "general_query"
+              ],
+              "expected_tool": "rag_knowledge_search",
+              "expected_tool_candidates": [
+                "rag_knowledge_search"
+              ],
+              "expected_skill": "knowledge_profile",
+              "expected_entities": [
+                "便携军用雷达"
+              ],
+              "expected_tool_query_contains": [
+                "便携军用雷达"
+              ],
+              "answer_keywords": [
+                "便携军用雷达"
+              ],
+              "expect_memory_resolution": false,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": false,
+              "expected_tool_chain": []
+            },
+            {
+              "query": "它现在什么价格",
+              "complexity": "simple",
+              "expected_intents": [
+                "market_price_latest_query"
+              ],
+              "expected_tool": "df_market_latest_price",
+              "expected_tool_candidates": [
+                "df_market_latest_price"
+              ],
+              "expected_skill": "market_latest_price",
+              "expected_entities": [
+                "便携军用雷达"
+              ],
+              "expected_tool_query_contains": [
+                "便携军用雷达"
+              ],
+              "answer_keywords": [
+                "价格"
+              ],
+              "expect_memory_resolution": true,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": false,
+              "expected_tool_chain": []
+            },
+            {
+              "query": "它的历史价格",
+              "complexity": "simple",
+              "expected_intents": [
+                "market_price_history_query"
+              ],
+              "expected_tool": "df_market_history_price",
+              "expected_tool_candidates": [
+                "df_market_history_price"
+              ],
+              "expected_skill": "market_history_price",
+              "expected_entities": [
+                "便携军用雷达"
+              ],
+              "expected_tool_query_contains": [
+                "便携军用雷达"
+              ],
+              "answer_keywords": [
+                "历史价格",
+                "区间"
+              ],
+              "expect_memory_resolution": true,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": false,
+              "expected_tool_chain": []
+            },
+            {
+              "query": "那现在建议买吗",
+              "complexity": "complex",
+              "expected_intents": [
+                "market_price_advice_query"
+              ],
+              "expected_tool": "df_market_price_advice",
+              "expected_tool_candidates": [
+                "df_market_price_advice"
+              ],
+              "expected_skill": "market_price_advice",
+              "expected_entities": [
+                "便携军用雷达"
+              ],
+              "expected_tool_query_contains": [
+                "便携军用雷达"
+              ],
+              "answer_keywords": [
+                "建议"
+              ],
+              "expect_memory_resolution": true,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": false,
+              "expected_tool_chain": []
+            },
+            {
+              "query": "再介绍一下曼德尔超算单元并告诉我现在价格",
+              "complexity": "complex",
+              "expected_intents": [
+                "answer_composer_query"
+              ],
+              "expected_tool": "df_answer_composer",
+              "expected_tool_candidates": [
+                "df_answer_composer"
+              ],
+              "expected_skill": "answer_composer",
+              "expected_entities": [
+                "曼德尔超算单元"
+              ],
+              "expected_tool_query_contains": [
+                "曼德尔超算单元"
+              ],
+              "answer_keywords": [
+                "曼德尔超算单元",
+                "价格"
+              ],
+              "expect_memory_resolution": false,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": false,
+              "expected_tool_chain": []
+            },
+            {
+              "query": "对比一下便携军用雷达和曼德尔超算单元",
+              "complexity": "complex",
+              "expected_intents": [
+                "market_compare_query"
+              ],
+              "expected_tool": "df_multi_item_compare",
+              "expected_tool_candidates": [
+                "df_multi_item_compare"
+              ],
+              "expected_skill": "market_multi_item_compare",
+              "expected_entities": [
+                "便携军用雷达",
+                "曼德尔超算单元"
+              ],
+              "expected_tool_query_contains": [
+                "便携军用雷达",
+                "曼德尔超算单元"
+              ],
+              "answer_keywords": [
+                "对比"
+              ],
+              "expect_memory_resolution": false,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": true,
+              "expected_tool_chain": [
+                "df_multi_item_compare"
+              ]
+            },
+            {
+              "query": "再对比一下这两个，给买入建议",
+              "complexity": "complex",
+              "expected_intents": [
+                "market_compare_query"
+              ],
+              "expected_tool": "df_multi_item_compare",
+              "expected_tool_candidates": [
+                "df_multi_item_compare"
+              ],
+              "expected_skill": "market_multi_item_compare",
+              "expected_entities": [
+                "便携军用雷达",
+                "曼德尔超算单元"
+              ],
+              "expected_tool_query_contains": [
+                "便携军用雷达",
+                "曼德尔超算单元"
+              ],
+              "answer_keywords": [
+                "对比",
+                "买入"
+              ],
+              "expect_memory_resolution": true,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": true,
+              "expected_tool_chain": [
+                "df_multi_item_compare"
+              ]
+            },
+            {
+              "query": "再加上高速磁盘阵列，三个一起对比",
+              "complexity": "complex",
+              "expected_intents": [
+                "market_compare_query"
+              ],
+              "expected_tool": "df_multi_item_compare",
+              "expected_tool_candidates": [
+                "df_multi_item_compare"
+              ],
+              "expected_skill": "market_multi_item_compare",
+              "expected_entities": [
+                "便携军用雷达",
+                "曼德尔超算单元",
+                "高速磁盘阵列"
+              ],
+              "expected_tool_query_contains": [
+                "便携军用雷达",
+                "曼德尔超算单元"
+              ],
+              "answer_keywords": [
+                "对比"
+              ],
+              "expect_memory_resolution": false,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": true,
+              "expected_tool_chain": [
+                "df_multi_item_compare"
+              ]
+            },
+            {
+              "query": "分析.338 Lap Mag AP利润稳定性",
+              "complexity": "complex",
+              "expected_intents": [
+                "profit_stability_query"
+              ],
+              "expected_tool": "df_profit_stability",
+              "expected_tool_candidates": [
+                "df_profit_stability"
+              ],
+              "expected_skill": "profit_stability",
+              "expected_entities": [
+                ".338 Lap Mag AP"
+              ],
+              "expected_tool_query_contains": [
+                ".338 Lap Mag AP"
+              ],
+              "answer_keywords": [
+                "稳定",
+                "利润"
+              ],
+              "expect_memory_resolution": false,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": false,
+              "expected_tool_chain": []
+            },
+            {
+              "query": "特勤处制造什么子弹利润最高",
+              "complexity": "simple",
+              "expected_intents": [
+                "place_profit_query"
+              ],
+              "expected_tool": "df_place_profit_rank",
+              "expected_tool_candidates": [
+                "df_place_profit_rank"
+              ],
+              "expected_skill": "place_profit_rank",
+              "expected_entities": [],
+              "expected_tool_query_contains": [],
+              "answer_keywords": [
+                "利润"
+              ],
+              "expect_memory_resolution": false,
+              "expect_persistent_recall": false,
+              "expect_requires_task_planning": false,
+              "expected_tool_chain": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

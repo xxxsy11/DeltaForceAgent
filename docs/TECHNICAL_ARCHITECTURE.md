@@ -111,7 +111,8 @@
 - `df_answer_composer`
 
 ### 5.2 价格工具实现
-- 入口：`src/tools/df_price_tools.py`
+- 入口：`src/tools/df_price/toolset.py`
+- 细分模块：`src/tools/df_price/*.py`
 - 服务层：`src/services/df_price_service.py`
 
 说明：
@@ -134,12 +135,12 @@
 关键模块：
 - `src/rag_modules/intelligent_query_router.py`
 - `src/rag_modules/hybrid_retrieval.py`
-- `src/rag_modules/graph_rag_retrieval.py`
+- `src/rag_modules/graph_retrieval/engine.py`
 - `src/rag_modules/rag_system.py`
 
 ### 6.2 长期记忆 RAG（Memory RAG）
 - 召回节点：`src/memory/persistent_memory_recall_node.py`
-- 存储实现：`src/memory/persistent_memory_store.py`
+- 存储实现：`src/memory/persistent/store.py` + mixins
 
 召回策略：
 1. 门控打分  
@@ -164,7 +165,7 @@
 
 ### 7.2 长期记忆（会话间）
 - 写入节点：`src/memory/persistent_memory_write_node.py`
-- 存储模块：`src/memory/persistent_memory_store.py`
+- 存储模块：`src/memory/persistent/`
 
 主要存储实体：
 - 完整对话记录（turn）
@@ -186,7 +187,7 @@
 ### 8.2 当前保留的同步封装点
 以下模块内部仍为同步实现，但已在异步层做线程封装：
 - `src/services/rag_service.py`
-- `src/memory/persistent_memory_store.py`
+- `src/memory/persistent/store.py`
 
 价格服务 `src/services/df_price_service.py` 当前保持同步 HTTP 实现（按业务约束保留）。
 
@@ -197,6 +198,7 @@
 ### 9.1 阶段级追踪
 - 文件：`src/agents/graph.py`
 - 输出模式：中文阶段日志（开始/完成/耗时/关键结果）
+- 同步写入 LangSmith stage spans（`stage:<node_name>`），并附带阶段输出摘要
 
 示例：
 - 正在意图识别 -> 完成（用时、识别意图、选中工具）
@@ -210,6 +212,25 @@
 ### 9.3 日志噪声控制
 - 文件：`main.py`
 - 对 `httpx/openai/transformers/sentence_transformers` 等日志进行降噪，突出业务流程信息。
+
+### 9.4 LangSmith 全链路观测
+- 观测封装：`src/observability/langsmith.py`
+- 入口 Root Run：`src/agents/runner.py`
+- 阶段 Span：`src/agents/graph.py`
+- 工具与服务：
+  - 工具注册调用：`src/tools/registry.py`
+  - RAG 服务：`src/services/rag_service.py`
+  - 价格服务：`src/services/df_price_service.py`
+  - 本地模型：`src/agents/local_qwen_runtime.py`
+- 记忆与自进化：
+  - 记忆压缩/召回/写入：`src/memory/memory_compression_agent.py`、`src/memory/persistent_memory_recall_node.py`、`src/memory/persistent_memory_write_node.py`
+  - 自进化采样与 LLM Judge：`src/agents/self_improving_data_agent.py`
+
+观测字段：
+- `user_id` / `session_id`
+- `selected_tool` / `flow_type` / `intent`
+- `quality_gate_passed` / `retry_count_total`
+- 关键节点耗时与输出摘要
 
 ---
 
@@ -232,16 +253,25 @@
 
 ---
 
-## 11. 模型与评测资产
+## 11. 训练与评测体系
 
-本仓库提供三类与模型优化相关的资产：
-- 三模块 LoRA-SFT 的离线评测报告：`docs/SFT_EVAL_REPORT.md`
-- 系统级评测样本：`data/benchmarks/system_eval_cases.json`
-- 系统级自动化评测脚本：`data/scripts/system_full_metrics_suite.py`
+### 11.1 数据集
+目录：`data/dataset/sft/`
+- `intent/{train,dev,test}.jsonl`
+- `tool_selection/{train,dev,test}.jsonl`
+- `planning/{train,dev,test}.jsonl`
 
-说明：
-- 训练代码与完整训练数据流水线不在当前开源仓库中维护；仓库保留可复现的评测入口与报告结果。
-- 如需训练侧实现，可在此评测接口基础上接入外部训练工程。
+### 11.2 训练入口
+- `training/intent_sft/train.py`
+- `training/tool_selection_sft/train.py`
+- `training/planning_sft/train.py`
+
+### 11.3 评测入口
+- `training/intent_sft/eval.py`
+- `training/tool_selection_sft/eval.py`
+- `training/planning_sft/eval.py`
+
+报告见：`docs/SFT_EVAL_REPORT.md`
 
 ---
 
@@ -249,7 +279,8 @@
 
 核心脚本：
 - `data/scripts/system_full_metrics_suite.py`
-- `data/scripts/data_pipeline.py`
+- `data/scripts/system_conversation_benchmark_suite.py`
+- `data/scripts/compare_tool_selection_latency.py`
 
 评测覆盖：
 - 意图识别准确率
@@ -292,7 +323,7 @@
 - 重试路由：`src/agents/retry_router.py`
 - 本地模型运行时：`src/agents/local_qwen_runtime.py`
 - 工具注册：`src/tools/registry.py`
-- 价格工具：`src/tools/df_price_tools.py`
+- 价格工具：`src/tools/df_price/toolset.py`
 - 价格服务：`src/services/df_price_service.py`
 - RAG 服务：`src/services/rag_service.py`
 - 记忆模块：`src/memory/`

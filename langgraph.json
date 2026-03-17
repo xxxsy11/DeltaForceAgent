@@ -1,0 +1,10 @@
+{
+  "dependencies": [
+    "."
+  ],
+  "graphs": {
+    "delta-agent": "./src/langgraph_app.py:graph"
+  },
+  "env": ".env"
+}
+

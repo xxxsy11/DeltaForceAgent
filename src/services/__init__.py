@@ -2,8 +2,16 @@
 业务服务层
 """
 
-from .rag_service import RAGService
-from .df_price_service import DFPriceService
-from .market_data_backend import MarketDataBackend, load_market_data_backend
+__all__ = ["RAGService", "DFPriceService"]
 
-__all__ = ["RAGService", "DFPriceService", "MarketDataBackend", "load_market_data_backend"]
+
+def __getattr__(name: str):
+    if name == "RAGService":
+        from .rag_service import RAGService
+
+        return RAGService
+    if name == "DFPriceService":
+        from .df_price_service import DFPriceService
+
+        return DFPriceService
+    raise AttributeError(f"module 'services' has no attribute {name!r}")

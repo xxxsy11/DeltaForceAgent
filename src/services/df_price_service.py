@@ -1,45 +1,152 @@
-"""Delta Force 市场价格服务。"""
+"""Delta Force 价格查询服务。"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
-from .market_data_backend import MarketDataBackend, load_market_data_backend
+import requests
+
+from observability.langsmith import langsmith_trace
+
+
+def _split_paths(paths: str | Iterable[str]) -> List[str]:
+    if isinstance(paths, str):
+        raw = [item.strip() for item in paths.split(",")]
+    else:
+        raw = [str(item).strip() for item in paths]
+    normalized: List[str] = []
+    seen = set()
+    for item in raw:
+        if not item:
+            continue
+        if item not in seen:
+            normalized.append(item)
+            seen.add(item)
+    return normalized
 
 
 @dataclass
 class DFPriceService:
-    backend: MarketDataBackend
-    latest_price_operation: str = "latest_price"
-    history_price_operation: str = "history_price"
-    object_lookup_operation: str = "object_lookup"
-    place_profit_rank_operation: str = "place_profit_rank"
-    place_profit_history_operation: str = "place_profit_history"
-    object_lookup_limit: int = 3000
+    DEFAULT_OBJECT_LOOKUP_LIMIT = 3000
+    DEFAULT_TIMEOUT_SECONDS = 15
+    OBJECT_LOOKUP_MIN_LIMIT = 1000
+    OBJECT_ID_MIN_LENGTH = 8
+
+    base_url: str
+    token: str = ""
+    latest_price_paths: str | Iterable[str] = "/df/object/price/latest"
+    history_price_paths: str | Iterable[str] = "/df/object/price/history/v2"
+    object_lookup_paths: str | Iterable[str] = "/df/object/price/latest/v3"
+    place_profit_rank_paths: str | Iterable[str] = "/df/place/profitRank/v1"
+    place_profit_history_paths: str | Iterable[str] = "/df/place/profitHistory"
+    object_lookup_limit: int = DEFAULT_OBJECT_LOOKUP_LIMIT
+    timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS
+    trace_config: Any = field(default=None, repr=False)
     _object_id_cache: Dict[str, Dict[str, str]] = field(default_factory=dict, init=False, repr=False)
 
     @classmethod
     def from_config(cls, config) -> "DFPriceService":
         return cls(
-            backend=load_market_data_backend(config),
-            latest_price_operation=str(
-                getattr(config, "df_market_latest_price_operation", "latest_price")
+            base_url=getattr(config, "df_api_base_url", "https://df-api.shallow.ink"),
+            token=getattr(config, "df_api_token", "") or "",
+            latest_price_paths=getattr(
+                config,
+                "df_api_latest_price_paths",
+                "/df/object/price/latest",
             ),
-            history_price_operation=str(
-                getattr(config, "df_market_history_price_operation", "history_price")
+            history_price_paths=getattr(
+                config,
+                "df_api_history_price_paths",
+                "/df/object/price/history/v2",
             ),
-            object_lookup_operation=str(
-                getattr(config, "df_market_object_lookup_operation", "object_lookup")
+            object_lookup_paths=getattr(
+                config,
+                "df_api_object_lookup_paths",
+                "/df/object/price/latest/v3",
             ),
-            place_profit_rank_operation=str(
-                getattr(config, "df_market_place_profit_rank_operation", "place_profit_rank")
+            place_profit_rank_paths=getattr(
+                config,
+                "df_api_place_profit_rank_paths",
+                "/df/place/profitRank/v1",
             ),
-            place_profit_history_operation=str(
-                getattr(config, "df_market_place_profit_history_operation", "place_profit_history")
+            place_profit_history_paths=getattr(
+                config,
+                "df_api_place_profit_history_paths",
+                "/df/place/profitHistory",
             ),
-            object_lookup_limit=int(getattr(config, "df_market_object_lookup_limit", 3000)),
+            object_lookup_limit=int(
+                getattr(config, "df_api_object_lookup_limit", cls.DEFAULT_OBJECT_LOOKUP_LIMIT)
+            ),
+            timeout_seconds=int(getattr(config, "df_api_timeout_seconds", cls.DEFAULT_TIMEOUT_SECONDS)),
+            trace_config=config,
         )
+
+    def _headers(self) -> Dict[str, str]:
+        headers = {"Accept": "application/json"}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return headers
+
+    def _request_get(self, path: str, params: Dict[str, Any]) -> requests.Response:
+        url = f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
+        with langsmith_trace(
+            self.trace_config,
+            name="df_api_get",
+            run_type="tool",
+            inputs={"url": url, "path": path, "params": dict(params or {})},
+            tags=["df-api", path.strip("/")],
+            metadata={"base_url": self.base_url, "timeout_seconds": self.timeout_seconds},
+        ):
+            return requests.get(
+                url,
+                headers=self._headers(),
+                params=params,
+                timeout=self.timeout_seconds,
+            )
+
+    def _request_first_success(self, paths: str | Iterable[str], params: Dict[str, Any]) -> Dict[str, Any]:
+        with langsmith_trace(
+            self.trace_config,
+            name="df_api_request_first_success",
+            run_type="tool",
+            inputs={"paths": list(_split_paths(paths)), "params": dict(params or {})},
+            tags=["df-api", "fallback"],
+            metadata={"base_url": self.base_url},
+        ):
+            tried: List[Dict[str, Any]] = []
+            last_error: Optional[str] = None
+            for path in _split_paths(paths):
+                try:
+                    response = self._request_get(path, params)
+                    content_type = response.headers.get("content-type", "")
+                    payload: Any
+                    if "application/json" in content_type.lower():
+                        payload = response.json()
+                    else:
+                        payload = response.text
+
+                    if 200 <= response.status_code < 300:
+                        return {
+                            "success": True,
+                            "endpoint": path,
+                            "status_code": response.status_code,
+                            "params": params,
+                            "data": payload,
+                        }
+
+                    tried.append({"path": path, "status_code": response.status_code, "response": payload})
+                    last_error = f"HTTP {response.status_code}"
+                except Exception as exc:
+                    tried.append({"path": path, "error": str(exc)})
+                    last_error = str(exc)
+
+            return {
+                "success": False,
+                "params": params,
+                "error": last_error or "全部候选路径调用失败",
+                "tried": tried,
+            }
 
     @staticmethod
     def _normalize_params(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -115,6 +222,45 @@ class DFPriceService:
                 return [x for x in payload["items"] if isinstance(x, dict)]
         return []
 
+    def _filter_latest_payload(self, payload: Any, params: Dict[str, Any]) -> Any:
+        items = self._pick_latest_items(payload)
+        if not items:
+            return payload
+
+        target_id = str(params.get("objectId") or params.get("id") or "").strip()
+        target_name = self._norm_name(str(params.get("objectName") or params.get("name") or ""))
+        if not target_id and not target_name:
+            return payload
+
+        def item_id(item: Dict[str, Any]) -> str:
+            return str(item.get("objectID") or item.get("objectId") or item.get("id") or "").strip()
+
+        def item_name(item: Dict[str, Any]) -> str:
+            return self._norm_name(str(item.get("objectName") or item.get("name") or ""))
+
+        matched: List[Dict[str, Any]] = []
+        for item in items:
+            iid = item_id(item)
+            iname = item_name(item)
+            if target_id and iid == target_id:
+                matched.append(item)
+                break
+            if target_name and iname and (target_name in iname or iname in target_name):
+                matched.append(item)
+                break
+
+        if not matched:
+            return payload
+
+        if isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+            copied = dict(payload)
+            copied_data = dict(payload["data"])
+            copied_data["items"] = matched
+            copied["data"] = copied_data
+            copied["matchedBy"] = {"objectId": target_id, "objectName": params.get("objectName")}
+            return copied
+        return {"data": {"items": matched}, "matchedBy": {"objectId": target_id, "objectName": params.get("objectName")}}
+
     @staticmethod
     def _latest_payload_total(payload: Any) -> int:
         if isinstance(payload, dict):
@@ -130,105 +276,76 @@ class DFPriceService:
                         return 0
         return 0
 
-    def _request_operation(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        try:
-            payload = self.backend.query(operation=operation, params=params)
-        except Exception as exc:
-            return {
-                "success": False,
-                "params": params,
-                "error": f"后端调用异常: {exc}",
-                "tried": [{"operation": operation, "error": str(exc)}],
-            }
-
-        if not isinstance(payload, dict):
-            return {
-                "success": False,
-                "params": params,
-                "error": "后端返回格式异常",
-                "tried": [{"operation": operation, "error": "invalid response type"}],
-            }
-
-        if payload.get("success"):
-            return {
-                "success": True,
-                "endpoint": payload.get("endpoint") or operation,
-                "status_code": payload.get("status_code", 200),
-                "params": params,
-                "data": payload.get("data"),
-            }
-
-        tried = payload.get("tried") or [{"operation": operation, "error": payload.get("error", "unknown")}]
-        return {
-            "success": False,
-            "params": params,
-            "error": payload.get("error", "市场数据后端调用失败"),
-            "tried": tried,
-        }
-
     def resolve_object_id(self, object_name: str) -> Dict[str, Any]:
         target = str(object_name or "").strip()
         if not target:
             return {"success": False, "error": "objectName 为空"}
-
         cache_key = self._norm_name(target)
         if cache_key in self._object_id_cache:
             return {"success": True, **self._object_id_cache[cache_key], "cached": True}
 
-        params = {
-            "objectName": target,
-            "limit": str(max(1000, int(self.object_lookup_limit or 1000))),
-        }
-        result = self._request_operation(self.object_lookup_operation, params)
-        if not result.get("success"):
-            return {
-                "success": False,
-                "error": f"未能根据 objectName 匹配到交易物品ID: {target}",
-                "tried": result.get("tried", []),
-            }
-
-        payload = result.get("data")
-        items = self._pick_latest_items(payload)
-        total_count = self._latest_payload_total(payload)
-
-        if total_count and isinstance(items, list) and len(items) < total_count:
-            full_result = self._request_operation(
-                self.object_lookup_operation,
-                {"objectName": target, "limit": str(total_count)},
-            )
-            if full_result.get("success"):
-                payload = full_result.get("data")
-
         norm_target = self._norm_name(target)
-        exact_match = None
-        partial_match = None
-        for node in self._iter_dict_nodes(payload):
-            oid = self._pick_id(node, min_length=8)
-            if not oid:
-                continue
-            name = self._pick_name(node)
-            norm_name = self._norm_name(name)
-            candidate = {
-                "id": oid,
-                "objectName": name or target,
-                "endpoint": result.get("endpoint", self.object_lookup_operation),
+        tried: List[Dict[str, Any]] = []
+
+        for path in _split_paths(self.object_lookup_paths):
+            params = {
+                "objectName": target,
+                "limit": str(
+                    max(
+                        self.OBJECT_LOOKUP_MIN_LIMIT,
+                        int(self.object_lookup_limit or self.OBJECT_LOOKUP_MIN_LIMIT),
+                    )
+                ),
             }
-            if norm_name and norm_name == norm_target:
-                exact_match = candidate
-                break
-            if norm_name and (norm_target in norm_name or norm_name in norm_target):
-                partial_match = partial_match or candidate
+            try:
+                response = self._request_get(path, params)
+                if not (200 <= response.status_code < 300):
+                    tried.append({"path": path, "params": params, "status_code": response.status_code})
+                    continue
+                payload: Any
+                content_type = response.headers.get("content-type", "")
+                payload = response.json() if "application/json" in content_type.lower() else response.text
 
-        best = exact_match or partial_match
-        if best:
-            self._object_id_cache[cache_key] = best
-            return {"success": True, **best}
+                # 某些物品在前 1000 条之外，若返回数量小于 totalCount，则拉取完整范围再匹配。
+                items = self._pick_latest_items(payload)
+                total_count = self._latest_payload_total(payload)
+                if total_count and isinstance(items, list) and len(items) < total_count:
+                    full_params = {"objectName": target, "limit": str(total_count)}
+                    full_response = self._request_get(path, full_params)
+                    if 200 <= full_response.status_code < 300:
+                        full_content_type = full_response.headers.get("content-type", "")
+                        payload = (
+                            full_response.json()
+                            if "application/json" in full_content_type.lower()
+                            else full_response.text
+                        )
+                        params = full_params
 
-        return {
-            "success": False,
-            "error": f"未能根据 objectName 匹配到交易物品ID: {target}",
-            "tried": result.get("tried", []),
-        }
+                exact_match = None
+                partial_match = None
+                for node in self._iter_dict_nodes(payload):
+                    oid = self._pick_id(node, min_length=self.OBJECT_ID_MIN_LENGTH)
+                    if not oid:
+                        continue
+                    name = self._pick_name(node)
+                    norm_name = self._norm_name(name)
+                    candidate = {"id": oid, "objectName": name or target, "endpoint": path}
+                    if norm_name and norm_name == norm_target:
+                        exact_match = candidate
+                        break
+                    if norm_name and (norm_target in norm_name or norm_name in norm_target):
+                        partial_match = partial_match or candidate
+
+                best = exact_match or partial_match
+                if best:
+                    self._object_id_cache[cache_key] = best
+                    return {"success": True, **best}
+
+                tried.append({"path": path, "params": params, "status_code": response.status_code})
+            except Exception as exc:
+                tried.append({"path": path, "params": params, "error": str(exc)})
+
+        return {"success": False, "error": f"未能根据 objectName 匹配到交易物品ID: {target}", "tried": tried}
 
     def get_latest_price(self, params: Dict[str, Any]) -> Dict[str, Any]:
         normalized = self._normalize_object_id(self._normalize_object_name(self._normalize_params(params)))
@@ -249,7 +366,7 @@ class DFPriceService:
             normalized["objectName"] = resolved.get("objectName", object_name)
 
         request_params = {"id": normalized["id"]}
-        result = self._request_operation(self.latest_price_operation, request_params)
+        result = self._request_first_success(self.latest_price_paths, request_params)
         if result.get("success"):
             result["resolved"] = {
                 "objectId": normalized.get("id"),
@@ -271,7 +388,7 @@ class DFPriceService:
                 request_params["objectName"] = resolved.get("objectName", request_params["objectName"])
 
         request_params.pop("id", None)
-        result = self._request_operation(self.history_price_operation, request_params)
+        result = self._request_first_success(self.history_price_paths, request_params)
         if result.get("success"):
             result["resolved"] = {
                 "objectId": request_params.get("objectId"),
@@ -283,10 +400,10 @@ class DFPriceService:
         request_params = self._normalize_params(params)
         if "place" in request_params:
             request_params["place"] = str(request_params["place"]).strip().lower()
-        return self._request_operation(self.place_profit_rank_operation, request_params)
+        return self._request_first_success(self.place_profit_rank_paths, request_params)
 
     def get_place_profit_history(self, params: Dict[str, Any]) -> Dict[str, Any]:
         request_params = self._normalize_params(params)
         if "place" in request_params:
             request_params["place"] = str(request_params["place"]).strip().lower()
-        return self._request_operation(self.place_profit_history_operation, request_params)
+        return self._request_first_success(self.place_profit_history_paths, request_params)

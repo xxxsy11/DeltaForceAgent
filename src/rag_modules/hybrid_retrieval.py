@@ -20,6 +20,29 @@ from .llm_utils import invoke_llm_text
 
 logger = logging.getLogger(__name__)
 
+KEYWORD_LLM_TEMPERATURE = 0.1
+KEYWORD_LLM_MAX_TOKENS = 400
+KEYWORD_FALLBACK_ENTITY_MIN_CHARS = 2
+KEYWORD_FALLBACK_ENTITY_MAX_CHARS = 4
+KEYWORD_FALLBACK_ENTITY_MAX_ITEMS = 4
+KEYWORD_FALLBACK_ENTITY_BACKUP_ITEMS = 2
+KEYWORD_FALLBACK_TOPIC_MAX_ITEMS = 4
+LOOKUP_DEFAULT_MAX_RESULTS = 10
+LOOKUP_EXACT_MATCH_SCORE = 1.0
+LOOKUP_PREFIX_MATCH_SCORE = 0.85
+LOOKUP_CONTAINS_MATCH_SCORE = 0.65
+ENTITY_NEIGHBOR_MAX = 3
+ENTITY_CANDIDATE_MULTIPLIER = 2
+ENTITY_BASE_RELEVANCE_SCORE = 0.7
+ENTITY_MATCH_SCORE_WEIGHT = 0.3
+NEO4J_ENTITY_DEFAULT_RELEVANCE = 0.6
+TOPIC_RELEVANCE_SCORE = 0.85
+NEO4J_TOPIC_RELEVANCE_SCORE = 0.65
+VECTOR_SEARCH_CANDIDATE_MULTIPLIER = 2
+VECTOR_NEIGHBOR_PREVIEW_MAX = 3
+SCORE_MAP_EPSILON = 1e-9
+DOC_ID_CONTENT_HASH_PREVIEW_CHARS = 256
+
 
 @dataclass
 class RetrievalResult:
@@ -122,8 +145,8 @@ class HybridRetrievalModule:
             llm_text = invoke_llm_text(
                 llm_client=self.llm_client,
                 prompt=prompt,
-                temperature=0.1,
-                max_tokens=400,
+                temperature=KEYWORD_LLM_TEMPERATURE,
+                max_tokens=KEYWORD_LLM_MAX_TOKENS,
             )
             payload = self._extract_json_payload(llm_text)
             entity_keywords = self._normalize_keywords(payload.get("entity_keywords", []))
@@ -171,13 +194,18 @@ class HybridRetrievalModule:
 
         entity_candidates = [
             token for token in tokens
-            if re.search(r"[A-Za-z0-9]", token) or 2 <= len(token) <= 4
+            if re.search(r"[A-Za-z0-9]", token)
+            or KEYWORD_FALLBACK_ENTITY_MIN_CHARS <= len(token) <= KEYWORD_FALLBACK_ENTITY_MAX_CHARS
         ]
-        entity_keywords = entity_candidates[:4] if entity_candidates else tokens[:2]
+        entity_keywords = (
+            entity_candidates[:KEYWORD_FALLBACK_ENTITY_MAX_ITEMS]
+            if entity_candidates
+            else tokens[:KEYWORD_FALLBACK_ENTITY_BACKUP_ITEMS]
+        )
         entity_set = set(entity_keywords)
-        topic_keywords = [token for token in tokens if token not in entity_set][:4]
+        topic_keywords = [token for token in tokens if token not in entity_set][:KEYWORD_FALLBACK_TOPIC_MAX_ITEMS]
         if not topic_keywords:
-            topic_keywords = tokens[:4]
+            topic_keywords = tokens[:KEYWORD_FALLBACK_TOPIC_MAX_ITEMS]
         return entity_keywords, topic_keywords
 
     def _normalize_keywords(self, keywords: List[str]) -> List[str]:
@@ -196,7 +224,11 @@ class HybridRetrievalModule:
             normalized.append(key)
         return normalized
 
-    def _lookup_entities_from_graph_index(self, keyword: str, max_results: int = 10) -> List[Tuple[Any, float, str]]:
+    def _lookup_entities_from_graph_index(
+        self,
+        keyword: str,
+        max_results: int = LOOKUP_DEFAULT_MAX_RESULTS,
+    ) -> List[Tuple[Any, float, str]]:
         """基于索引键分层匹配实体（精确 > 前缀 > 包含）。"""
         keyword_lower = keyword.lower()
         scored_entities: Dict[str, Tuple[Any, float, str]] = {}
@@ -210,13 +242,13 @@ class HybridRetrievalModule:
             match_score = 0.0
             match_mode = ""
             if candidate_lower == keyword_lower:
-                match_score = 1.0
+                match_score = LOOKUP_EXACT_MATCH_SCORE
                 match_mode = "exact"
             elif candidate_lower.startswith(keyword_lower) or keyword_lower.startswith(candidate_lower):
-                match_score = 0.85
+                match_score = LOOKUP_PREFIX_MATCH_SCORE
                 match_mode = "prefix"
             elif len(keyword_lower) >= self.entity_contains_min_len and keyword_lower in candidate_lower:
-                match_score = 0.65
+                match_score = LOOKUP_CONTAINS_MATCH_SCORE
                 match_mode = "contains"
             else:
                 continue
@@ -242,9 +274,15 @@ class HybridRetrievalModule:
 
         normalized_keywords = self._normalize_keywords(entity_keywords)
         for keyword in normalized_keywords:
-            candidates = self._lookup_entities_from_graph_index(keyword, max_results=top_k * 2)
+            candidates = self._lookup_entities_from_graph_index(
+                keyword,
+                max_results=top_k * ENTITY_CANDIDATE_MULTIPLIER,
+            )
             for entity, match_score, match_mode in candidates:
-                neighbors = self._get_node_neighbors(entity.metadata["node_id"], max_neighbors=3)
+                neighbors = self._get_node_neighbors(
+                    entity.metadata["node_id"],
+                    max_neighbors=ENTITY_NEIGHBOR_MAX,
+                )
                 enhanced_content = entity.value_content
                 if neighbors:
                     enhanced_content += f"\n相关信息: {', '.join(neighbors)}"
@@ -253,7 +291,10 @@ class HybridRetrievalModule:
                     content=enhanced_content,
                     node_id=entity.metadata["node_id"],
                     node_type=entity.entity_type,
-                    relevance_score=min(1.0, 0.7 + (0.3 * match_score)),
+                    relevance_score=min(
+                        1.0,
+                        ENTITY_BASE_RELEVANCE_SCORE + (ENTITY_MATCH_SCORE_WEIGHT * match_score),
+                    ),
                     retrieval_level="entity",
                     metadata={
                         "entity_name": entity.entity_name,
@@ -339,7 +380,9 @@ class HybridRetrievalModule:
                         content="\n".join(content_parts),
                         node_id=record["node_id"],
                         node_type=record["labels"][0] if record["labels"] else "Node",
-                        relevance_score=float(record.get("match_score", 0.6)),
+                        relevance_score=float(
+                            record.get("match_score", NEO4J_ENTITY_DEFAULT_RELEVANCE)
+                        ),
                         retrieval_level="entity",
                         metadata={
                             "name": record["name"],
@@ -377,7 +420,7 @@ class HybridRetrievalModule:
                     content="\n".join(content_parts),
                     node_id=relation.source_entity,
                     node_type=source_entity.entity_type,
-                    relevance_score=0.85,
+                    relevance_score=TOPIC_RELEVANCE_SCORE,
                     retrieval_level="topic",
                     metadata={
                         "relation_id": relation.relation_id,
@@ -437,7 +480,7 @@ class HybridRetrievalModule:
                         content=f"名称: {record['name']}",
                         node_id=record["node_id"],
                         node_type=record["labels"][0] if record["labels"] else "Node",
-                        relevance_score=0.65,
+                        relevance_score=NEO4J_TOPIC_RELEVANCE_SCORE,
                         retrieval_level="topic",
                         metadata={
                             "name": record["name"],
@@ -486,7 +529,10 @@ class HybridRetrievalModule:
 
     def vector_search_enhanced(self, query: str, top_k: int = 5) -> List[Document]:
         try:
-            vector_docs = self.milvus_module.similarity_search(query, k=top_k * 2)
+            vector_docs = self.milvus_module.similarity_search(
+                query,
+                k=top_k * VECTOR_SEARCH_CANDIDATE_MULTIPLIER,
+            )
             enhanced_docs = []
 
             for result in vector_docs:
@@ -497,7 +543,7 @@ class HybridRetrievalModule:
                 if node_id:
                     neighbors = self._get_node_neighbors(node_id)
                     if neighbors:
-                        content += f"\n相关信息: {', '.join(neighbors[:3])}"
+                        content += f"\n相关信息: {', '.join(neighbors[:VECTOR_NEIGHBOR_PREVIEW_MAX])}"
 
                 entry_name = metadata.get("recipe_name", metadata.get("entity_name", "未知条目"))
                 vector_score = result.get("score", 0.0)
@@ -562,7 +608,10 @@ class HybridRetrievalModule:
         node_id = metadata.get("node_id")
         normalized_content = (doc.page_content or "").strip()
         if node_id:
-            return f"node::{node_id}::content::{hash(normalized_content[:256])}"
+            return (
+                f"node::{node_id}::content::"
+                f"{hash(normalized_content[:DOC_ID_CONTENT_HASH_PREVIEW_CHARS])}"
+            )
 
         return f"content::{hash(normalized_content)}"
 
@@ -572,7 +621,7 @@ class HybridRetrievalModule:
         values = list(score_map.values())
         max_score = max(values)
         min_score = min(values)
-        if max_score - min_score < 1e-9:
+        if max_score - min_score < SCORE_MAP_EPSILON:
             return {key: (1.0 if value > 0 else 0.0) for key, value in score_map.items()}
         return {key: (value - min_score) / (max_score - min_score) for key, value in score_map.items()}
 
@@ -581,14 +630,14 @@ class HybridRetrievalModule:
         dual_order: List[str] = []
         vector_order: List[str] = []
 
-        for rank, doc in enumerate(dual_docs):
+        for doc in dual_docs:
             doc_id = self._doc_identity(doc)
             if doc_id not in doc_store:
                 doc_store[doc_id] = doc
             if doc_id not in dual_order:
                 dual_order.append(doc_id)
 
-        for rank, doc in enumerate(vector_docs):
+        for doc in vector_docs:
             doc_id = self._doc_identity(doc)
             if doc_id not in doc_store:
                 doc_store[doc_id] = doc

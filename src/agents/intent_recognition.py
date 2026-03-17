@@ -15,7 +15,8 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field, ValidationError
 
 from agents.intent_analyzer import IntentAnalyzer
-from agents.local_qwen_runtime import LocalQwenChatModel
+from agents.message_payloads import build_intent_result_payload
+from agents.message_utils import append_agent_message
 from agents.state import AgentState
 from config import DEFAULT_CONFIG, GraphRAGConfig
 from rag_modules.llm_utils import extract_text_content
@@ -103,6 +104,16 @@ class IntentRecognitionAgent:
         "对比",
         "比较",
     )
+    DEFAULT_AVAILABLE_TOOLS: List[str] = [
+        "rag_knowledge_search",
+        "df_market_latest_price",
+        "df_market_history_price",
+        "df_market_price_advice",
+        "df_place_profit_rank",
+        "df_multi_item_compare",
+        "df_profit_stability",
+        "df_answer_composer",
+    ]
     PROMPT_TEMPLATE_PATH = Path(__file__).resolve().parents[1] / "prompts" / "intent_recognition_prompt.txt"
     DEFAULT_PROMPT_TEMPLATE = """
 你是 query understanding 子代理。
@@ -144,10 +155,16 @@ class IntentRecognitionAgent:
         self.skills_enabled = os.getenv("AGENT_SKILLS_ENABLED", "1").strip().lower() not in {"0", "false", "off", "no"}
         self.skill_registry = SkillRegistry(definitions_dir=None, available_tools=self.available_tools) if self.skills_enabled else None
         self._prompt_template: Optional[str] = None
+        self._available_tool_set: Set[str] = set(self.available_tools or self.DEFAULT_AVAILABLE_TOOLS)
+
+    def _available_tools_for_prompt(self) -> List[str]:
+        return list(self.available_tools or self.DEFAULT_AVAILABLE_TOOLS)
 
     def _build_llm(self):
         model_name = str(self.config.agent_intent_model or self.config.llm_model).strip()
         if bool(getattr(self.config, "agent_local_enabled", True)) and os.path.exists(model_name):
+            from agents.local_qwen_runtime import LocalQwenChatModel
+
             adapter_path = str(getattr(self.config, "agent_intent_adapter_path", "") or "").strip()
             device = str(getattr(self.config, "agent_local_device", "cpu") or "cpu").strip()
             max_new_tokens = int(
@@ -167,6 +184,7 @@ class IntentRecognitionAgent:
                 device=device,
                 max_new_tokens=max_new_tokens,
                 force_no_think=force_no_think,
+                config=self.config,
             )
 
         api_key = os.getenv("MOONSHOT_API_KEY", "").strip()
@@ -489,16 +507,7 @@ class IntentRecognitionAgent:
         if self.llm is None:
             return {}
 
-        available_tools = self.available_tools or [
-            "rag_knowledge_search",
-            "df_market_latest_price",
-            "df_market_history_price",
-            "df_market_price_advice",
-            "df_place_profit_rank",
-            "df_multi_item_compare",
-            "df_profit_stability",
-            "df_answer_composer",
-        ]
+        available_tools = self._available_tools_for_prompt()
 
         prompt = self._build_prompt(query=query, memory_entities=memory_entities, available_tools=available_tools)
         try:
@@ -514,16 +523,7 @@ class IntentRecognitionAgent:
         if self.llm is None:
             return {}
 
-        available_tools = self.available_tools or [
-            "rag_knowledge_search",
-            "df_market_latest_price",
-            "df_market_history_price",
-            "df_market_price_advice",
-            "df_place_profit_rank",
-            "df_multi_item_compare",
-            "df_profit_stability",
-            "df_answer_composer",
-        ]
+        available_tools = self._available_tools_for_prompt()
 
         prompt = self._build_prompt(query=query, memory_entities=memory_entities, available_tools=available_tools)
         try:
@@ -535,16 +535,21 @@ class IntentRecognitionAgent:
             logger.warning("intent_recognition: llm_understand failed, fallback to rule: %s", exc)
             return {}
 
-    def _resolve_decision(self, state: AgentState, query: str) -> Dict[str, Any]:
+    def _resolve_decision_from_payload(
+        self,
+        state: AgentState,
+        query: str,
+        llm_payload: Dict[str, Any],
+        memory_entities: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         base = self.analyzer.analyze(query)
-        memory_entities = self._extract_recent_memory_entities(state)
+        memory_entities = memory_entities if memory_entities is not None else self._extract_recent_memory_entities(state)
         query_entities = self._extract_entities_from_query(query)
         compare_target_count = self._infer_compare_target_count(query)
 
-        llm_payload = self._llm_understand(query=query, memory_entities=memory_entities)
         llm_tool = str(llm_payload.get("tool_name", "")).strip()
 
-        if llm_tool and self.available_tools and llm_tool not in set(self.available_tools):
+        if llm_tool and self._available_tool_set and llm_tool not in self._available_tool_set:
             llm_tool = ""
 
         tool_name = llm_tool or base.tool_name
@@ -604,76 +609,26 @@ class IntentRecognitionAgent:
             "tool_query": tool_query,
             "compare_target_count": compare_target_count,
         }
+
+    def _resolve_decision(self, state: AgentState, query: str) -> Dict[str, Any]:
+        memory_entities = self._extract_recent_memory_entities(state)
+        llm_payload = self._llm_understand(query=query, memory_entities=memory_entities)
+        return self._resolve_decision_from_payload(
+            state=state,
+            query=query,
+            llm_payload=llm_payload,
+            memory_entities=memory_entities,
+        )
 
     async def _resolve_decision_async(self, state: AgentState, query: str) -> Dict[str, Any]:
-        base = self.analyzer.analyze(query)
         memory_entities = self._extract_recent_memory_entities(state)
-        query_entities = self._extract_entities_from_query(query)
-        compare_target_count = self._infer_compare_target_count(query)
-
         llm_payload = await self._llm_understand_async(query=query, memory_entities=memory_entities)
-        llm_tool = str(llm_payload.get("tool_name", "")).strip()
-
-        if llm_tool and self.available_tools and llm_tool not in set(self.available_tools):
-            llm_tool = ""
-
-        tool_name = llm_tool or base.tool_name
-        intent = str(llm_payload.get("intent", "")).strip() or base.intent
-        reason = str(llm_payload.get("reason", "")).strip() or base.reason
-
-        # 规则优先：制造台/特勤处制造类问题由 IntentAnalyzer 锁定到制造利润工具。
-        if base.tool_name == "df_place_profit_rank":
-            tool_name = base.tool_name
-            intent = base.intent
-            reason = f"{base.reason}(rule_preferred)"
-
-        entities = []
-        for item in llm_payload.get("entities", []) if isinstance(llm_payload.get("entities", []), list) else []:
-            norm = self._normalize_entity(str(item))
-            if norm and norm not in entities:
-                entities.append(norm)
-
-        if not entities:
-            entities = list(query_entities)
-
-        if self._has_pronoun(query) and not entities:
-            if tool_name == "df_multi_item_compare":
-                if len(memory_entities) >= compare_target_count:
-                    entities = memory_entities[:compare_target_count]
-                else:
-                    entities = list(memory_entities)
-            else:
-                entities = memory_entities[-1:] if memory_entities else []
-
-        if tool_name == "df_multi_item_compare":
-            if len(entities) < 2 and len(memory_entities) >= 2:
-                entities = memory_entities[:2]
-            elif len(entities) >= 2 and compare_target_count > 2:
-                merged = []
-                for item in list(entities) + list(memory_entities):
-                    if item and item not in merged:
-                        merged.append(item)
-                entities = merged[:compare_target_count]
-
-        confidence = llm_payload.get("confidence", 0.0)
-        try:
-            confidence = float(confidence)
-        except Exception as exc:
-            logger.debug("intent_recognition: invalid confidence value, fallback to 0.0: %s", exc)
-            confidence = 0.0
-        confidence = max(0.0, min(1.0, confidence))
-
-        tool_query = self._build_tool_query(tool_name=tool_name, query=query, entities=entities)
-        return {
-            "intent": intent,
-            "tool_name": tool_name,
-            "reason": reason,
-            "entities": entities[:3],
-            "entity_count": len(entities[:3]),
-            "confidence": confidence,
-            "tool_query": tool_query,
-            "compare_target_count": compare_target_count,
-        }
+        return self._resolve_decision_from_payload(
+            state=state,
+            query=query,
+            llm_payload=llm_payload,
+            memory_entities=memory_entities,
+        )
 
     async def run(self, state: AgentState) -> Dict:
         node_started_perf = time.perf_counter()
@@ -750,26 +705,6 @@ class IntentRecognitionAgent:
 
         task_plan = [] if selected_tool == "none" else tool_calls
 
-        message = {
-            "from_agent": "intent_recognition",
-            "to_agent": "execution",
-            "message_type": "intent_result",
-            "payload": {
-                "intent": intent,
-                "tool_name": selected_tool,
-                "flow_type": flow_type,
-                "reason": reason,
-                "entities": entities,
-                "entity_count": entity_count,
-                "confidence": confidence,
-                "compare_target_count": compare_target_count,
-                "skill_id": skill_selection.skill_id,
-                "skill_confidence": skill_selection.confidence,
-                "skill_reason": skill_selection.reason,
-                "skill_matched_by": list(skill_selection.matched_by),
-            },
-        }
-
         node_finished_perf = time.perf_counter()
         tool_selected_at_utc = datetime.now(timezone.utc).isoformat()
         orchestration_meta = dict(state.get("orchestration_meta", {}) or {})
@@ -823,7 +758,26 @@ class IntentRecognitionAgent:
             "skill_tool_chain": task_plan,
             "orchestration_meta": orchestration_meta,
             "force_reintent": False,
-            "agent_messages": state.get("agent_messages", []) + [message],
+            "agent_messages": append_agent_message(
+                state.get("agent_messages", []),
+                from_agent="intent_recognition",
+                to_agent="execution",
+                message_type="intent_result",
+                payload=build_intent_result_payload(
+                    intent=intent,
+                    tool_name=selected_tool,
+                    flow_type=flow_type,
+                    reason=reason,
+                    entities=entities,
+                    entity_count=entity_count,
+                    confidence=confidence,
+                    compare_target_count=compare_target_count,
+                    skill_id=skill_selection.skill_id,
+                    skill_confidence=skill_selection.confidence,
+                    skill_reason=skill_selection.reason,
+                    skill_matched_by=list(skill_selection.matched_by),
+                ),
+            ),
             "debug_steps": state.get("debug_steps", []) + [
                 f"intent_recognition: {intent}/{flow_type}/skill={skill_selection.skill_id or 'none'}/tool={selected_tool}/entities={entity_count}/compare_n={compare_target_count}"
             ],

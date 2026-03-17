@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Dict, List
 
+from agents.message_payloads import build_task_plan_payload
+from agents.message_utils import append_agent_message
 from agents.state import AgentState
 from agents.tool_planner import LLMToolPlanner
 from tools import ToolRegistry
@@ -72,6 +74,30 @@ class TaskPlanningAgent:
                 "debug_steps": state.get("debug_steps", []) + ["task_planning: skipped(skill_locked_plan)"],
             }
 
+        # 制造利润问题已由意图层锁定到 df_place_profit_rank，不再让规划层二次改道。
+        if fallback_tool == "df_place_profit_rank":
+            task_plan = [{"tool_name": "df_place_profit_rank", "tool_query": planning_query}]
+            return {
+                "intent": fallback_intent or state.get("intent", ""),
+                "intent_reason": "place_profit_locked_tool",
+                "plan_source": "place_profit_locked_tool",
+                "task_plan": task_plan,
+                "tool_calls": task_plan,
+                "agent_messages": append_agent_message(
+                    state.get("agent_messages", []),
+                    from_agent="task_planning",
+                    to_agent="execution",
+                    message_type="task_plan",
+                    payload=build_task_plan_payload(
+                        intent=fallback_intent or state.get("intent", ""),
+                        reason="place_profit_locked_tool",
+                        task_plan=task_plan,
+                    ),
+                ),
+                "force_replan": False,
+                "debug_steps": state.get("debug_steps", []) + ["task_planning: place_profit_locked_tool"],
+            }
+
         # 简单流在重试进入 task_planning 时，保持原工具不变，避免“单工具问题被误改道”。
         if flow_type != "complex" and fallback_tool and fallback_tool != "none":
             fallback_query = self._normalize_tool_query(
@@ -81,23 +107,23 @@ class TaskPlanningAgent:
                 compare_target_count=compare_target_count,
             )
             task_plan = [{"tool_name": fallback_tool, "tool_query": fallback_query}]
-            message = {
-                "from_agent": "task_planning",
-                "to_agent": "execution",
-                "message_type": "task_plan",
-                "payload": {
-                    "intent": fallback_intent or state.get("intent", ""),
-                    "reason": "simple_flow_locked_tool",
-                    "task_plan": task_plan,
-                },
-            }
             return {
                 "intent": fallback_intent or state.get("intent", ""),
                 "intent_reason": "simple_flow_locked_tool",
                 "plan_source": "simple_flow_locked_tool",
                 "task_plan": task_plan,
                 "tool_calls": task_plan,
-                "agent_messages": state.get("agent_messages", []) + [message],
+                "agent_messages": append_agent_message(
+                    state.get("agent_messages", []),
+                    from_agent="task_planning",
+                    to_agent="execution",
+                    message_type="task_plan",
+                    payload=build_task_plan_payload(
+                        intent=fallback_intent or state.get("intent", ""),
+                        reason="simple_flow_locked_tool",
+                        task_plan=task_plan,
+                    ),
+                ),
                 "force_replan": False,
                 "debug_steps": state.get("debug_steps", []) + ["task_planning: simple_flow_locked_tool"],
             }
@@ -144,23 +170,23 @@ class TaskPlanningAgent:
             task_plan = [{"tool_name": fallback_tool, "tool_query": fallback_query}]
 
         plan_source = "llm_task_planning" if "LLM" in decision.reason or "规划" in decision.reason else "fallback_task_planning"
-        message = {
-            "from_agent": "task_planning",
-            "to_agent": "execution",
-            "message_type": "task_plan",
-            "payload": {
-                "intent": decision.intent,
-                "reason": decision.reason,
-                "task_plan": task_plan,
-            },
-        }
         return {
             "intent": decision.intent,
             "intent_reason": decision.reason,
             "plan_source": plan_source,
             "task_plan": task_plan,
             "tool_calls": task_plan,
-            "agent_messages": state.get("agent_messages", []) + [message],
+            "agent_messages": append_agent_message(
+                state.get("agent_messages", []),
+                from_agent="task_planning",
+                to_agent="execution",
+                message_type="task_plan",
+                payload=build_task_plan_payload(
+                    intent=decision.intent,
+                    reason=decision.reason,
+                    task_plan=task_plan,
+                ),
+            ),
             "force_replan": False,
             "debug_steps": state.get("debug_steps", []) + [f"task_planning: {plan_source}"],
         }

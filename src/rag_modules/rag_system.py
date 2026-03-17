@@ -18,7 +18,7 @@ from rag_modules.graph_data_preparation import GraphDataPreparationModule
 from rag_modules.milvus_index_construction import MilvusIndexConstructionModule
 from rag_modules.generation_integration import GenerationIntegrationModule
 from rag_modules.hybrid_retrieval import HybridRetrievalModule
-from rag_modules.graph_rag_retrieval import GraphRAGRetrieval
+from rag_modules.graph_retrieval import GraphRAGRetrieval
 from rag_modules.intelligent_query_router import IntelligentQueryRouter
 
 

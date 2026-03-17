@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
@@ -9,20 +10,31 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from agents.state import AgentState
-from memory.persistent_memory_store import PersistentMemoryStore
+from memory.persistent import PersistentMemoryStore
+from observability.langsmith import langsmith_trace
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_MARKET_TTL_HOURS = 24
+DEFAULT_LOCAL_OBSERVER_DIR = str(Path(__file__).resolve().parents[2] / "data" / "memory" / "readable")
+TOOL_OUTPUT_PREVIEW_MAX_CHARS = 400
+FACT_DEFAULT_CONFIDENCE = 0.7
 
 class PersistentMemoryWriteNode:
     """Writes current turn and extracted facts into PostgreSQL long-term memory."""
 
     def __init__(self, store: PersistentMemoryStore, config):
         self.store = store
+        self.config = config
         self.enabled = bool(getattr(config, "memory_persistent_enabled", False))
-        self.default_market_ttl_hours = int(getattr(config, "memory_persistent_market_ttl_hours", 24) or 24)
+        self.default_market_ttl_hours = int(
+            getattr(config, "memory_persistent_market_ttl_hours", DEFAULT_MARKET_TTL_HOURS)
+            or DEFAULT_MARKET_TTL_HOURS
+        )
         self.local_observer_enabled = bool(getattr(config, "memory_local_observer_enabled", True))
-        self.local_observer_dir = str(getattr(config, "memory_local_observer_dir", "data/memory/readable") or "").strip()
+        self.local_observer_dir = str(
+            getattr(config, "memory_local_observer_dir", DEFAULT_LOCAL_OBSERVER_DIR) or ""
+        ).strip()
 
     @staticmethod
     def _now_utc() -> str:
@@ -78,7 +90,7 @@ class PersistentMemoryWriteNode:
             for item in tool_results:
                 name = str(item.get("tool_name", "") or "").strip()
                 output = str(item.get("output", "") or "").strip()
-                md_lines.append(f"  - {name}: {output[:400]}")
+                md_lines.append(f"  - {name}: {output[:TOOL_OUTPUT_PREVIEW_MAX_CHARS]}")
         if compression_triggered:
             md_lines.append(f"- 记忆压缩：已触发（merge_count={merge_count}）")
             if rolling_summary:
@@ -123,13 +135,13 @@ class PersistentMemoryWriteNode:
             "facts": state.get("memory_fact_candidates", []) or [],
         }
 
-    def _persist_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+    async def _persist_event_async(self, event: Dict[str, Any]) -> Dict[str, Any]:
         user_id = str(event.get("user_id", "default_user") or "default_user")
         session_id = str(event.get("session_id", "default") or "default")
         user_query = str(event.get("user_query", "") or "")
         final_answer = str(event.get("final_answer", "") or "")
         tool_results = event.get("tool_results", []) or []
-        turn_meta = self.store.append_turns(
+        turn_meta = await self.store.append_turns_async(
             user_id=user_id,
             session_id=session_id,
             user_query=user_query,
@@ -144,7 +156,7 @@ class PersistentMemoryWriteNode:
         if bool(event.get("compression_triggered")):
             rolling_summary = str(event.get("rolling_summary", "") or "").strip()
             if rolling_summary:
-                summary_saved = self.store.save_summary(
+                summary_saved = await self.store.save_summary_async(
                     user_id=user_id,
                     session_id=session_id,
                     merge_count=int(event.get("merge_count", 0) or 0),
@@ -164,14 +176,14 @@ class PersistentMemoryWriteNode:
             ttl_hours = fact.get("ttl_hours", None)
             if fact_type == "market" and not ttl_hours:
                 ttl_hours = self.default_market_ttl_hours
-            ok = self.store.append_fact(
+            ok = await self.store.append_fact_async(
                 user_id=user_id,
                 session_id=session_id,
                 fact_key=str(fact.get("fact_key", "") or ""),
                 fact_value=str(fact.get("fact_value", "") or ""),
                 fact_type=fact_type,
                 keywords=[str(x).strip() for x in fact.get("keywords", []) if str(x).strip()],
-                confidence=float(fact.get("confidence", 0.7) or 0.7),
+                confidence=float(fact.get("confidence", FACT_DEFAULT_CONFIDENCE) or FACT_DEFAULT_CONFIDENCE),
                 ttl_hours=int(ttl_hours) if isinstance(ttl_hours, int) or str(ttl_hours).isdigit() else None,
                 source_turn_id=int(turn_meta.get("last_turn_id", 0) or 0),
             )
@@ -179,34 +191,53 @@ class PersistentMemoryWriteNode:
                 fact_saved += 1
         return {"ok": True, "fact_saved": fact_saved, "summary_saved": summary_saved}
 
-    def run(self, state: AgentState) -> Dict[str, Any]:
-        if not self.enabled:
-            return {
-                "debug_steps": state.get("debug_steps", []) + ["persistent_memory_write: disabled"],
-            }
-
-        if bool(state.get("block_persistent_write", False)):
-            return {
-                "debug_steps": state.get("debug_steps", []) + ["persistent_memory_write: blocked_by_quality_gate"],
-            }
-
-        try:
-            compression = self._find_compression_info(state=state)
-            event = self._build_event(state=state, compression=compression)
-            result = self._persist_event(event)
-            if not result.get("ok", False):
-                raise RuntimeError(str(result.get("reason", "persistent_memory_write_failed")))
-            self._append_local_observer(event=event, result=result)
-        except Exception as exc:
-            logger.exception("长期记忆写入异常: %s", exc)
-            return {
-                "debug_steps": state.get("debug_steps", [])
-                + [f"persistent_memory_write: exception={exc}"],
-            }
-
-        return {
-            "debug_steps": state.get("debug_steps", [])
-            + [
-                f"persistent_memory_write: turns_saved=1,facts_saved={int(result.get('fact_saved', 0) or 0)},summary_saved={bool(result.get('summary_saved', False))}"
-            ],
-        }
+    async def run(self, state: AgentState) -> Dict[str, Any]:
+        with langsmith_trace(
+            self.config,
+            name="memory:persistent_write",
+            run_type="chain",
+            inputs={
+                "session_id": str(state.get("session_id", "") or ""),
+                "user_id": str(state.get("user_id", "") or ""),
+                "fact_count": len(state.get("memory_fact_candidates", []) or []),
+            },
+            tags=["memory", "persistent", "write"],
+            metadata={"local_observer_enabled": self.local_observer_enabled},
+        ) as span:
+            if not self.enabled:
+                result_state = {
+                    "debug_steps": state.get("debug_steps", []) + ["persistent_memory_write: disabled"],
+                }
+            elif bool(state.get("block_persistent_write", False)):
+                result_state = {
+                    "debug_steps": state.get("debug_steps", []) + ["persistent_memory_write: blocked_by_quality_gate"],
+                }
+            else:
+                try:
+                    compression = self._find_compression_info(state=state)
+                    event = self._build_event(state=state, compression=compression)
+                    result = await self._persist_event_async(event)
+                    if not result.get("ok", False):
+                        raise RuntimeError(str(result.get("reason", "persistent_memory_write_failed")))
+                    await asyncio.to_thread(self._append_local_observer, event=event, result=result)
+                except Exception as exc:
+                    logger.warning("长期记忆写入失败（已降级继续）: %s", exc)
+                    result_state = {
+                        "debug_steps": state.get("debug_steps", [])
+                        + [f"persistent_memory_write: exception={exc}"],
+                    }
+                else:
+                    result_state = {
+                        "debug_steps": state.get("debug_steps", [])
+                        + [
+                            f"persistent_memory_write: turns_saved=1,facts_saved={int(result.get('fact_saved', 0) or 0)},summary_saved={bool(result.get('summary_saved', False))}"
+                        ],
+                    }
+                    if span is not None:
+                        span.end(
+                            outputs={
+                                "facts_saved": int(result.get("fact_saved", 0) or 0),
+                                "summary_saved": bool(result.get("summary_saved", False)),
+                            }
+                        )
+            return result_state

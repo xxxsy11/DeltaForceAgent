@@ -10,6 +10,7 @@ from agents.execution_agent import ExecutionAgent
 from agents.intent_recognition import IntentRecognitionAgent
 from agents.main_orchestrator import MainOrchestratorAgent
 from agents.retry_router import RetryRouterAgent
+from agents.self_improving_data_agent import SelfImprovingDataAgent
 from agents.specialist_analysis import SpecialistAnalysisAgent
 from agents.state import AgentState
 from agents.summary_agent import SummaryAgent
@@ -23,6 +24,7 @@ from memory.components import (
     PersistentMemoryRecallNode,
     PersistentMemoryWriteNode,
 )
+from observability.langsmith import langsmith_span
 from tools import ToolRegistry
 
 DEFAULT_SELL_FEE_RATE = 0.13
@@ -42,6 +44,7 @@ STAGE_LABELS = {
     "retry_router": "重试路由",
     "memory_compression": "记忆压缩",
     "persistent_memory_write": "长期记忆写入",
+    "self_improving_data": "自进化数据采集",
 }
 
 
@@ -104,7 +107,7 @@ def _build_stage_detail(stage_name: str, state: AgentState, update: dict) -> str
     return ""
 
 
-def _with_stage_trace_async(stage_name: str, fn, enable_trace: bool):
+def _with_stage_trace_async(stage_name: str, fn, config, enable_trace: bool):
     async def _wrapped(state: AgentState):
         orchestration_meta = dict(state.get("orchestration_meta", {}) or {})
         stage_label = STAGE_LABELS.get(stage_name, stage_name)
@@ -112,9 +115,30 @@ def _with_stage_trace_async(stage_name: str, fn, enable_trace: bool):
             print(f"\n[流程] 开始：{stage_label}", flush=True)
 
         started = time.perf_counter()
-        update = await fn(state)
-        update = update or {}
-        elapsed_ms = round((time.perf_counter() - started) * MS_PER_SECOND, 2)
+        with langsmith_span(
+            config,
+            name=f"stage:{stage_name}",
+            run_type="chain",
+            inputs={
+                "stage_name": stage_name,
+                "user_query": str(state.get("user_query", "") or "")[:500],
+                "session_id": str(state.get("session_id", "") or ""),
+                "user_id": str(state.get("user_id", "") or ""),
+            },
+            tags=["stage", stage_name],
+            metadata={"stage_label": stage_label},
+        ) as span:
+            update = await fn(state)
+            update = update or {}
+            elapsed_ms = round((time.perf_counter() - started) * MS_PER_SECOND, 2)
+            if span is not None:
+                span.end(
+                    outputs={
+                        "elapsed_ms": elapsed_ms,
+                        "detail": _build_stage_detail(stage_name=stage_name, state=state, update=update),
+                        "keys": sorted(list(update.keys())),
+                    }
+                )
 
         out_meta = dict(orchestration_meta)
         update_meta = update.get("orchestration_meta")
@@ -202,29 +226,35 @@ def build_multi_agent_graph(
         registry=registry,
     )
     sell_fee_rate = float(getattr(config, "sell_fee_rate", DEFAULT_SELL_FEE_RATE) or DEFAULT_SELL_FEE_RATE)
-    execution = ExecutionAgent(registry=registry, sell_fee_rate=sell_fee_rate)
+    execution = ExecutionAgent(
+        registry=registry,
+        sell_fee_rate=sell_fee_rate,
+        max_concurrency=int(getattr(config, "execution_max_concurrency", 4) or 4),
+    )
     validator = ToolOutputValidatorAgent(config=config)
-    specialist = SpecialistAnalysisAgent(model_name=config.agent_specialist_model)
+    specialist = SpecialistAnalysisAgent(model_name=config.agent_specialist_model, config=config)
     summary = SummaryAgent(planner=LLMToolPlanner(config=config, model_name=config.agent_summary_model))
     reviewer = AnswerReviewerAgent(config=config)
     retry_router = RetryRouterAgent(config=config)
     memory_compression = MemoryCompressionAgent(config=config)
     persistent_write = PersistentMemoryWriteNode(store=store, config=config)
+    self_improving_data = SelfImprovingDataAgent(config=config)
 
     builder = StateGraph(AgentState)
-    builder.add_node("main_orchestrator", _with_stage_trace_async("main_orchestrator", orchestrator.run, stage_trace_enabled))
-    builder.add_node("persistent_memory_recall", _with_stage_trace_async("persistent_memory_recall", persistent_recall.run, stage_trace_enabled))
-    builder.add_node("intent_recognition", _with_stage_trace_async("intent_recognition", intent_agent.run, stage_trace_enabled))
-    builder.add_node("tool_selection_review", _with_stage_trace_async("tool_selection_review", tool_selection_review.run, stage_trace_enabled))
-    builder.add_node("task_planning", _with_stage_trace_async("task_planning", task_planner.run, stage_trace_enabled))
-    builder.add_node("execution", _with_stage_trace_async("execution", execution.run, stage_trace_enabled))
-    builder.add_node("tool_output_validator", _with_stage_trace_async("tool_output_validator", validator.run, stage_trace_enabled))
-    builder.add_node("specialist_analysis", _with_stage_trace_async("specialist_analysis", specialist.run, stage_trace_enabled))
-    builder.add_node("summary", _with_stage_trace_async("summary", summary.run, stage_trace_enabled))
-    builder.add_node("answer_reviewer", _with_stage_trace_async("answer_reviewer", reviewer.run, stage_trace_enabled))
-    builder.add_node("retry_router", _with_stage_trace_async("retry_router", retry_router.run, stage_trace_enabled))
-    builder.add_node("memory_compression", _with_stage_trace_async("memory_compression", memory_compression.run, stage_trace_enabled))
-    builder.add_node("persistent_memory_write", _with_stage_trace_async("persistent_memory_write", persistent_write.run, stage_trace_enabled))
+    builder.add_node("main_orchestrator", _with_stage_trace_async("main_orchestrator", orchestrator.run, config, stage_trace_enabled))
+    builder.add_node("persistent_memory_recall", _with_stage_trace_async("persistent_memory_recall", persistent_recall.run, config, stage_trace_enabled))
+    builder.add_node("intent_recognition", _with_stage_trace_async("intent_recognition", intent_agent.run, config, stage_trace_enabled))
+    builder.add_node("tool_selection_review", _with_stage_trace_async("tool_selection_review", tool_selection_review.run, config, stage_trace_enabled))
+    builder.add_node("task_planning", _with_stage_trace_async("task_planning", task_planner.run, config, stage_trace_enabled))
+    builder.add_node("execution", _with_stage_trace_async("execution", execution.run, config, stage_trace_enabled))
+    builder.add_node("tool_output_validator", _with_stage_trace_async("tool_output_validator", validator.run, config, stage_trace_enabled))
+    builder.add_node("specialist_analysis", _with_stage_trace_async("specialist_analysis", specialist.run, config, stage_trace_enabled))
+    builder.add_node("summary", _with_stage_trace_async("summary", summary.run, config, stage_trace_enabled))
+    builder.add_node("answer_reviewer", _with_stage_trace_async("answer_reviewer", reviewer.run, config, stage_trace_enabled))
+    builder.add_node("retry_router", _with_stage_trace_async("retry_router", retry_router.run, config, stage_trace_enabled))
+    builder.add_node("memory_compression", _with_stage_trace_async("memory_compression", memory_compression.run, config, stage_trace_enabled))
+    builder.add_node("persistent_memory_write", _with_stage_trace_async("persistent_memory_write", persistent_write.run, config, stage_trace_enabled))
+    builder.add_node("self_improving_data", _with_stage_trace_async("self_improving_data", self_improving_data.run, config, stage_trace_enabled))
 
     builder.add_edge(START, "main_orchestrator")
     builder.add_edge("main_orchestrator", "persistent_memory_recall")
@@ -274,5 +304,6 @@ def build_multi_agent_graph(
     )
     builder.add_edge("tool_selection_review", "execution")
     builder.add_edge("memory_compression", "persistent_memory_write")
-    builder.add_edge("persistent_memory_write", END)
-    return builder.compile()
+    builder.add_edge("persistent_memory_write", "self_improving_data")
+    builder.add_edge("self_improving_data", END)
+    return builder.compile(name=str(getattr(config, "langsmith_graph_name", "") or "delta-agent-graph"))

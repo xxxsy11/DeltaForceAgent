@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 from langchain_openai import ChatOpenAI
 
 from agents.state import AgentState
+from observability.langsmith import langsmith_trace
 from rag_modules.llm_utils import extract_text_content
 
 
@@ -51,6 +52,7 @@ class MemoryCompressionAgent:
     """Updates recent/pending buffers and compresses pending history when needed."""
 
     FAILURE_MARKERS = ("工具调用失败", "查询失败", "未找到工具", "系统错误", "不可用", "HTTP 5")
+    TRACE_SUMMARY_PREVIEW_CHARS = 320
 
     def __init__(self, config):
         self.config = config
@@ -164,11 +166,8 @@ class MemoryCompressionAgent:
             return merged[-HEURISTIC_SUMMARY_TOTAL_MAX_CHARS:]
         return merged
 
-    def _llm_merge_summary(self, old_summary: str, pending: List[Dict[str, str]]) -> str:
-        if self.llm is None:
-            return self._heuristic_summary(old_summary=old_summary, pending=pending)
-
-        prompt = f"""
+    def _build_merge_summary_prompt(self, old_summary: str, pending: List[Dict[str, str]]) -> str:
+        return f"""
 你是对话记忆压缩代理。请将旧摘要与新增对话压缩成新的记忆摘要。
 要求：
 1) 输出 JSON，字段：summary。
@@ -182,6 +181,52 @@ class MemoryCompressionAgent:
 新增对话：
 {self._format_turns(pending)}
 """
+
+    @staticmethod
+    def _build_rebase_summary_prompt(rolling_summary: str) -> str:
+        return f"""
+请将下面对话摘要进行一次重整，去重并压缩，保持事实准确、结构清晰。
+输出 JSON: {{"summary": "..."}}
+
+摘要内容：
+{rolling_summary}
+"""
+
+    def _build_extract_facts_prompt(self, query: str, final_answer: str, summary_text: str, pending_turns: List[Dict[str, str]]) -> str:
+        pending_text = self._format_turns(pending_turns)
+        return f"""
+你是记忆压缩后的事实提取器。请从摘要与新增对话中提取可复用记忆。
+输出 JSON：
+{{
+  "keywords": ["..."],
+  "facts": [
+    {{
+      "fact_key": "snake_case_key",
+      "fact_value": "事实内容",
+      "fact_type": "focus|entity|market|preference|constraint|plan",
+      "confidence": 0.0,
+      "keywords": ["..."],
+      "ttl_hours": 24
+    }}
+  ]
+}}
+
+规则：
+1) 仅提取可复用事实，最多 6 条。
+2) 报错信息不要写入 facts。
+3) market 类型默认 ttl_hours={self.market_ttl_hours}。
+4) keywords 与 facts 分别返回，keywords 是检索词，facts 是结构化记忆。
+
+用户问题：{query}
+助手回答：{final_answer}
+压缩后摘要：{summary_text}
+压缩源对话：{pending_text}
+"""
+
+    def _llm_merge_summary(self, old_summary: str, pending: List[Dict[str, str]]) -> str:
+        if self.llm is None:
+            return self._heuristic_summary(old_summary=old_summary, pending=pending)
+        prompt = self._build_merge_summary_prompt(old_summary=old_summary, pending=pending)
         try:
             response = self.llm.invoke(prompt)
             text = extract_text_content(getattr(response, "content", response)).strip()
@@ -196,28 +241,35 @@ class MemoryCompressionAgent:
     async def _llm_merge_summary_async(self, old_summary: str, pending: List[Dict[str, str]]) -> str:
         if self.llm is None:
             return self._heuristic_summary(old_summary=old_summary, pending=pending)
-
-        prompt = f"""
-你是对话记忆压缩代理。请将旧摘要与新增对话压缩成新的记忆摘要。
-要求：
-1) 输出 JSON，字段：summary。
-2) summary 控制在 8~12 行，保留用户目标、关键事实、未完成任务。
-3) 标注不确定信息，不要把失败报错当成事实。
-4) 不要输出多余解释。
-
-旧摘要：
-{old_summary}
-
-新增对话：
-{self._format_turns(pending)}
-"""
+        prompt = self._build_merge_summary_prompt(old_summary=old_summary, pending=pending)
         try:
-            response = await self._invoke_llm_async(prompt)
-            text = extract_text_content(getattr(response, "content", response)).strip()
-            parsed = self._parse_json(text)
-            summary = str(parsed.get("summary", "")).strip()
-            if summary:
-                return summary
+            with langsmith_trace(
+                self.config,
+                name="memory:merge_summary",
+                run_type="llm",
+                inputs={"pending_turns": len(pending), "old_summary_present": bool(str(old_summary or "").strip())},
+                tags=["memory", "compression", "llm"],
+                metadata={"model_name": self.model_name},
+            ) as span:
+                response = await self._invoke_llm_async(prompt)
+                if span is not None:
+                    text = extract_text_content(getattr(response, "content", response)).strip()
+                    parsed = self._parse_json(text)
+                    summary = str(parsed.get("summary", "")).strip()
+                    if summary:
+                        span.end(
+                            outputs={
+                                "summary_preview": summary[: self.TRACE_SUMMARY_PREVIEW_CHARS],
+                                "summary_chars": len(summary),
+                            }
+                        )
+                        return summary
+                else:
+                    text = extract_text_content(getattr(response, "content", response)).strip()
+                    parsed = self._parse_json(text)
+                    summary = str(parsed.get("summary", "")).strip()
+                    if summary:
+                        return summary
         except Exception:
             pass
         return self._heuristic_summary(old_summary=old_summary, pending=pending)
@@ -225,13 +277,7 @@ class MemoryCompressionAgent:
     def _llm_rebase_summary(self, rolling_summary: str) -> str:
         if self.llm is None:
             return str(rolling_summary or "").strip()
-        prompt = f"""
-请将下面对话摘要进行一次重整，去重并压缩，保持事实准确、结构清晰。
-输出 JSON: {{"summary": "..."}}
-
-摘要内容：
-{rolling_summary}
-"""
+        prompt = self._build_rebase_summary_prompt(rolling_summary)
         try:
             response = self.llm.invoke(prompt)
             text = extract_text_content(getattr(response, "content", response)).strip()
@@ -246,20 +292,35 @@ class MemoryCompressionAgent:
     async def _llm_rebase_summary_async(self, rolling_summary: str) -> str:
         if self.llm is None:
             return str(rolling_summary or "").strip()
-        prompt = f"""
-请将下面对话摘要进行一次重整，去重并压缩，保持事实准确、结构清晰。
-输出 JSON: {{"summary": "..."}}
-
-摘要内容：
-{rolling_summary}
-"""
+        prompt = self._build_rebase_summary_prompt(rolling_summary)
         try:
-            response = await self._invoke_llm_async(prompt)
-            text = extract_text_content(getattr(response, "content", response)).strip()
-            parsed = self._parse_json(text)
-            summary = str(parsed.get("summary", "")).strip()
-            if summary:
-                return summary
+            with langsmith_trace(
+                self.config,
+                name="memory:rebase_summary",
+                run_type="llm",
+                inputs={"summary_chars": len(str(rolling_summary or ""))},
+                tags=["memory", "compression", "llm"],
+                metadata={"model_name": self.model_name},
+            ) as span:
+                response = await self._invoke_llm_async(prompt)
+                if span is not None:
+                    text = extract_text_content(getattr(response, "content", response)).strip()
+                    parsed = self._parse_json(text)
+                    summary = str(parsed.get("summary", "")).strip()
+                    if summary:
+                        span.end(
+                            outputs={
+                                "summary_preview": summary[: self.TRACE_SUMMARY_PREVIEW_CHARS],
+                                "summary_chars": len(summary),
+                            }
+                        )
+                        return summary
+                else:
+                    text = extract_text_content(getattr(response, "content", response)).strip()
+                    parsed = self._parse_json(text)
+                    summary = str(parsed.get("summary", "")).strip()
+                    if summary:
+                        return summary
         except Exception:
             pass
         return str(rolling_summary or "").strip()
@@ -406,40 +467,7 @@ class MemoryCompressionAgent:
             return {}
         query = str(state.get("user_query", "") or "").strip()
         final_answer = str(state.get("final_answer", "") or "").strip()
-        pending_text = "\n".join(
-            str(x.get("content", "") or "")
-            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
-        )
-        pending_text = self._format_turns(pending_turns)
-
-        prompt = f"""
-你是记忆压缩后的事实提取器。请从摘要与新增对话中提取可复用记忆。
-输出 JSON：
-{{
-  "keywords": ["..."],
-  "facts": [
-    {{
-      "fact_key": "snake_case_key",
-      "fact_value": "事实内容",
-      "fact_type": "focus|entity|market|preference|constraint|plan",
-      "confidence": 0.0,
-      "keywords": ["..."],
-      "ttl_hours": 24
-    }}
-  ]
-}}
-
-规则：
-1) 仅提取可复用事实，最多 6 条。
-2) 报错信息不要写入 facts。
-3) market 类型默认 ttl_hours={self.market_ttl_hours}。
-4) keywords 与 facts 分别返回，keywords 是检索词，facts 是结构化记忆。
-
-用户问题：{query}
-助手回答：{final_answer}
-压缩后摘要：{summary_text}
-压缩源对话：{pending_text}
-"""
+        prompt = self._build_extract_facts_prompt(query=query, final_answer=final_answer, summary_text=summary_text, pending_turns=pending_turns)
         try:
             response = self.llm.invoke(prompt)
             text = extract_text_content(getattr(response, "content", response)).strip()
@@ -457,44 +485,31 @@ class MemoryCompressionAgent:
             return {}
         query = str(state.get("user_query", "") or "").strip()
         final_answer = str(state.get("final_answer", "") or "").strip()
-        pending_text = "\n".join(
-            str(x.get("content", "") or "")
-            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
-        )
-        pending_text = self._format_turns(pending_turns)
-
-        prompt = f"""
-你是记忆压缩后的事实提取器。请从摘要与新增对话中提取可复用记忆。
-输出 JSON：
-{{
-  "keywords": ["..."],
-  "facts": [
-    {{
-      "fact_key": "snake_case_key",
-      "fact_value": "事实内容",
-      "fact_type": "focus|entity|market|preference|constraint|plan",
-      "confidence": 0.0,
-      "keywords": ["..."],
-      "ttl_hours": 24
-    }}
-  ]
-}}
-
-规则：
-1) 仅提取可复用事实，最多 6 条。
-2) 报错信息不要写入 facts。
-3) market 类型默认 ttl_hours={self.market_ttl_hours}。
-4) keywords 与 facts 分别返回，keywords 是检索词，facts 是结构化记忆。
-
-用户问题：{query}
-助手回答：{final_answer}
-压缩后摘要：{summary_text}
-压缩源对话：{pending_text}
-"""
+        prompt = self._build_extract_facts_prompt(query=query, final_answer=final_answer, summary_text=summary_text, pending_turns=pending_turns)
         try:
-            response = await self._invoke_llm_async(prompt)
-            text = extract_text_content(getattr(response, "content", response)).strip()
-            return self._parse_json(text)
+            with langsmith_trace(
+                self.config,
+                name="memory:extract_facts",
+                run_type="llm",
+                inputs={
+                    "summary_chars": len(str(summary_text or "")),
+                    "pending_turns": len(pending_turns),
+                    "final_answer_present": bool(final_answer),
+                },
+                tags=["memory", "facts", "llm"],
+                metadata={"model_name": self.model_name},
+            ) as span:
+                response = await self._invoke_llm_async(prompt)
+                text = extract_text_content(getattr(response, "content", response)).strip()
+                parsed = self._parse_json(text)
+                if span is not None:
+                    span.end(
+                        outputs={
+                            "keyword_count": len(parsed.get("keywords", []) if isinstance(parsed, dict) else []),
+                            "fact_count": len(parsed.get("facts", []) if isinstance(parsed, dict) else []),
+                        }
+                    )
+                return parsed
         except Exception:
             return {}
 
@@ -508,10 +523,6 @@ class MemoryCompressionAgent:
             return {"keywords": [], "facts": []}
 
         final_answer = str(state.get("final_answer", "") or "").strip()
-        pending_text = "\n".join(
-            str(x.get("content", "") or "")
-            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
-        )
         allow_llm = bool(final_answer) and (not self._contains_failure_markers(final_answer))
 
         heuristic_payload = self._heuristic_extract_facts(
@@ -587,10 +598,6 @@ class MemoryCompressionAgent:
             return {"keywords": [], "facts": []}
 
         final_answer = str(state.get("final_answer", "") or "").strip()
-        pending_text = "\n".join(
-            str(x.get("content", "") or "")
-            for x in pending_turns[-SUMMARY_KEYWORD_DEFAULT_LIMIT:]
-        )
         allow_llm = bool(final_answer) and (not self._contains_failure_markers(final_answer))
 
         heuristic_payload = self._heuristic_extract_facts(
@@ -657,103 +664,125 @@ class MemoryCompressionAgent:
         return {"keywords": merged_keywords, "facts": facts}
 
     async def run(self, state: AgentState) -> Dict[str, Any]:
-        if not self.enabled:
-            return {
-                "debug_steps": state.get("debug_steps", []) + ["memory_compression: disabled"],
-            }
-
-        recent = [dict(x) for x in state.get("memory_recent_raw", []) if isinstance(x, dict)]
-        pending = [dict(x) for x in state.get("memory_pending_buffer", []) if isinstance(x, dict)]
-        rolling_summary = str(state.get("memory_rolling_summary", "") or "")
-        merge_count = int(state.get("memory_merge_count", 0) or 0)
-
-        user_query = str(state.get("user_query", "")).strip()
-        final_answer = str(state.get("final_answer", "")).strip()
-
-        if user_query:
-            recent.append({"role": "user", "content": user_query})
-
-        if final_answer and not (self.drop_failed_tool_messages and self._contains_failure_markers(final_answer)):
-            recent.append({"role": "assistant", "content": final_answer})
-
-        while len(recent) > max(1, self.recent_raw_limit):
-            pending.append(recent.pop(0))
-
-        pending_tokens = self._estimate_pending_tokens(pending)
-        force_compress = bool(state.get("memory_force_compress", False))
-        should_compress = (
-            len(pending) >= max(1, self.pending_turns_trigger)
-            or pending_tokens >= max(1, self.pending_tokens_trigger)
-            or (force_compress and bool(pending))
-        )
-
-        compression_info = {
-            "triggered": False,
-            "reason": "",
-            "pending_turns": len(pending),
-            "pending_tokens": pending_tokens,
-        }
-        keyword_candidates: List[str] = []
-        fact_candidates: List[Dict[str, Any]] = []
-
-        if should_compress and pending:
-            pending_snapshot = [dict(x) for x in pending]
-            rolling_summary = await self._llm_merge_summary_async(old_summary=rolling_summary, pending=pending_snapshot)
-            extraction_payload = await self._extract_facts_on_compression_async(
-                state=state,
-                summary_text=rolling_summary,
-                pending_turns=pending_snapshot,
-            )
-            keyword_candidates = extraction_payload.get("keywords", []) if isinstance(extraction_payload, dict) else []
-            fact_candidates = extraction_payload.get("facts", []) if isinstance(extraction_payload, dict) else []
-            pending = []
-            merge_count += 1
-            compression_info = {
-                "triggered": True,
-                "reason": "force_flush" if force_compress else "turn_or_token_threshold",
-                "pending_turns": 0,
-                "pending_tokens": 0,
-                "fact_count": len(fact_candidates),
-            }
-
-            if self.rebase_every_n_merges > 0 and merge_count % self.rebase_every_n_merges == 0:
-                rolling_summary = await self._llm_rebase_summary_async(rolling_summary)
-                compression_info["rebase"] = True
-            else:
-                compression_info["rebase"] = False
-
-        pending_digest = self._build_pending_digest(pending)
-        context_blocks: List[str] = []
-        if rolling_summary:
-            context_blocks.append(f"[历史摘要]\n{rolling_summary}")
-        if pending_digest:
-            context_blocks.append(f"[待压缩摘要]\n{pending_digest}")
-        if recent:
-            context_blocks.append("[最近对话]\n" + self._build_recent_lines(recent, max_items=self.recent_raw_limit))
-
-        memory_context = "\n\n".join(context_blocks).strip()
-        msg = {
-            "from_agent": "memory_compression",
-            "to_agent": "main_orchestrator",
-            "message_type": "memory_update",
-            "payload": {
-                "compression": compression_info,
-                "recent_raw_count": len(recent),
-                "fact_count": len(fact_candidates),
+        with langsmith_trace(
+            self.config,
+            name="memory:compression_run",
+            run_type="chain",
+            inputs={
+                "session_id": str(state.get("session_id", "") or ""),
+                "user_id": str(state.get("user_id", "") or ""),
+                "recent_raw_count": len(state.get("memory_recent_raw", []) or []),
+                "pending_count": len(state.get("memory_pending_buffer", []) or []),
             },
-        }
+            tags=["memory", "compression"],
+            metadata={"persistent_enabled": self.persistent_enabled},
+        ) as span:
+            if not self.enabled:
+                result = {
+                    "debug_steps": state.get("debug_steps", []) + ["memory_compression: disabled"],
+                }
+            else:
+                recent = [dict(x) for x in state.get("memory_recent_raw", []) if isinstance(x, dict)]
+                pending = [dict(x) for x in state.get("memory_pending_buffer", []) if isinstance(x, dict)]
+                rolling_summary = str(state.get("memory_rolling_summary", "") or "")
+                merge_count = int(state.get("memory_merge_count", 0) or 0)
 
-        return {
-            "memory_recent_raw": recent,
-            "memory_pending_buffer": pending,
-            "memory_rolling_summary": rolling_summary,
-            "memory_merge_count": merge_count,
-            "memory_pending_digest": pending_digest,
-            "memory_context": memory_context,
-            "memory_keyword_candidates": keyword_candidates,
-            "memory_fact_candidates": fact_candidates,
-            "agent_messages": state.get("agent_messages", []) + [msg],
-            "debug_steps": state.get("debug_steps", []) + [
-                f"memory_compression: triggered={compression_info.get('triggered', False)},facts={len(fact_candidates)}"
-            ],
-        }
+                user_query = str(state.get("user_query", "")).strip()
+                final_answer = str(state.get("final_answer", "")).strip()
+
+                if user_query:
+                    recent.append({"role": "user", "content": user_query})
+
+                if final_answer and not (self.drop_failed_tool_messages and self._contains_failure_markers(final_answer)):
+                    recent.append({"role": "assistant", "content": final_answer})
+
+                while len(recent) > max(1, self.recent_raw_limit):
+                    pending.append(recent.pop(0))
+
+                pending_tokens = self._estimate_pending_tokens(pending)
+                force_compress = bool(state.get("memory_force_compress", False))
+                should_compress = (
+                    len(pending) >= max(1, self.pending_turns_trigger)
+                    or pending_tokens >= max(1, self.pending_tokens_trigger)
+                    or (force_compress and bool(pending))
+                )
+
+                compression_info = {
+                    "triggered": False,
+                    "reason": "",
+                    "pending_turns": len(pending),
+                    "pending_tokens": pending_tokens,
+                }
+                keyword_candidates: List[str] = []
+                fact_candidates: List[Dict[str, Any]] = []
+
+                if should_compress and pending:
+                    pending_snapshot = [dict(x) for x in pending]
+                    rolling_summary = await self._llm_merge_summary_async(old_summary=rolling_summary, pending=pending_snapshot)
+                    extraction_payload = await self._extract_facts_on_compression_async(
+                        state=state,
+                        summary_text=rolling_summary,
+                        pending_turns=pending_snapshot,
+                    )
+                    keyword_candidates = extraction_payload.get("keywords", []) if isinstance(extraction_payload, dict) else []
+                    fact_candidates = extraction_payload.get("facts", []) if isinstance(extraction_payload, dict) else []
+                    pending = []
+                    merge_count += 1
+                    compression_info = {
+                        "triggered": True,
+                        "reason": "force_flush" if force_compress else "turn_or_token_threshold",
+                        "pending_turns": 0,
+                        "pending_tokens": 0,
+                        "fact_count": len(fact_candidates),
+                    }
+
+                    if self.rebase_every_n_merges > 0 and merge_count % self.rebase_every_n_merges == 0:
+                        rolling_summary = await self._llm_rebase_summary_async(rolling_summary)
+                        compression_info["rebase"] = True
+                    else:
+                        compression_info["rebase"] = False
+
+                pending_digest = self._build_pending_digest(pending)
+                context_blocks: List[str] = []
+                if rolling_summary:
+                    context_blocks.append(f"[历史摘要]\n{rolling_summary}")
+                if pending_digest:
+                    context_blocks.append(f"[待压缩摘要]\n{pending_digest}")
+                if recent:
+                    context_blocks.append("[最近对话]\n" + self._build_recent_lines(recent, max_items=self.recent_raw_limit))
+
+                memory_context = "\n\n".join(context_blocks).strip()
+                msg = {
+                    "from_agent": "memory_compression",
+                    "to_agent": "main_orchestrator",
+                    "message_type": "memory_update",
+                    "payload": {
+                        "compression": compression_info,
+                        "recent_raw_count": len(recent),
+                        "fact_count": len(fact_candidates),
+                    },
+                }
+
+                result = {
+                    "memory_recent_raw": recent,
+                    "memory_pending_buffer": pending,
+                    "memory_rolling_summary": rolling_summary,
+                    "memory_merge_count": merge_count,
+                    "memory_pending_digest": pending_digest,
+                    "memory_context": memory_context,
+                    "memory_keyword_candidates": keyword_candidates,
+                    "memory_fact_candidates": fact_candidates,
+                    "agent_messages": state.get("agent_messages", []) + [msg],
+                    "debug_steps": state.get("debug_steps", []) + [
+                        f"memory_compression: triggered={compression_info.get('triggered', False)},facts={len(fact_candidates)}"
+                    ],
+                }
+            if span is not None:
+                span.end(
+                    outputs={
+                        "rolling_summary_chars": len(str(result.get("memory_rolling_summary", "") or "")),
+                        "pending_count": len(result.get("memory_pending_buffer", []) or []),
+                        "fact_count": len(result.get("memory_fact_candidates", []) or []),
+                    }
+                )
+            return result

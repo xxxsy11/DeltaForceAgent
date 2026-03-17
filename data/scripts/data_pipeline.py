@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeltaForce_Agent 数据处理统一脚本。
+Delta Agent 数据处理统一脚本。
 
 整合能力：
 - 统计 JSON 图数据
@@ -39,7 +39,7 @@ DEFAULT_JSON_FILES = [
 ]
 
 LOCAL_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-REMOTE_URI = os.getenv("NEO4J_REMOTE_URI", "")
+REMOTE_URI = os.getenv("NEO4J_REMOTE_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "")
 NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
@@ -217,7 +217,7 @@ def export_cypher_assets(
                 }
             )
 
-    cypher_content = """// DeltaForce_Agent Neo4j Import Script
+    cypher_content = """// Delta Agent Neo4j Import Script
 CREATE CONSTRAINT node_id_unique IF NOT EXISTS FOR (n:Node) REQUIRE n.nodeId IS UNIQUE;
 CREATE FULLTEXT INDEX node_fulltext_search IF NOT EXISTS FOR (n:Node) ON EACH [n.name];
 
@@ -255,8 +255,6 @@ def connect_neo4j(uri: str, user: str, password: str):
         from neo4j import GraphDatabase  # type: ignore
     except ImportError as e:
         raise RuntimeError("缺少 neo4j 依赖，请先安装 neo4j Python 包。") from e
-    if not str(password or "").strip():
-        raise ValueError("NEO4J_PASSWORD 为空，请通过 .env 或 --password 传入")
     return GraphDatabase.driver(uri, auth=(user, password))
 
 
@@ -378,11 +376,7 @@ def wipe_neo4j(session, execute: bool, dry_run: bool) -> None:
 def resolve_uri(uri: str | None, remote: bool) -> str:
     if uri:
         return uri
-    if remote:
-        if not REMOTE_URI:
-            raise ValueError("启用 --remote 但未配置 NEO4J_REMOTE_URI")
-        return REMOTE_URI
-    return LOCAL_URI
+    return REMOTE_URI if remote else LOCAL_URI
 
 
 def run_import_neo4j(
@@ -431,7 +425,7 @@ def run_wipe_neo4j(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="DeltaForce_Agent 数据处理统一脚本",
+        description="Delta Agent 数据处理统一脚本",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR), help="JSON 数据目录")

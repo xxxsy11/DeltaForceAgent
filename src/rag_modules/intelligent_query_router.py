@@ -17,6 +17,16 @@ from .llm_utils import invoke_llm_text
 
 logger = logging.getLogger(__name__)
 
+ENTITY_ESTIMATE_MIN = 1
+ENTITY_ESTIMATE_MAX = 8
+ANALYSIS_LLM_TEMPERATURE = 0.1
+ANALYSIS_LLM_MAX_TOKENS = 800
+DEFAULT_SCORE_MID = 0.5
+RULE_TRIGGER_THRESHOLD = 0.3
+RULE_CONFIDENCE = 0.6
+EXPLAIN_SIMPLE_THRESHOLD = 0.4
+EXPLAIN_COMPLEX_THRESHOLD = 0.8
+
 class SearchStrategy(Enum):
     """搜索策略枚举"""
     HYBRID_TRADITIONAL = "hybrid_traditional"  # 传统混合检索
@@ -93,8 +103,8 @@ class IntelligentQueryRouter:
     def _estimate_entity_count(self, query: str) -> int:
         tokens = re.findall(r"[A-Za-z0-9_+\-]+|[\u4e00-\u9fff]{2,6}", query or "")
         if not tokens:
-            return 1
-        return max(1, min(len(set(tokens)), 8))
+            return ENTITY_ESTIMATE_MIN
+        return max(ENTITY_ESTIMATE_MIN, min(len(set(tokens)), ENTITY_ESTIMATE_MAX))
         
     def analyze_query(self, query: str) -> QueryAnalysis:
         """
@@ -150,8 +160,8 @@ class IntelligentQueryRouter:
             llm_text = invoke_llm_text(
                 llm_client=self.llm_client,
                 prompt=analysis_prompt,
-                temperature=0.1,
-                max_tokens=800,
+                temperature=ANALYSIS_LLM_TEMPERATURE,
+                max_tokens=ANALYSIS_LLM_MAX_TOKENS,
             )
             result = self._extract_json_payload(llm_text)
             if not result:
@@ -161,9 +171,9 @@ class IntelligentQueryRouter:
             if strategy_raw not in {s.value for s in SearchStrategy}:
                 strategy_raw = SearchStrategy.HYBRID_TRADITIONAL.value
 
-            query_complexity = float(result.get("query_complexity", 0.5))
-            relationship_intensity = float(result.get("relationship_intensity", 0.5))
-            confidence = float(result.get("confidence", 0.5))
+            query_complexity = float(result.get("query_complexity", DEFAULT_SCORE_MID))
+            relationship_intensity = float(result.get("relationship_intensity", DEFAULT_SCORE_MID))
+            confidence = float(result.get("confidence", DEFAULT_SCORE_MID))
             query_complexity = max(0.0, min(query_complexity, 1.0))
             relationship_intensity = max(0.0, min(relationship_intensity, 1.0))
             confidence = max(0.0, min(confidence, 1.0))
@@ -199,7 +209,7 @@ class IntelligentQueryRouter:
         complexity = sum(1 for kw in complexity_keywords if kw in query) / len(complexity_keywords)
         relation_intensity = sum(1 for kw in relation_keywords if kw in query) / len(relation_keywords)
         
-        if complexity > 0.3 or relation_intensity > 0.3:
+        if complexity > RULE_TRIGGER_THRESHOLD or relation_intensity > RULE_TRIGGER_THRESHOLD:
             strategy = SearchStrategy.GRAPH_RAG
         else:
             strategy = SearchStrategy.HYBRID_TRADITIONAL
@@ -207,10 +217,10 @@ class IntelligentQueryRouter:
         return QueryAnalysis(
             query_complexity=complexity,
             relationship_intensity=relation_intensity,
-            reasoning_required=complexity > 0.3,
+            reasoning_required=complexity > RULE_TRIGGER_THRESHOLD,
             entity_count=self._estimate_entity_count(query),
             recommended_strategy=strategy,
-            confidence=0.6,
+            confidence=RULE_CONFIDENCE,
             reasoning="基于规则的简单分析"
         )
     
@@ -341,8 +351,8 @@ class IntelligentQueryRouter:
         查询：{query}
         
         特征分析：
-        - 复杂度：{analysis.query_complexity:.2f} ({'简单' if analysis.query_complexity < 0.4 else '中等' if analysis.query_complexity < 0.8 else '复杂'})
-        - 关系密集度：{analysis.relationship_intensity:.2f} ({'单一实体' if analysis.relationship_intensity < 0.4 else '实体关系' if analysis.relationship_intensity < 0.8 else '复杂关系网络'})
+        - 复杂度：{analysis.query_complexity:.2f} ({'简单' if analysis.query_complexity < EXPLAIN_SIMPLE_THRESHOLD else '中等' if analysis.query_complexity < EXPLAIN_COMPLEX_THRESHOLD else '复杂'})
+        - 关系密集度：{analysis.relationship_intensity:.2f} ({'单一实体' if analysis.relationship_intensity < EXPLAIN_SIMPLE_THRESHOLD else '实体关系' if analysis.relationship_intensity < EXPLAIN_COMPLEX_THRESHOLD else '复杂关系网络'})
         - 推理需求：{'是' if analysis.reasoning_required else '否'}
         - 实体数量：{analysis.entity_count}
         

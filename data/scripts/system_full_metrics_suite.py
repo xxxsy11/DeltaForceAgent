@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import argparse
 import json
 import re
 import shutil
@@ -169,7 +171,16 @@ def _run_turn(
             session_id=session_id,
             include_pending_in_prompt=include_pending_in_prompt,
         )
-        result = graph.invoke(_build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=patch))
+        result = asyncio.run(
+            graph.ainvoke(
+                _build_initial_state(
+                    query,
+                    session_id=session_id,
+                    user_id=user_id,
+                    memory_patch=patch,
+                )
+            )
+        )
 
         answer = str(result.get("final_answer", "") or "")
         tool_outputs = [str(x.get("output", "")) for x in (result.get("tool_results", []) or [])]
@@ -477,6 +488,123 @@ def _aggregate_engineering_metrics(all_turns: List[Dict[str, Any]]) -> Dict[str,
     }
 
 
+def _stage_seen(turn: Dict[str, Any], stage_prefix: str) -> bool:
+    for step in turn.get("debug_steps", []) or []:
+        if str(step).startswith(stage_prefix):
+            return True
+    return False
+
+
+def _stage_done(turn: Dict[str, Any], stage_name: str) -> bool:
+    done_marker = f"{stage_name}: done"
+    for step in turn.get("debug_steps", []) or []:
+        if str(step).strip() == done_marker:
+            return True
+    return False
+
+
+def _stage_skipped(turn: Dict[str, Any], stage_name: str) -> bool:
+    prefix = f"{stage_name}:"
+    for step in turn.get("debug_steps", []) or []:
+        raw = str(step).strip()
+        if raw.startswith(prefix) and "skipped" in raw:
+            return True
+    return False
+
+
+def _aggregate_agent_pipeline_metrics(
+    *,
+    single: List[Dict[str, Any]],
+    multi: List[Dict[str, Any]],
+    integration_turns: List[Dict[str, Any]],
+    reentry_turn: Dict[str, Any],
+    fault_turn: Dict[str, Any],
+    isolation_turns: List[Dict[str, Any]],
+    all_turns: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    # 子 Agent 质量：意图/工具/实体（来自单轮 + 多轮目标）
+    single_n = max(1, len(single))
+    multi_n = max(1, len(multi))
+    intent_agent_tool_acc = sum(1 for x in single if x.get("tool_ok")) / single_n
+    intent_agent_entity_acc = sum(1 for x in single if x.get("entity_ok")) / single_n
+    intent_agent_intent_acc = sum(1 for x in single if x.get("intent_ok")) / single_n
+    intent_agent_skill_acc = sum(1 for x in single if x.get("skill_ok")) / single_n
+
+    multi_tool_acc = sum(1 for x in multi if x.get("tool_ok")) / multi_n
+    multi_tool_query_acc = sum(1 for x in multi if x.get("tool_query_ok")) / multi_n
+
+    # 任务规划 Agent：仅统计真正触发规划（非 skipped）
+    planning_seen = 0
+    planning_done = 0
+    planning_valid = 0
+    for turn in all_turns:
+        if not _stage_seen(turn, "task_planning:"):
+            continue
+        planning_seen += 1
+        if _stage_done(turn, "task_planning") or (not _stage_skipped(turn, "task_planning")):
+            planning_done += 1
+            if int(turn.get("tool_result_count", 0) or 0) > 0 or str(turn.get("selected_tool", "")).strip():
+                planning_valid += 1
+
+    # Specialist Agent
+    specialist_seen = sum(1 for x in all_turns if _stage_seen(x, "specialist_analysis:"))
+    specialist_done = sum(1 for x in all_turns if _stage_done(x, "specialist_analysis"))
+
+    # Reviewer / Validator / Retry Router
+    validator_reject = sum(1 for x in all_turns if bool(x.get("validator_reject", False)))
+    reviewer_reject = sum(1 for x in all_turns if bool(x.get("reviewer_reject", False)))
+    retry_router_hits = 0
+    retry_router_denied = 0
+    for turn in all_turns:
+        for item in turn.get("retry_trace", []) or []:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("stage", "") or "") == "retry_router":
+                retry_router_hits += 1
+                if not bool(item.get("accepted", False)):
+                    retry_router_denied += 1
+
+    # Memory nodes
+    persistent_used = sum(1 for x in all_turns if bool(x.get("memory_persistent_used", False)))
+    compression_triggered = sum(
+        1 for x in all_turns if bool((x.get("memory_compression", {}) or {}).get("triggered", False))
+    )
+
+    # 主 Agent（主控编排）覆盖率：所有 turn 都应经过 main_orchestrator
+    orchestrator_seen = sum(1 for x in all_turns if _stage_seen(x, "main_orchestrator:"))
+
+    return {
+        "agent_turn_count": len(all_turns),
+        "main_orchestrator_coverage_rate": round(orchestrator_seen / max(1, len(all_turns)), 4),
+        "intent_agent_intent_accuracy": round(intent_agent_intent_acc, 4),
+        "intent_agent_tool_accuracy_single": round(intent_agent_tool_acc, 4),
+        "intent_agent_entity_accuracy_single": round(intent_agent_entity_acc, 4),
+        "intent_agent_skill_accuracy_single": round(intent_agent_skill_acc, 4),
+        "intent_agent_tool_accuracy_multi_target": round(multi_tool_acc, 4),
+        "intent_agent_tool_query_accuracy_multi_target": round(multi_tool_query_acc, 4),
+        "task_planning_seen_count": planning_seen,
+        "task_planning_done_count": planning_done,
+        "task_planning_valid_plan_rate": round(planning_valid / max(1, planning_done), 4),
+        "execution_tool_success_rate": round(
+            (sum(int(x.get("tool_result_count", 0) or 0) for x in all_turns) - sum(int(x.get("tool_result_fail_count", 0) or 0) for x in all_turns))
+            / max(1, sum(int(x.get("tool_result_count", 0) or 0) for x in all_turns)),
+            4,
+        ),
+        "validator_reject_count": validator_reject,
+        "reviewer_reject_count": reviewer_reject,
+        "specialist_seen_count": specialist_seen,
+        "specialist_done_count": specialist_done,
+        "retry_router_hit_count": retry_router_hits,
+        "retry_router_denied_count": retry_router_denied,
+        "memory_persistent_used_count": persistent_used,
+        "memory_compression_triggered_count": compression_triggered,
+        "integration_turn_count": len(integration_turns),
+        "isolation_turn_count": len(isolation_turns),
+        "reentry_final_failed": bool(reentry_turn.get("final_answer_failed", False)),
+        "fault_injection_final_failed": bool(fault_turn.get("final_answer_failed", False)),
+    }
+
+
 def _build_assertions(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     assertions: List[Dict[str, Any]] = []
 
@@ -633,11 +761,11 @@ def _brief_line(text: str, limit: int = 180) -> str:
     return raw if len(raw) <= limit else (raw[:limit] + "...")
 
 
-def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) -> Dict[str, str]:
+def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]], report_prefix: str) -> Dict[str, str]:
     docs_dir = PROJECT_ROOT / "docs"
-    json_path = docs_dir / "SYSTEM_FULL_METRICS_RESULT.json"
-    md_path = docs_dir / "SYSTEM_FULL_METRICS_REPORT.md"
-    brief_path = docs_dir / "SYSTEM_FULL_METRICS_REPORT_BRIEF.md"
+    json_path = docs_dir / f"{report_prefix}_RESULT.json"
+    md_path = docs_dir / f"{report_prefix}_REPORT.md"
+    brief_path = docs_dir / f"{report_prefix}_REPORT_BRIEF.md"
 
     payload["assertions"] = assertions
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -657,7 +785,7 @@ def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) ->
     lines.append("")
 
     lines.append("## 2. 核心指标")
-    for section in ("core", "kb_rag", "ltm_rag", "engineering"):
+    for section in ("core", "kb_rag", "ltm_rag", "engineering", "agent_pipeline"):
         lines.append(f"### {section}")
         for k, v in payload["metrics"].get(section, {}).items():
             lines.append(f"- `{k}`: `{v}`")
@@ -750,12 +878,32 @@ def _write_reports(payload: Dict[str, Any], assertions: List[Dict[str, Any]]) ->
     return {"json": str(json_path), "md": str(md_path), "md_brief": str(brief_path)}
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="System full metrics benchmark runner")
+    parser.add_argument(
+        "--benchmark-file",
+        type=str,
+        default="data/benchmarks/system_eval_cases.json",
+        help="Path to benchmark json (relative to project root or absolute).",
+    )
+    parser.add_argument(
+        "--report-prefix",
+        type=str,
+        default="SYSTEM_FULL_METRICS",
+        help="Output report prefix under docs/.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = _parse_args()
     cfg = DEFAULT_CONFIG
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     threshold = int(getattr(cfg, "memory_persistent_trigger_threshold", 2) or 2)
 
-    benchmark_path = PROJECT_ROOT / "data/benchmarks/system_eval_cases.json"
+    benchmark_path = Path(args.benchmark_file)
+    if not benchmark_path.is_absolute():
+        benchmark_path = PROJECT_ROOT / benchmark_path
     benchmark = json.loads(benchmark_path.read_text(encoding="utf-8"))
 
     rag_service = RAGService(cfg)
@@ -899,12 +1047,14 @@ def main() -> None:
             )
 
         finalize_pre = integration_manager.stats(user_id=main_user_id, session_id=main_session_id)
-        _finalize_session_memory(
-            user_id=main_user_id,
-            session_id=main_session_id,
-            config=cfg,
-            memory_manager=integration_manager,
-            persistent_store=store,
+        asyncio.run(
+            _finalize_session_memory(
+                user_id=main_user_id,
+                session_id=main_session_id,
+                config=cfg,
+                memory_manager=integration_manager,
+                persistent_store=store,
+            )
         )
         finalize_post = integration_manager.stats(user_id=main_user_id, session_id=main_session_id)
 
@@ -1017,6 +1167,15 @@ def main() -> None:
         all_turns.extend([user_a_warmup, user_b_warmup, user_a_reentry, user_b_reentry])
 
         engineering = _aggregate_engineering_metrics(all_turns=all_turns)
+        agent_pipeline = _aggregate_agent_pipeline_metrics(
+            single=single_results,
+            multi=multi_results,
+            integration_turns=integration_turns,
+            reentry_turn=reentry_turn,
+            fault_turn=fault_injection_turn,
+            isolation_turns=[user_a_warmup, user_b_warmup, user_a_reentry, user_b_reentry],
+            all_turns=all_turns,
+        )
 
         payload: Dict[str, Any] = {
             "meta": {
@@ -1060,11 +1219,12 @@ def main() -> None:
                 "kb_rag": kb_rag,
                 "ltm_rag": ltm_rag,
                 "engineering": engineering,
+                "agent_pipeline": agent_pipeline,
             },
         }
 
         assertions = _build_assertions(payload)
-        report_paths = _write_reports(payload, assertions)
+        report_paths = _write_reports(payload, assertions, report_prefix=str(args.report_prefix).strip() or "SYSTEM_FULL_METRICS")
         all_pass = all(bool(x.get("passed", False)) for x in assertions if x.get("severity", "normal") != "warning")
 
         print(
@@ -1079,7 +1239,7 @@ def main() -> None:
             )
         )
     finally:
-        registry.close()
+        asyncio.run(registry.close_async())
 
 
 if __name__ == "__main__":

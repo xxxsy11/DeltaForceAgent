@@ -4,19 +4,30 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from agents.output_quality import needs_compare_entity_resolution, is_failure_text
+from agents.retry_shared import append_retry_trace
 from agents.state import AgentState
+
+
+DEFAULT_RETRY_BUDGET = 1
+MAX_QUALITY_SCORE = 1.0
+MIN_QUALITY_SCORE = 0.0
 
 
 class ToolOutputValidatorAgent:
     """Rule-first validator for execution outputs."""
 
-    FAILURE_MARKERS = ("工具调用失败", "查询失败", "未找到工具", "系统错误", "不可用")
-
     def __init__(self, config):
-        self.max_execution_retry = int(getattr(config, "execution_retry_max", 1) or 1)
-        self.max_replan_retry = int(getattr(config, "replan_retry_max", 1) or 1)
-        self.max_reintent_retry = int(getattr(config, "retry_max_intent_recognition", 1) or 1)
-        self.max_tool_selection_review_retry = int(getattr(config, "retry_max_tool_selection_review", 1) or 1)
+        self.max_execution_retry = int(getattr(config, "execution_retry_max", DEFAULT_RETRY_BUDGET) or DEFAULT_RETRY_BUDGET)
+        self.max_replan_retry = int(getattr(config, "replan_retry_max", DEFAULT_RETRY_BUDGET) or DEFAULT_RETRY_BUDGET)
+        self.max_reintent_retry = int(
+            getattr(config, "retry_max_intent_recognition", DEFAULT_RETRY_BUDGET)
+            or DEFAULT_RETRY_BUDGET
+        )
+        self.max_tool_selection_review_retry = int(
+            getattr(config, "retry_max_tool_selection_review", DEFAULT_RETRY_BUDGET)
+            or DEFAULT_RETRY_BUDGET
+        )
 
     @staticmethod
     def _is_failed_result(item: Dict[str, Any]) -> bool:
@@ -24,9 +35,7 @@ class ToolOutputValidatorAgent:
         if isinstance(ok, bool):
             return not ok
         output = str(item.get("output", "") or "").strip()
-        if not output:
-            return True
-        return any(token in output for token in ToolOutputValidatorAgent.FAILURE_MARKERS)
+        return is_failure_text(output)
 
     @staticmethod
     def _is_retryable(item: Dict[str, Any]) -> bool:
@@ -39,14 +48,12 @@ class ToolOutputValidatorAgent:
     @staticmethod
     def _needs_replan(item: Dict[str, Any]) -> bool:
         text = str(item.get("output", "") or "")
-        if "请至少提供两个物品名称" in text:
-            return True
-        if "未能根据 objectName 匹配到交易物品ID" in text:
+        if needs_compare_entity_resolution(text):
             return True
         error_type = str(item.get("error_type", "") or "")
         return error_type in {"missing_entities", "entity_not_found"}
 
-    def run(self, state: AgentState) -> Dict[str, Any]:
+    async def run(self, state: AgentState) -> Dict[str, Any]:
         tool_calls = state.get("tool_calls", []) or []
         results = state.get("tool_results", []) or []
         debug_steps = list(state.get("debug_steps", []) or [])
@@ -63,7 +70,7 @@ class ToolOutputValidatorAgent:
             return {
                 "validation_result": validation,
                 "quality_gate_passed": True,
-                "quality_score": float(state.get("quality_score", 1.0) or 1.0),
+                "quality_score": float(state.get("quality_score", MAX_QUALITY_SCORE) or MAX_QUALITY_SCORE),
                 "retry_target_stage": "",
                 "retry_reason": "",
                 "last_failed_stage": "",
@@ -74,7 +81,11 @@ class ToolOutputValidatorAgent:
         failed = [item for item in results if self._is_failed_result(item)]
         success_count = max(0, len(results) - len(failed))
         failure_count = len(failed)
-        quality_score = 1.0 if not results else max(0.0, min(1.0, success_count / len(results)))
+        quality_score = (
+            MAX_QUALITY_SCORE
+            if not results
+            else max(MIN_QUALITY_SCORE, min(MAX_QUALITY_SCORE, success_count / len(results)))
+        )
 
         if failure_count == 0:
             validation = {
@@ -156,17 +167,17 @@ class ToolOutputValidatorAgent:
             "retry_target_stage": target_stage,
             "retry_reason": reason,
             "last_failed_stage": "execution",
-            "retry_trace": list(state.get("retry_trace", []) or [])
-            + [
-                {
-                    "stage": "tool_output_validator",
-                    "reason": reason,
-                    "retry_requested": retry_requested,
-                    "target_stage": target_stage,
+            "retry_trace": append_retry_trace(
+                state.get("retry_trace", []),
+                stage="tool_output_validator",
+                reason=reason,
+                retry_requested=retry_requested,
+                target_stage=target_stage,
+                extra={
                     "failure_count": failure_count,
                     "success_count": success_count,
-                }
-            ],
+                },
+            ),
             "block_persistent_write": bool(state.get("block_persistent_write", False) or block_write),
             "debug_steps": debug_steps
             + [

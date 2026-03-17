@@ -11,14 +11,20 @@ import time
 from typing import Any, Dict, Optional
 
 from agents.graph import build_multi_agent_graph
-from config import DEFAULT_CONFIG, GraphRAGConfig
+from config import DEFAULT_CONFIG, GraphRAGConfig, validate_runtime_config
 from memory import PersistentMemoryStore, SessionMemoryManager
 from memory.components import MemoryCompressionAgent, PersistentMemoryWriteNode
+from observability.langsmith import (
+    build_langsmith_run_config,
+    configure_langsmith_env,
+    langsmith_root_run,
+)
 from services import RAGService
 from tools import ToolRegistry
 
 _GLOBAL_MEMORY_MANAGER = SessionMemoryManager()
 _QUERY_RUNTIME_CACHE: Dict[int, "QueryRuntime"] = {}
+_QUERY_RUNTIME_CACHE_MAX = 8
 
 
 @dataclass
@@ -33,6 +39,8 @@ class QueryRuntime:
 
 
 def _build_runtime(config: GraphRAGConfig) -> QueryRuntime:
+    validate_runtime_config(config)
+    configure_langsmith_env(config)
     rag_service = RAGService(config)
     registry = ToolRegistry(rag_service=rag_service, config=config)
     persistent_store = PersistentMemoryStore(config)
@@ -49,10 +57,62 @@ def _get_query_runtime(config: GraphRAGConfig) -> QueryRuntime:
     cache_key = id(config)
     runtime = _QUERY_RUNTIME_CACHE.get(cache_key)
     if runtime is not None:
+        # LRU: 命中后移动到末尾，避免热点配置被提前淘汰。
+        _QUERY_RUNTIME_CACHE.pop(cache_key, None)
+        _QUERY_RUNTIME_CACHE[cache_key] = runtime
         return runtime
+
     runtime = _build_runtime(config)
     _QUERY_RUNTIME_CACHE[cache_key] = runtime
+    if len(_QUERY_RUNTIME_CACHE) > _QUERY_RUNTIME_CACHE_MAX:
+        oldest_key = next(iter(_QUERY_RUNTIME_CACHE))
+        if oldest_key != cache_key:
+            stale_runtime = _QUERY_RUNTIME_CACHE.pop(oldest_key)
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                asyncio.run(stale_runtime.close_async())
+            else:
+                loop.create_task(stale_runtime.close_async())
     return runtime
+
+
+def _snapshot_compiled_graph(graph: Any) -> Dict[str, Any]:
+    try:
+        graph_view = graph.get_graph()
+        nodes = sorted([str(node_id) for node_id in getattr(graph_view, "nodes", {}).keys()])
+        edges = [
+            {
+                "source": str(edge.source),
+                "target": str(edge.target),
+                "conditional": bool(getattr(edge, "conditional", False)),
+            }
+            for edge in list(getattr(graph_view, "edges", []) or [])
+        ]
+        return {
+            "node_count": len(nodes),
+            "edge_count": len(edges),
+            "nodes": nodes,
+            "edges": edges,
+            "mermaid": str(graph_view.draw_mermaid()),
+        }
+    except Exception:
+        return {}
+
+
+def _extract_stage_path(debug_steps: list[Any]) -> list[str]:
+    path: list[str] = []
+    prefix = "stage_timing: "
+    for step in debug_steps:
+        text = str(step or "")
+        if not text.startswith(prefix):
+            continue
+        stage = text[len(prefix):].split("=", 1)[0].strip()
+        if not stage:
+            continue
+        if not path or path[-1] != stage:
+            path.append(stage)
+    return path
 
 
 def _build_initial_state(
@@ -136,6 +196,62 @@ def _build_initial_state(
     return base
 
 
+async def _ainvoke_graph_query(
+    runtime: QueryRuntime,
+    *,
+    query: str,
+    session_id: str,
+    user_id: str,
+    memory_patch: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    invoke_config = build_langsmith_run_config(
+        runtime.config,
+        query=query,
+        user_id=user_id,
+        session_id=session_id,
+    )
+    context_tags = list(invoke_config.get("tags", []) or [])
+    context_metadata = dict(invoke_config.get("metadata", {}) or {})
+    graph_snapshot = _snapshot_compiled_graph(runtime.graph)
+    if graph_snapshot:
+        context_metadata["compiled_graph"] = graph_snapshot
+    root_name = str(invoke_config.get("run_name") or f"delta-agent:{user_id}:{session_id}")
+
+    with langsmith_root_run(
+        runtime.config,
+        name=root_name,
+        inputs={"query": query, "user_id": user_id, "session_id": session_id},
+        tags=context_tags,
+        metadata=context_metadata,
+        run_type="chain",
+    ) as root_run:
+        result = await runtime.graph.ainvoke(
+            _build_initial_state(
+                query,
+                session_id=session_id,
+                user_id=user_id,
+                memory_patch=memory_patch,
+            ),
+            config=invoke_config or None,
+        )
+        if root_run is not None:
+            stage_path = _extract_stage_path(list(result.get("debug_steps", []) or []))
+            root_run.end(
+                outputs={
+                    "final_answer_preview": str(result.get("final_answer", "") or "")[:800],
+                    "selected_tool": str(result.get("selected_tool", "") or ""),
+                    "flow_type": str(result.get("flow_type", "") or ""),
+                    "intent": str(result.get("intent", "") or ""),
+                    "quality_gate_passed": bool(result.get("quality_gate_passed", False)),
+                    "retry_count_total": int(result.get("retry_count_total", 0) or 0),
+                    "memory_persistent_used": bool(result.get("memory_persistent_used", False)),
+                    "executed_stage_path": stage_path,
+                    "executed_stage_count": len(stage_path),
+                }
+            )
+    return result
+
+
 async def _finalize_session_memory(
     user_id: str,
     session_id: str,
@@ -204,8 +320,12 @@ async def run_agent_query(
         session_id=session_id,
         include_pending_in_prompt=cfg.memory_include_pending_in_prompt,
     )
-    result = await runtime.graph.ainvoke(
-        _build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=memory_patch)
+    result = await _ainvoke_graph_query(
+        runtime,
+        query=query,
+        session_id=session_id,
+        user_id=user_id,
+        memory_patch=memory_patch,
     )
     manager.save_from_state(user_id=user_id, session_id=session_id, state=result)
     return result.get("final_answer", "")
@@ -293,8 +413,12 @@ async def run_agent_interactive(config: Optional[GraphRAGConfig] = None):
                 session_id=session_id,
                 include_pending_in_prompt=cfg.memory_include_pending_in_prompt,
             )
-            result = await runtime.graph.ainvoke(
-                _build_initial_state(query, session_id=session_id, user_id=user_id, memory_patch=memory_patch)
+            result = await _ainvoke_graph_query(
+                runtime,
+                query=query,
+                session_id=session_id,
+                user_id=user_id,
+                memory_patch=memory_patch,
             )
             memory_manager.save_from_state(user_id=user_id, session_id=session_id, state=result)
             orchestration_meta = result.get("orchestration_meta", {}) or {}

@@ -13,15 +13,38 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_MILVUS_HOST = "localhost"
+DEFAULT_MILVUS_PORT = 19530
+DEFAULT_COLLECTION_NAME = "deltaforce_knowledge"
+DEFAULT_VECTOR_DIMENSION = 512
+DEFAULT_EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"
+ROW_COUNT_TIMEOUT_SECONDS = 20
+ROW_COUNT_POLL_INTERVAL_SECONDS = 1.0
+FIELD_MAX_ID_LEN = 150
+FIELD_MAX_TEXT_LEN = 15000
+FIELD_MAX_NODE_ID_LEN = 100
+FIELD_MAX_ENTITY_NAME_LEN = 300
+FIELD_MAX_NODE_TYPE_LEN = 100
+FIELD_MAX_DOC_TYPE_LEN = 50
+FIELD_MAX_CHUNK_ID_LEN = 150
+FIELD_MAX_PARENT_ID_LEN = 100
+INDEX_HNSW_M = 16
+INDEX_HNSW_EF_CONSTRUCTION = 200
+DEFAULT_INSERT_BATCH_SIZE = 100
+POST_BUILD_WAIT_SECONDS = 2
+SEARCH_HNSW_EF = 64
+DEFAULT_SEARCH_K = 5
+GRAPH_INDEX_PROGRESS_DEFAULT = 0
+
 class MilvusIndexConstructionModule:
     """Milvus索引构建模块 - 负责向量化和Milvus索引构建"""
 
     def __init__(self, 
-                 host: str = "localhost", 
-                 port: int = 19530,
-                 collection_name: str = "deltaforce_knowledge",
-                 dimension: int = 512,
-                 model_name: str = "BAAI/bge-small-zh-v1.5"):
+                 host: str = DEFAULT_MILVUS_HOST, 
+                 port: int = DEFAULT_MILVUS_PORT,
+                 collection_name: str = DEFAULT_COLLECTION_NAME,
+                 dimension: int = DEFAULT_VECTOR_DIMENSION,
+                 model_name: str = DEFAULT_EMBEDDING_MODEL):
         """
         初始化Milvus索引构建模块
 
@@ -60,7 +83,12 @@ class MilvusIndexConstructionModule:
                 continue
         return 0
 
-    def _wait_for_row_count(self, expected_min: int, timeout_sec: int = 20, interval_sec: float = 1.0) -> int:
+    def _wait_for_row_count(
+        self,
+        expected_min: int,
+        timeout_sec: int = ROW_COUNT_TIMEOUT_SECONDS,
+        interval_sec: float = ROW_COUNT_POLL_INTERVAL_SECONDS,
+    ) -> int:
         """等待集合可见行数达到预期，避免构建成功但统计为 0 的假阳性。"""
         deadline = time.time() + timeout_sec
         last_count = 0
@@ -124,15 +152,15 @@ class MilvusIndexConstructionModule:
         """
         # 定义字段
         fields = [
-            FieldSchema(name="id", dtype=DataType.VARCHAR, max_length=150, is_primary=True),
+            FieldSchema(name="id", dtype=DataType.VARCHAR, max_length=FIELD_MAX_ID_LEN, is_primary=True),
             FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=self.dimension),
-            FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=15000),
-            FieldSchema(name="node_id", dtype=DataType.VARCHAR, max_length=100),
-            FieldSchema(name="entity_name", dtype=DataType.VARCHAR, max_length=300),
-            FieldSchema(name="node_type", dtype=DataType.VARCHAR, max_length=100),
-            FieldSchema(name="doc_type", dtype=DataType.VARCHAR, max_length=50),
-            FieldSchema(name="chunk_id", dtype=DataType.VARCHAR, max_length=150),
-            FieldSchema(name="parent_id", dtype=DataType.VARCHAR, max_length=100)
+            FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=FIELD_MAX_TEXT_LEN),
+            FieldSchema(name="node_id", dtype=DataType.VARCHAR, max_length=FIELD_MAX_NODE_ID_LEN),
+            FieldSchema(name="entity_name", dtype=DataType.VARCHAR, max_length=FIELD_MAX_ENTITY_NAME_LEN),
+            FieldSchema(name="node_type", dtype=DataType.VARCHAR, max_length=FIELD_MAX_NODE_TYPE_LEN),
+            FieldSchema(name="doc_type", dtype=DataType.VARCHAR, max_length=FIELD_MAX_DOC_TYPE_LEN),
+            FieldSchema(name="chunk_id", dtype=DataType.VARCHAR, max_length=FIELD_MAX_CHUNK_ID_LEN),
+            FieldSchema(name="parent_id", dtype=DataType.VARCHAR, max_length=FIELD_MAX_PARENT_ID_LEN)
         ]
         
         # 创建集合模式
@@ -203,8 +231,8 @@ class MilvusIndexConstructionModule:
                 index_type="HNSW",
                 metric_type="COSINE",
                 params={
-                    "M": 16,
-                    "efConstruction": 200
+                    "M": INDEX_HNSW_M,
+                    "efConstruction": INDEX_HNSW_EF_CONSTRUCTION
                 }
             )
             
@@ -254,23 +282,30 @@ class MilvusIndexConstructionModule:
             entities = []
             for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
                 entity = {
-                    "id": self._safe_truncate(chunk.metadata.get("chunk_id", f"chunk_{i}"), 150),
-                    "vector": vector,
-                    "text": self._safe_truncate(chunk.page_content, 15000),
-                    "node_id": self._safe_truncate(chunk.metadata.get("node_id", ""), 100),
-                    "entity_name": self._safe_truncate(
-                        chunk.metadata.get("entity_name", chunk.metadata.get("recipe_name", "")), 300
+                    "id": self._safe_truncate(
+                        chunk.metadata.get("chunk_id", f"chunk_{i}"),
+                        FIELD_MAX_ID_LEN,
                     ),
-                    "node_type": self._safe_truncate(chunk.metadata.get("node_type", ""), 100),
-                    "doc_type": self._safe_truncate(chunk.metadata.get("doc_type", ""), 50),
-                    "chunk_id": self._safe_truncate(chunk.metadata.get("chunk_id", f"chunk_{i}"), 150),
-                    "parent_id": self._safe_truncate(chunk.metadata.get("parent_id", ""), 100)
+                    "vector": vector,
+                    "text": self._safe_truncate(chunk.page_content, FIELD_MAX_TEXT_LEN),
+                    "node_id": self._safe_truncate(chunk.metadata.get("node_id", ""), FIELD_MAX_NODE_ID_LEN),
+                    "entity_name": self._safe_truncate(
+                        chunk.metadata.get("entity_name", chunk.metadata.get("recipe_name", "")),
+                        FIELD_MAX_ENTITY_NAME_LEN,
+                    ),
+                    "node_type": self._safe_truncate(chunk.metadata.get("node_type", ""), FIELD_MAX_NODE_TYPE_LEN),
+                    "doc_type": self._safe_truncate(chunk.metadata.get("doc_type", ""), FIELD_MAX_DOC_TYPE_LEN),
+                    "chunk_id": self._safe_truncate(
+                        chunk.metadata.get("chunk_id", f"chunk_{i}"),
+                        FIELD_MAX_CHUNK_ID_LEN,
+                    ),
+                    "parent_id": self._safe_truncate(chunk.metadata.get("parent_id", ""), FIELD_MAX_PARENT_ID_LEN)
                 }
                 entities.append(entity)
             
             # 4. 批量插入数据
             logger.info("正在插入向量数据...")
-            batch_size = 100
+            batch_size = DEFAULT_INSERT_BATCH_SIZE
             for i in range(0, len(entities), batch_size):
                 batch = entities[i:i + batch_size]
                 self.client.insert(
@@ -305,7 +340,7 @@ class MilvusIndexConstructionModule:
             
             # 7. 等待索引构建完成
             logger.info("等待索引构建完成...")
-            time.sleep(2)
+            time.sleep(POST_BUILD_WAIT_SECONDS)
             
             logger.info(f"向量索引构建完成，包含 {len(chunks)} 个向量")
             return True
@@ -338,17 +373,24 @@ class MilvusIndexConstructionModule:
             entities = []
             for i, (chunk, vector) in enumerate(zip(new_chunks, vectors)):
                 entity = {
-                    "id": self._safe_truncate(chunk.metadata.get("chunk_id", f"new_chunk_{i}_{int(time.time())}"), 150),
-                    "vector": vector,
-                    "text": self._safe_truncate(chunk.page_content, 15000),
-                    "node_id": self._safe_truncate(chunk.metadata.get("node_id", ""), 100),
-                    "entity_name": self._safe_truncate(
-                        chunk.metadata.get("entity_name", chunk.metadata.get("recipe_name", "")), 300
+                    "id": self._safe_truncate(
+                        chunk.metadata.get("chunk_id", f"new_chunk_{i}_{int(time.time())}"),
+                        FIELD_MAX_ID_LEN,
                     ),
-                    "node_type": self._safe_truncate(chunk.metadata.get("node_type", ""), 100),
-                    "doc_type": self._safe_truncate(chunk.metadata.get("doc_type", ""), 50),
-                    "chunk_id": self._safe_truncate(chunk.metadata.get("chunk_id", f"new_chunk_{i}_{int(time.time())}"), 150),
-                    "parent_id": self._safe_truncate(chunk.metadata.get("parent_id", ""), 100)
+                    "vector": vector,
+                    "text": self._safe_truncate(chunk.page_content, FIELD_MAX_TEXT_LEN),
+                    "node_id": self._safe_truncate(chunk.metadata.get("node_id", ""), FIELD_MAX_NODE_ID_LEN),
+                    "entity_name": self._safe_truncate(
+                        chunk.metadata.get("entity_name", chunk.metadata.get("recipe_name", "")),
+                        FIELD_MAX_ENTITY_NAME_LEN,
+                    ),
+                    "node_type": self._safe_truncate(chunk.metadata.get("node_type", ""), FIELD_MAX_NODE_TYPE_LEN),
+                    "doc_type": self._safe_truncate(chunk.metadata.get("doc_type", ""), FIELD_MAX_DOC_TYPE_LEN),
+                    "chunk_id": self._safe_truncate(
+                        chunk.metadata.get("chunk_id", f"new_chunk_{i}_{int(time.time())}"),
+                        FIELD_MAX_CHUNK_ID_LEN,
+                    ),
+                    "parent_id": self._safe_truncate(chunk.metadata.get("parent_id", ""), FIELD_MAX_PARENT_ID_LEN)
                 }
                 entities.append(entity)
             
@@ -365,7 +407,12 @@ class MilvusIndexConstructionModule:
             logger.error(f"添加新文档失败: {e}")
             return False
     
-    def similarity_search(self, query: str, k: int = 5, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    def similarity_search(
+        self,
+        query: str,
+        k: int = DEFAULT_SEARCH_K,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
         """
         相似度搜索
         
@@ -408,7 +455,7 @@ class MilvusIndexConstructionModule:
             # 执行搜索 - 修复参数传递
             search_params = {
                 "metric_type": "COSINE",
-                "params": {"ef": 64}
+                "params": {"ef": SEARCH_HNSW_EF}
             }
             
             # 构建搜索参数，避免重复传递
@@ -478,7 +525,10 @@ class MilvusIndexConstructionModule:
             return {
                 "collection_name": self.collection_name,
                 "row_count": row_count,
-                "index_building_progress": stats.get("index_building_progress", 0),
+                "index_building_progress": stats.get(
+                    "index_building_progress",
+                    GRAPH_INDEX_PROGRESS_DEFAULT,
+                ),
                 "stats": stats,
                 "describe": describe,
             }

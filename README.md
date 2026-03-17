@@ -1,14 +1,12 @@
 # DeltaForce_Agent
-# 说明
 
-个人学习所建项目，欢迎提建议，更新中！
+面向《三角洲行动》场景的 GraphRAG 多智能体项目，覆盖知识检索、市场分析、会话记忆、本地 LoRA-SFT、Agentic RL 与系统评测。
 
-目标：GraphRAG + Multi-Agent + SFT LoRA/QLoRA RLHF
+目标方向：GraphRAG + Multi-Agent + LoRA-SFT / Agentic RL
 
+# 路线图
 
-# TODO
-
-## 功能
+## 规划中功能
 
 - ✅ 三角洲知识问答助手
 - ☐ 三角洲战备智能体（鼠鼠玩家、正常玩家、猛攻玩家）
@@ -28,7 +26,7 @@
 - ✅ 配件数据（attachments.json）- 配件（弹匣、瞄具、护木、枪管等）名称、类型、效果等
 - ✅ 弹药数据（ammo.json）- 弹药名称、类型等
 
-## 其他
+## 工程特性
 
 - ✅ 支持本地LLM模型调用
 - ✅ 微调
@@ -49,9 +47,12 @@
 - 工具稳健性增强：新增参数校验与异常工具复核机制（tool selection review），在工具失败场景下优先重选工具，减少无效全链路回退。
 - 质量审查与自动纠错：工具结果审查 + 回答审查 + 分阶段重试 + 重试预算控制，降低异常结果直接输出风险。
 - 工程验证能力：提供统一测试与评测脚本，覆盖功能可用性、工具调用、双 RAG 召回、记忆门控、用户隔离、审查重试链路与 SFT 模块效果对比。
+- Self-Improving（Agentic RL）闭环：新增在线轨迹采集 Agent、离线数据构建脚本、规则 + LLM Judge 混合奖励与 Tool-Planning GRPO 训练入口，可持续迭代策略模型。
+- LangSmith / LangGraph 可观测能力：支持 root run、stage span、工具调用、RAG 检索、长期记忆、自进化采样与本地模型推理的统一追踪。
 
 完整技术报告请查看：`docs/TECHNICAL_ARCHITECTURE.md`  
-SFT 模块评测请查看：`docs/SFT_EVAL_REPORT.md`
+SFT 模块评测请查看：`docs/SFT_EVAL_REPORT.md`  
+Self-Improving 设计与实现请查看：`docs/SELF_IMPROVING_AGENTIC_RL.md`
 
 ## 关于实时数据
 
@@ -64,6 +65,52 @@ SFT 模块评测请查看：`docs/SFT_EVAL_REPORT.md`
 # 当前版本
 
 <details open>
+<summary><b> V0.8.0 - Self-Improving Agentic RL + LangSmith + 工程优化 </b></summary>
+
+## 升级内容
+
+- Self-Improving 闭环落地：新增在线轨迹采集 Agent、离线样本构建脚本、规则分 + LLM Judge 混合奖励、Tool-Planning GRPO 训练与离线评测链路。
+- LangSmith 全链路观测：覆盖 root run、stage run、工具调用、RAG 检索、本地模型推理、长期记忆召回/写入、自进化数据采集与 LLM Judge，支持按 `user_id/session_id` 追踪。
+- LangGraph Studio 接入：提供 `langgraph.json` 与 `src/langgraph_app.py`，可直接在 Studio 中查看图入口与运行轨迹。
+- 工程优化同步：统一相对路径配置、补齐包级懒加载、收敛导入副作用、强化阶段级中文耗时日志，提升可维护性与开源可移植性。
+- GitHub 提交版整理：同步训练脚本、评测脚本、基准数据、测试用例与技术文档，去除本地运行产物与中间实验目录。
+
+## 关键模块
+
+- 自进化采样与奖励：`src/agents/self_improving_data_agent.py`
+- LLM Judge Prompt：`src/prompts/self_improve_llm_judge_prompt.txt`
+- GRPO 训练与评测：`training/tool_planning_rl/train_grpo.py`、`training/tool_planning_rl/eval.py`
+- LangSmith 观测封装：`src/observability/langsmith.py`
+- LangGraph Studio 入口：`src/langgraph_app.py`、`langgraph.json`
+- 主流程编排：`src/agents/graph.py`
+
+## 运行与验证
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+python main.py
+```
+
+```bash
+# 可选：启用 LangSmith
+export LANGSMITH_ENABLED=1
+export LANGSMITH_API_KEY=your_api_key
+export LANGSMITH_PROJECT=delta-agent
+```
+
+```bash
+# 可选：LangGraph Studio 图监控
+pip install -U "langgraph-cli[inmem]"
+cd DeltaForce_Agent
+langgraph dev
+```
+
+</details>
+
+---
+
+<details>
 <summary><b> V0.7.1 - 异步链路与可观测优化 </b></summary>
 
 ## 升级内容
@@ -72,12 +119,14 @@ SFT 模块评测请查看：`docs/SFT_EVAL_REPORT.md`
 - 本地模型调用统一：本地 Qwen 运行时补充异步调用接口，主流程通过统一异步入口调度 Base 模型与 LoRA Adapter。
 - 制造利润路由优化：对制造台相关问法（制造台、特勤处制造、技术中心、工作台、制药台、防具台）增强规则优先级，减少误选 `df_multi_item_compare` 的情况。
 - 控制台可观测优化：阶段日志中文化输出，统一展示“正在执行什么 + 执行耗时 + 关键结果”；压低底层无关 INFO 日志噪声，便于在线排障。
+- LangSmith 全链路接入：覆盖 `root run`、`stage run`、工具调用、RAG 检索、本地模型推理、长期记忆召回/写入、自进化数据采集与 LLM Judge，支持按 `user_id/session_id` 追踪。
 - 文档与配置同步：更新技术文档中的流程说明与关键路径，保持实现与文档一致。
 
 ## 关键模块
 
 - 编排与阶段追踪：`src/agents/graph.py`
 - 交互入口与耗时输出：`src/agents/runner.py`
+- LangSmith 观测封装：`src/observability/langsmith.py`
 - 意图识别：`src/agents/intent_recognition.py`
 - 规则分析器：`src/agents/intent_analyzer.py`
 - 工具规划与总结：`src/agents/tool_planner.py`、`src/agents/summary_agent.py`
@@ -90,6 +139,39 @@ pip install -r requirements.txt
 cp .env.example .env
 python main.py
 ```
+
+```bash
+# 可选：启用 LangSmith
+export LANGSMITH_ENABLED=1
+export LANGSMITH_API_KEY=your_api_key
+export LANGSMITH_PROJECT=delta-agent
+```
+
+```bash
+# 可选：LangGraph Studio 图监控（Graph mode）
+# 1) 安装 CLI（与项目同一 Python 环境）
+pip install -U "langgraph-cli[inmem]"
+
+# 2) 在项目根目录启动本地 Agent Server
+cd DeltaForce_Agent
+langgraph dev
+```
+
+启动后打开：
+
+- `https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024`
+
+可直接提交最小输入（JSON）：
+
+```json
+{
+  "user_id": "user-0001",
+  "session_id": "chat-0001",
+  "user_query": "介绍一下非洲之心"
+}
+```
+
+本项目已提供 Studio 配置文件：`langgraph.json`，图入口：`src/langgraph_app.py:graph`。
 
 </details>
 

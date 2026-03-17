@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -16,7 +15,7 @@ except Exception as exc:  # pragma: no cover
     raise SystemExit(f"psycopg 未安装，无法导出记忆数据: {exc}")
 
 
-DEFAULT_DSN = os.getenv("MEMORY_PERSISTENT_DSN", "")
+DEFAULT_DSN = "postgresql://deltaforce_agent:deltaforce_agent@127.0.0.1:5432/deltaforce_agent"
 DEFAULT_OUT_BASE = Path("data/memory/exports")
 
 
@@ -152,8 +151,6 @@ def _render_chat_turns_md(rows: List[Dict[str, Any]]) -> str:
 
 def main() -> None:
     args = _parse_args()
-    if not str(args.dsn or "").strip():
-        raise SystemExit("未提供 --dsn，且未配置 MEMORY_PERSISTENT_DSN")
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = Path(args.output_dir).resolve() if args.output_dir else (DEFAULT_OUT_BASE / ts)
     _ensure_dir(out_dir)
@@ -224,3 +221,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Dict, List
 
+from agents.message_payloads import build_task_plan_payload
+from agents.message_utils import append_agent_message
 from agents.state import AgentState
 from agents.tool_planner import LLMToolPlanner
 from tools import ToolRegistry
@@ -31,7 +33,7 @@ class ToolSelectionReviewAgent:
         target = max(2, int(compare_n or 2))
         return f"{'、'.join(uniq[:target])} 对比"
 
-    def run(self, state: AgentState) -> Dict:
+    async def run(self, state: AgentState) -> Dict:
         query = str(state.get("user_query", "") or "").strip()
         if not query:
             return {"debug_steps": list(state.get("debug_steps", []) or []) + ["tool_selection_review: skipped(empty_query)"]}
@@ -42,7 +44,7 @@ class ToolSelectionReviewAgent:
         entities = [str(x).strip() for x in (state.get("understanding_entities", []) or []) if str(x).strip()]
         compare_n = int(state.get("understanding_compare_target_count", 2) or 2)
 
-        decision = self.planner.plan_force_tool_selection(
+        decision = await self.planner.plan_force_tool_selection_async(
             query=review_query,
             available_tools=self.registry.list_tools(),
             fallback_intent=fallback_intent,
@@ -70,16 +72,6 @@ class ToolSelectionReviewAgent:
         selected_tool = str(task_plan[0].get("tool_name", "none")) if task_plan else "none"
         selected_query = str(task_plan[0].get("tool_query", "")) if task_plan else ""
 
-        message = {
-            "from_agent": "tool_selection_review",
-            "to_agent": "execution",
-            "message_type": "tool_reselected",
-            "payload": {
-                "intent": decision.intent,
-                "reason": decision.reason,
-                "task_plan": task_plan,
-            },
-        }
         return {
             "intent": decision.intent or fallback_intent,
             "intent_reason": f"{decision.reason} (review)",
@@ -90,8 +82,17 @@ class ToolSelectionReviewAgent:
             "tool_calls": task_plan,
             "force_reintent": False,
             "force_replan": False,
-            "agent_messages": list(state.get("agent_messages", []) or []) + [message],
+            "agent_messages": append_agent_message(
+                state.get("agent_messages", []),
+                from_agent="tool_selection_review",
+                to_agent="execution",
+                message_type="tool_reselected",
+                payload=build_task_plan_payload(
+                    intent=decision.intent,
+                    reason=decision.reason,
+                    task_plan=task_plan,
+                ),
+            ),
             "debug_steps": list(state.get("debug_steps", []) or [])
             + [f"tool_selection_review: reselected={selected_tool},plan={len(task_plan)}"],
         }
-

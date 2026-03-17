@@ -1,0 +1,52 @@
+{
+  "base_model_path": "models/Qwen3-8B",
+  "train_file": "data/dataset/sft/intent/train.jsonl",
+  "eval_file": "data/dataset/sft/intent/dev.jsonl",
+  "output_dir": "outputs/intent_sft/qwen3_8b_lora",
+  "max_seq_length": 1024,
+  "num_train_epochs": 3,
+  "learning_rate": 6e-05,
+  "lr_scheduler_type": "cosine",
+  "warmup_ratio": 0.05,
+  "weight_decay": 0.01,
+  "per_device_train_batch_size": 2,
+  "per_device_eval_batch_size": 1,
+  "gradient_accumulation_steps": 24,
+  "logging_steps": 10,
+  "save_steps": 150,
+  "eval_steps": 150,
+  "save_total_limit": 5,
+  "seed": 42,
+  "bf16": false,
+  "fp16": true,
+  "gradient_checkpointing": true,
+  "lora_r": 64,
+  "lora_alpha": 128,
+  "lora_dropout": 0.05,
+  "target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "use_qlora": false,
+  "deepspeed_config": "training/common/configs/deepspeed_zero2.json",
+  "report_to": [
+    "wandb"
+  ],
+  "run_name": "deltaforceagent-intent-sft-lora",
+  "logging_dir": "outputs/intent_sft/logs",
+  "wandb_project": "deltaforceagent-sft",
+  "wandb_entity": "",
+  "wandb_tags": [
+    "intent",
+    "sft",
+    "lora",
+    "qwen3-8b"
+  ],
+  "wandb_mode": "online",
+  "system_prompt": "你是DeltaAgent的意图识别与工具规划子Agent。你必须根据用户问题、记忆上下文和可用工具输出严格JSON，不要输出任何额外文本。"
+}

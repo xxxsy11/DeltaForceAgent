@@ -16,6 +16,9 @@ from typing import Dict, Optional, Tuple
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from config import GraphRAGConfig
+from observability.langsmith import langsmith_trace
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -125,7 +128,7 @@ class _LocalQwenRuntime:
 
         model_kwargs = {"trust_remote_code": True, "low_cpu_mem_usage": True}
         if self.key.device == "cpu":
-            model_kwargs["dtype"] = torch.float16
+            model_kwargs["dtype"] = torch.float32
             model_kwargs["device_map"] = None
         else:
             model_kwargs["dtype"] = torch.float16
@@ -187,56 +190,81 @@ class _LocalQwenRuntime:
         self._active_model.eval()
         self._active_adapter = normalized
 
-    def generate(self, prompt: str, adapter_path: str = "", max_new_tokens: Optional[int] = None) -> str:
+    def generate(
+        self,
+        prompt: str,
+        adapter_path: str = "",
+        max_new_tokens: Optional[int] = None,
+        trace_config: Optional[GraphRAGConfig] = None,
+    ) -> str:
         with self._lock:
             self._ensure_base_loaded()
             self._switch_adapter(adapter_path)
 
-            user_prompt = str(prompt or "")
-            if self.key.force_no_think:
-                lowered = user_prompt.lstrip().lower()
-                if not lowered.startswith("/no_think") and not lowered.startswith("/think"):
-                    user_prompt = f"/no_think\n{user_prompt}"
-            messages = [{"role": "user", "content": user_prompt}]
-            try:
-                text = self._tokenizer.apply_chat_template(
-                    messages,
-                    tokenize=False,
-                    add_generation_prompt=True,
-                    enable_thinking=(not self.key.force_no_think),
-                )
-            except Exception:
+            with langsmith_trace(
+                trace_config,
+                name="local_qwen_generate",
+                run_type="llm",
+                inputs={
+                    "prompt_preview": str(prompt or "")[:500],
+                    "base_model_path": self.key.base_model_path,
+                    "adapter_path": str(adapter_path or "").strip(),
+                    "device": self.key.device,
+                    "max_new_tokens": int(max_new_tokens or self.key.max_new_tokens),
+                    "force_no_think": self.key.force_no_think,
+                },
+                tags=["local-qwen", self.key.device],
+                metadata={
+                    "base_model_path": self.key.base_model_path,
+                    "adapter_path": str(adapter_path or "").strip(),
+                    "device": self.key.device,
+                },
+            ):
+                user_prompt = str(prompt or "")
+                if self.key.force_no_think:
+                    lowered = user_prompt.lstrip().lower()
+                    if not lowered.startswith("/no_think") and not lowered.startswith("/think"):
+                        user_prompt = f"/no_think\n{user_prompt}"
+                messages = [{"role": "user", "content": user_prompt}]
                 try:
-                    text = self._tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                    text = self._tokenizer.apply_chat_template(
+                        messages,
+                        tokenize=False,
+                        add_generation_prompt=True,
+                        enable_thinking=(not self.key.force_no_think),
+                    )
                 except Exception:
-                    text = str(prompt or "")
-
-            inputs = self._tokenizer(text, return_tensors="pt")
-            if self.key.device == "cpu":
-                inputs = {k: v.to("cpu") for k, v in inputs.items()}
-            else:
-                inputs = {k: v.to(self._active_model.device) for k, v in inputs.items()}
-
-            generation_config = self._active_model.generation_config
-            generation_config.do_sample = False
-            for key in ("temperature", "top_p", "top_k"):
-                if hasattr(generation_config, key):
                     try:
-                        setattr(generation_config, key, None)
+                        text = self._tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
                     except Exception:
-                        pass
+                        text = str(prompt or "")
 
-            with torch.no_grad():
-                output_ids = self._active_model.generate(
-                    **inputs,
-                    max_new_tokens=int(max_new_tokens or self.key.max_new_tokens),
-                    do_sample=False,
-                    generation_config=generation_config,
-                )
-            gen_ids = output_ids[0][inputs["input_ids"].shape[1] :]
-            decoded = self._tokenizer.decode(gen_ids, skip_special_tokens=True).strip()
-            decoded = re.sub(r"<think>[\s\S]*?</think>\s*", "", decoded).strip()
-            return decoded
+                inputs = self._tokenizer(text, return_tensors="pt")
+                if self.key.device == "cpu":
+                    inputs = {k: v.to("cpu") for k, v in inputs.items()}
+                else:
+                    inputs = {k: v.to(self._active_model.device) for k, v in inputs.items()}
+
+                generation_config = self._active_model.generation_config
+                generation_config.do_sample = False
+                for key in ("temperature", "top_p", "top_k"):
+                    if hasattr(generation_config, key):
+                        try:
+                            setattr(generation_config, key, None)
+                        except Exception:
+                            pass
+
+                with torch.no_grad():
+                    output_ids = self._active_model.generate(
+                        **inputs,
+                        max_new_tokens=int(max_new_tokens or self.key.max_new_tokens),
+                        do_sample=False,
+                        generation_config=generation_config,
+                    )
+                gen_ids = output_ids[0][inputs["input_ids"].shape[1] :]
+                decoded = self._tokenizer.decode(gen_ids, skip_special_tokens=True).strip()
+                decoded = re.sub(r"<think>[\s\S]*?</think>\s*", "", decoded).strip()
+                return decoded
 
 
 class LocalQwenChatModel:
@@ -251,7 +279,9 @@ class LocalQwenChatModel:
         device: str = "cpu",
         max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
         force_no_think: bool = True,
+        config: Optional[GraphRAGConfig] = None,
     ):
+        self.config = config
         self.base_model_path = str(base_model_path or "").strip()
         self.adapter_path = str(adapter_path or "").strip()
         self.device = _normalize_device(device)
@@ -269,6 +299,7 @@ class LocalQwenChatModel:
             prompt=prompt,
             adapter_path=self.adapter_path,
             max_new_tokens=self.max_new_tokens,
+            trace_config=self.config,
         )
         return SimpleNamespace(content=text)
 

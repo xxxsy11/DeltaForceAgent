@@ -9,7 +9,10 @@ from typing import Dict, List, Optional
 
 from langchain_openai import ChatOpenAI
 
+from agents.message_payloads import build_specialist_analysis_payload
+from agents.message_utils import append_agent_message
 from agents.state import AgentState
+from observability.langsmith import langsmith_trace
 from rag_modules.llm_utils import extract_text_content
 
 logger = logging.getLogger(__name__)
@@ -21,9 +24,12 @@ class SpecialistAnalysisAgent:
     REMOTE_MAX_TOKENS = 512
     REMOTE_TIMEOUT_SECONDS = 60
     MAX_INSIGHTS = 3
+    TRACE_QUERY_PREVIEW_CHARS = 240
+    TRACE_INSIGHT_PREVIEW_CHARS = 320
 
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, config=None):
         self.model_name = model_name
+        self.config = config
         self.llm = self._build_llm()
 
     def _build_llm(self):
@@ -50,6 +56,13 @@ class SpecialistAnalysisAgent:
         except Exception as exc:
             logger.debug("specialist_analysis: failed to parse json output: %s", exc)
             return {}
+
+    @staticmethod
+    def _trace_preview(text: str, limit: int) -> str:
+        raw = str(text or "").strip()
+        if len(raw) <= limit:
+            return raw
+        return raw[:limit]
 
     @staticmethod
     def _heuristic_insights(report: Dict) -> Dict:
@@ -112,12 +125,40 @@ class SpecialistAnalysisAgent:
 分析报告：{json.dumps(report, ensure_ascii=False)}
 """
         try:
-            resp = await self.llm.ainvoke(prompt)
-            text = extract_text_content(getattr(resp, "content", resp)).strip()
-            parsed = self._extract_json(text)
-            if parsed.get("insights"):
-                parsed["model"] = self.model_name
-                return parsed
+            with langsmith_trace(
+                self.config,
+                name="specialist:insight_generation",
+                run_type="llm",
+                inputs={
+                    "query_preview": self._trace_preview(query, self.TRACE_QUERY_PREVIEW_CHARS),
+                    "report_keys": sorted(list(report.keys())),
+                },
+                tags=["specialist", "analysis", "llm"],
+                metadata={"model_name": self.model_name},
+            ) as span:
+                resp = await self.llm.ainvoke(prompt)
+                if span is not None:
+                    text = extract_text_content(getattr(resp, "content", resp)).strip()
+                    parsed = self._extract_json(text)
+                    if parsed.get("insights"):
+                        parsed["model"] = self.model_name
+                        span.end(
+                            outputs={
+                                "insight_count": len(parsed.get("insights", []) or []),
+                                "focus": str(parsed.get("focus", "") or ""),
+                                "insight_preview": self._trace_preview(
+                                    " | ".join([str(x) for x in parsed.get("insights", [])]),
+                                    self.TRACE_INSIGHT_PREVIEW_CHARS,
+                                ),
+                            }
+                        )
+                        return parsed
+                else:
+                    text = extract_text_content(getattr(resp, "content", resp)).strip()
+                    parsed = self._extract_json(text)
+                    if parsed.get("insights"):
+                        parsed["model"] = self.model_name
+                        return parsed
         except Exception as exc:
             logger.warning("specialist_analysis: llm insight failed, fallback to heuristic: %s", exc)
         return self._heuristic_insights(report)
@@ -142,14 +183,14 @@ class SpecialistAnalysisAgent:
             "confidence": specialist.get("confidence", "medium"),
             "insights": specialist.get("insights", [])[: self.MAX_INSIGHTS],
         }
-        msg = {
-            "from_agent": "specialist_analysis",
-            "to_agent": "summary",
-            "message_type": "specialist_analysis",
-            "payload": updated.get("specialist", {}),
-        }
         return {
             "analysis_report": updated,
-            "agent_messages": state.get("agent_messages", []) + [msg],
+            "agent_messages": append_agent_message(
+                state.get("agent_messages", []),
+                from_agent="specialist_analysis",
+                to_agent="summary",
+                message_type="specialist_analysis",
+                payload=build_specialist_analysis_payload(updated.get("specialist", {})),
+            ),
             "debug_steps": state.get("debug_steps", []) + ["specialist_analysis: done"],
         }

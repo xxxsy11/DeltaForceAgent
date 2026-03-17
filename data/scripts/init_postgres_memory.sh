@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 初始化本地 PostgreSQL 持久化记忆库（DeltaForce_Agent）
+# 初始化本地 PostgreSQL 持久化记忆库（deltaforce_agent）
 # 依赖：postgresql 服务已安装并启动、pgvector 扩展已安装
 
 DB_USER="${1:-deltaforce_agent}"

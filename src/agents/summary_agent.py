@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Dict, List
 
+from agents.message_utils import find_latest_message_payload
+from agents.output_quality import EMPTY_RESULT_TEXT, is_failure_text
 from agents.state import AgentState
 from agents.tool_planner import LLMToolPlanner
 
@@ -19,15 +21,14 @@ class SummaryAgent:
         report = state.get("analysis_report") or {}
         if report:
             return report
-        for msg in reversed(state.get("agent_messages", [])):
-            if msg.get("message_type") == "analysis_report" and msg.get("to_agent") in {"summary", "responder"}:
-                payload = msg.get("payload")
-                if isinstance(payload, dict):
-                    return payload
-        return {}
+        return find_latest_message_payload(
+            state.get("agent_messages", []),
+            message_type="analysis_report",
+            to_agents={"summary", "responder"},
+        )
 
     async def _compose_simple(self, tool_results: List[Dict], user_query: str) -> str:
-        success = [item for item in tool_results if not self.planner._is_failure(str(item.get("output", "")))]
+        success = [item for item in tool_results if not is_failure_text(str(item.get("output", "")))]
         if len(success) == 1:
             return str(success[0].get("output", "")).strip()
         return (await self.planner.compose_answer_async(user_query=user_query, tool_results=tool_results)).strip()
@@ -67,7 +68,7 @@ class SummaryAgent:
             answer = str(answer or "").strip()
 
         if not answer:
-            answer = "未获得可用结果。"
+            answer = EMPTY_RESULT_TEXT
         return {
             "final_answer": answer,
             "summary_attempt": int(state.get("summary_attempt", 0) or 0) + 1,
